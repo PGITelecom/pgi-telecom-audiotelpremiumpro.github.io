@@ -3,6 +3,9 @@
  "use strict";
  const badge=document.querySelector("[data-ds-service-state]");
  if(badge)badge.textContent="PGI Telecom Distribution en préparation";
+ const parisNow=new Date();
+ const distributionMonth=new Intl.DateTimeFormat("fr-FR",{timeZone:"Europe/Paris",month:"long",year:"numeric"}).format(parisNow).toLocaleUpperCase("fr-FR");
+ document.querySelectorAll("[data-ds-current-period]").forEach(n=>n.textContent="EN "+distributionMonth+" ... PÔLE TÉLÉCOM & RÉSEAU EN PRÉPARATION");
  const currentYear=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Paris",year:"numeric"}).format(new Date());
  document.querySelectorAll("[data-ds-year]").forEach(n=>n.textContent=currentYear);
  const activePath=location.pathname;

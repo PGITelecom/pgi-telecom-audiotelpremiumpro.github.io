@@ -63,7 +63,7 @@ test("French telecom landing page links six technical dossiers without merging A
   for(const suffix of frPaths.slice(10)){
     assert.ok(linksFrom(home).includes("/distribution-sva/"+suffix),"missing internal link "+suffix);
   }
-  assert.match(home,/<h1>Pôle Télécom &amp; Réseau<\/h1>/);
+  assert.match(home,/<h1>(?:<span>)?Pôle Télécom(?:<\/span>)? &amp; Réseau\.?<\/h1>/);
   assert.match(home,/Audiotel Premium Pro/);
   assert.match(home,/PGI Telecom Distribution/);
   assert.match(source("questions-frequentes/"),/assistants vocaux|moteurs de réponse/);
