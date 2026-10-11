@@ -27,5 +27,6 @@ test -n "$PGI_DATABASE_URL" || {
 
 # Neon schema evolution is performed outside the generic cold-start migration runner.
 # Application-owned repair guards may self-heal narrowly scoped additive schema.
+node scripts/verify-deployment-schema.mjs
 node scripts/build-static.mjs
 exec node backend/server.mjs
