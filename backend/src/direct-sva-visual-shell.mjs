@@ -22,7 +22,7 @@ function sharedHeader(lang,path){
  const links=items.map((name,i)=>link(r[i],name,path===r[i])).join("");
  return '<header class="site-header ds-main-header">'+
  '<div class="wrap header-inner">'+
- '<a class="brand brand-full" href="/" aria-label="Audiotel Premium Pro"><img src="/assets/audiotel-brand-logo-v33.png" width="238" height="78" alt="Audiotel Premium Pro"></a>'+
+ '<a class="brand brand-full" href="'+(path==="/distribution-sva/"?"/":"/distribution-sva/")+'" aria-label="'+htmlEscape(path==="/distribution-sva/"?"Revenir à Audiotel Premium Pro":"Revenir à l’accueil Pôle Télécom & Réseau")+'"><img src="/assets/audiotel-brand-logo-v33.png" width="238" height="78" alt="Audiotel Premium Pro"></a>'+
  '<nav class="ds-main-nav" aria-label="'+htmlEscape(t.aria)+'">'+links+'</nav>'+
  '<div class="header-actions"><div class="header-account-entry">'+
  '<a class="header-login" href="/client.html"><strong>'+htmlEscape(t.account)+'</strong></a>'+
@@ -54,15 +54,60 @@ const cssLinks=[
 const sourceStyles=/<link\s+rel="stylesheet"\s+href="\/site\/(?:site\.css|distribution-sva\/(?:style|brand|parity|unified)\.css)"\s*\/?>\s*/g;
 const sourceSearch=/<script\s+src="\/site\/site-search\.js"\s+defer><\/script>\s*/g;
 function installHeroPhoto(html){
- if(!html.includes('<h1><span>Pôle Télécom</span> &amp; Réseau.</h1>'))return html;
- const previous=/<div class="hero-side"><figure class="hero-visual">[\s\S]*?<\/figure><\/div>/;
- const caption='Réseau télécom et interconnexion. Illustration du pôle en préparation.';
- const photo='<figure class="hero-visual ds-hero-photo-under-title">'+
- '<img src="/site/distribution-sva/telecom-hero.webp" alt="Antenne de télécommunications surplombant une ville au coucher du soleil" width="333" height="471" decoding="async" fetchpriority="high">'+
- '<figcaption>'+htmlEscape(caption)+'</figcaption></figure>';
- let output=html.replace(previous,"");
- return output.replace('<h1><span>Pôle Télécom</span> &amp; Réseau.</h1>',
- '<h1><span>Pôle Télécom</span> &amp; Réseau.</h1>\n'+photo);
+ const heading='<h1><span>Pôle Télécom</span> &amp; Réseau.</h1>';
+ if(!html.includes(heading))return html;
+ // Reuse the originally selected tower-at-sunset image. Unlike the old card,
+ // the title and a short statement live inside the photographic composition.
+ const art='<div class="ds-hero-photographic" role="group" aria-label="Pôle Télécom et Réseau">'+
+ '<img class="ds-network-tower" src="/site/distribution-sva/telecom-hero.webp" alt="Antenne de télécommunications, ville au soleil couchant et connexions lumineuses" width="960" height="1358" decoding="async" fetchpriority="high">'+
+ '<div class="ds-hero-photographic-copy">'+
+ '<p class="ds-hero-photo-kicker">PGI TELECOM DISTRIBUTION <span>EN PRÉPARATION</span></p>'+
+ heading+
+ '<p class="ds-hero-photo-description">L’infrastructure de demain, pensée pour la continuité de vos services à valeur ajoutée.</p>'+
+ '</div></div>';
+ let out=html.replace(/<div class="hero-side"><figure class="hero-visual">[\s\S]*?<\/figure><\/div>/,"");
+ // The original source includes the pre-image typography lines. Move their
+ // meaning into the hero photo, without duplicating visible headings.
+ out=out.replace(/<p class="eyebrow hero-brand-signature">[\s\S]*?<\/p>\s*<p class="eyebrow hero-service-line">[\s\S]*?<\/p>\s*<h1><span>Pôle Télécom<\/span> &amp; Réseau\.<\/h1>/,art);
+ return out;
+}
+function enhanceDistributionHome(html){
+ // Informational panels that look actionable should have a real destination,
+ // not an inert hover state or a synthetic "button".
+ const destinations=new Map([
+ ["Numérotation","/distribution-sva/numerotation/"],
+ ["Suivi financier","/distribution-sva/releves-reversements/"],
+ ["Espace client","/distribution-sva/espace-client/"]
+ ]);
+ html=html.replace(/<article class="card">([\s\S]*?)<\/article>/g,(original,inner)=>{
+  let content=inner;
+  const title=/<h3>([^<]+)<\/h3>/.exec(inner)?.[1]||"";
+  const href=destinations.get(title);
+  if(!/<a\s/.test(content)&&href){
+   content+='<a class="ds-card-action" href="'+href+'">Découvrir '+htmlEscape(title.toLowerCase())+' <span aria-hidden="true">→</span></a>';
+  }
+  if(!/<a\s/.test(content))return original;
+  return '<article class="card ds-card-clickable">'+content+'</article>';
+ });
+ html=html.replace(/<div class="ds-two-columns">([\s\S]*?)<\/div><p class="notice">/,(_all,content)=>{
+  const boxes=content.replace(/<div>(<span class="ds-unit-icon"[\s\S]*?<\/p>)<\/div>/g,(part,inner)=>{
+   const first=inner.includes("Audiotel Premium Pro");
+   return '<a class="ds-universe-link" href="'+(first?"/":"/distribution-sva/solutions/")+'">'+inner+'<span class="ds-universe-arrow" aria-hidden="true">→</span></a>';
+  });
+  return '<div class="ds-two-columns">'+boxes+'</div><p class="notice">';
+ });
+ return html;
+}
+
+function stretchExistingCardLinks(html){
+ // A single destination on a feature card becomes a real full-card touch target,
+ // including on all informational subpages. Cards without a link remain static.
+ return html.replace(/<article class="card([^"]*)">([\s\S]*?)<\/article>/g,(whole,classes,inner)=>{
+  if(classes.includes("ds-card-clickable"))return whole;
+  const links=inner.match(/<a\s+[^>]*href="[^"]+"[^>]*>/g)||[];
+  if(links.length!==1)return whole;
+  return '<article class="card'+classes+' ds-card-clickable">'+inner+'</article>';
+ });
 }
 export function renderDirectSvaVisualShell(source){
  if(typeof source!=="string"||!source.includes("</head>")||!source.includes("</main>"))return source;
@@ -76,7 +121,8 @@ export function renderDirectSvaVisualShell(source){
  });
  html=html.replace(/<header\b[\s\S]*?<\/header>/i,sharedHeader(lang,pathname));
  html=html.replace(/<section class="revenue-quick-nav"[\s\S]*?<\/section>/g,"");
- if(lang==="fr"&&pathname==="/distribution-sva/")html=installHeroPhoto(html);
+ if(lang==="fr"&&pathname==="/distribution-sva/")html=enhanceDistributionHome(installHeroPhoto(html));
+ html=stretchExistingCardLinks(html);
  html=html.replace("</main>",sharedBottomBar(lang,pathname)+"</main>");
  return html;
 }
