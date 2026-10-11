@@ -84,3 +84,40 @@
  .ds-parity .hero-marketing-badge{font-size:9px;padding:9px 11px}
  .ds-parity .revenue-quick-tab strong{font-size:9px}
 }
+
+
+/* Exact Audiotel SVA navigation treatment and lighter interactive typography. */
+.ds-parity .header-inner>nav a,.ds-parity .ds-mobile-links a{font-weight:500;letter-spacing:0}
+.ds-parity .header-account-entry .header-distribution-link{font-weight:500}
+.ds-parity .header-login strong{font-weight:600}
+.ds-parity .ds-features .card a,.ds-parity .ds-resource-section .card a,.ds-parity .ds-language-links a,.ds-parity .ds-topic-links a,.ds-parity .ds-legal-links a{font-weight:500;text-decoration-thickness:1px}
+.ds-parity .hero-action-link,.ds-parity .section-text-link{font-weight:550;text-decoration-thickness:1px}
+.ds-parity .revenue-quick-tab small{font-weight:600!important;letter-spacing:.025em!important}
+.ds-parity .revenue-quick-tab strong{font-weight:550!important;letter-spacing:0!important}
+.ds-parity .hero-actions .btn{font-weight:700}
+.ds-parity .hero-visual-main{filter:contrast(1.06) saturate(1.02);object-position:72% 43%}
+.ds-parity .hero-visual-caption strong{font-weight:650}
+@media(max-width:680px){
+ .ds-parity .ds-mobile-menu{display:none!important}
+ .ds-parity .header-inner{grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto!important;min-height:91px!important;align-items:center!important}
+ .ds-parity .header-account-entry{justify-items:end}
+ .ds-parity .header-account-entry .header-distribution-link{font-size:10px!important;white-space:nowrap}
+ .ds-parity .hero{padding-top:50px!important}
+ .ds-parity .hero-marketing-badge{font-size:11px;text-align:center;padding:8px 14px}
+ .ds-parity .hero h1{font-size:clamp(42px,11vw,62px);font-weight:800;line-height:1.04}
+ .ds-parity .revenue-quick-nav{position:fixed!important;display:block!important;visibility:visible!important;inset:auto 0 0!important;width:100%!important;max-width:100vw!important;height:auto!important;margin:0!important;z-index:999!important;padding:5px 0 calc(5px + env(safe-area-inset-bottom))!important;background:rgba(42,45,49,.985)!important;border:0!important;border-top:1px solid rgba(255,255,255,.12)!important;box-shadow:0 -12px 38px rgba(0,0,0,.34)}
+ .ds-parity .revenue-quick-nav>.wrap{max-width:100%!important;width:100%!important;padding:0!important;margin:0!important}
+ .ds-parity .revenue-quick-tabs{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:0!important;width:100%!important;margin:0!important}
+ .ds-parity .revenue-quick-tab{display:grid!important;grid-column:auto!important;min-width:0!important;min-height:68px!important;padding:5px 3px!important;border:0!important;border-left:1px solid rgba(255,255,255,.065)!important;background:transparent!important;border-radius:0!important;align-content:center!important;justify-items:center!important;text-align:center!important;box-shadow:none!important;transform:none!important}
+ .ds-parity .revenue-quick-tab:first-child{border-left:0!important}
+ .ds-parity .revenue-quick-tab small{display:block!important;margin-bottom:4px!important;font-size:8px!important;line-height:1.2!important}
+ .ds-parity .revenue-quick-tab strong{font-weight:550!important;font-size:10.2px!important;line-height:1.18!important;color:#f2f4f7!important}
+ .ds-parity .revenue-quick-tab-primary strong{color:#f4d6aa!important}
+ .ds-parity .revenue-quick-tab span{display:none!important}
+ .ds-parity{padding-bottom:calc(90px + env(safe-area-inset-bottom))!important}
+}
+@media(max-width:360px){
+ .ds-parity .revenue-quick-tab small{font-size:7px!important}
+ .ds-parity .revenue-quick-tab strong{font-size:9px!important}
+ .ds-parity .header-login strong{font-size:9px}
+}
