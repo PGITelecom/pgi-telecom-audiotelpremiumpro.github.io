@@ -26,7 +26,7 @@ test("all 35 publicly eligible Distribution editorial pages share the actual SVA
   assert.doesNotMatch(html,/<header class="top">/,name+": no legacy header");
   assert.match(html,/content="index,follow,max-snippet:-1"/,name+": existing editorial release rule");
   assert.ok(html.includes('href="/client.html"'),name+": existing Audiotel login");
-  assert.ok(!html.includes('href="/distribution-sva/espace-client/"'),name+": unavailable Distribution login stays blocked");
+  assert.ok(!html.includes('class="header-login" href="/distribution-sva/espace-client/"'),name+": no private Distribution login");
   assert.ok(html.indexOf("</main>")<html.indexOf("<footer"),name+": semantic footer");
   assert.equal((html.match(/<link rel="stylesheet" href="\/site\/distribution-sva\/unified\.css">/g)||[]).length,1,name+": no CSS duplication");
   if(page.lang!=="fr"){
@@ -35,19 +35,34 @@ test("all 35 publicly eligible Distribution editorial pages share the actual SVA
  }
 });
 
-test("network photograph is below the Pôle Télécom & Réseau title and unobscured by overlay logo",()=>{
+test("the approved network photograph integrates real HTML title and copy in its warm gradient",()=>{
  const raw=fs.readFileSync(new URL("../site/distribution-sva/index.html",import.meta.url),"utf8");
  const html=publishedDistributionHtml(raw,state);
- const title=html.indexOf("<h1><span>Pôle Télécom</span> &amp; Réseau.</h1>");
- const photo=html.indexOf('class="hero-visual ds-hero-photo-under-title"');
- const text=html.indexOf('class="hero-lead hero-lead-simple"');
- assert.ok(title>0&&photo>title&&text>photo,"photo immediately after title, before the descriptive text");
+ const photo=html.indexOf('class="ds-hero-photographic"');
+ const title=html.indexOf('<h1><span>Pôle Télécom</span> &amp; Réseau.</h1>');
+ const lead=html.indexOf('class="hero-lead hero-lead-simple"');
+ assert.ok(photo>0&&title>photo&&lead>title,"title should be readable on image, with long copy below");
+ assert.match(html,/class="ds-hero-photographic-copy"/);
  assert.match(html,/src="\/site\/distribution-sva\/telecom-hero\.webp"/);
- assert.match(html,/height="471"/);
- assert.match(html,/alt="Antenne de télécommunications surplombant une ville/);
- assert.doesNotMatch(html,/<div class="hero-side">/);
+ assert.match(html,/alt="Antenne de télécommunications/);
  assert.doesNotMatch(html,/class="hero-visual-brand"/);
+ assert.doesNotMatch(html,/<div class="hero-side">/);
+ assert.match(html,/class="card ds-card-clickable"/);
+ assert.match(html,/class="ds-universe-link"/);
+ assert.match(html,/href="\/distribution-sva\/numerotation\/"/);
+ assert.match(html,/href="\/distribution-sva\/releves-reversements\/"/);
+ assert.match(html,/href="\/distribution-sva\/espace-client\/"/);
 });
+test("brand logo returns to SVA on Pôle home and to Pôle home everywhere else",()=>{
+ for(const page of pages){
+  const raw=fs.readFileSync(new URL("../site/distribution-sva/"+page.suffix+"index.html",import.meta.url),"utf8");
+  const html=publishedDistributionHtml(raw,state);
+  const logo=/<a class="brand brand-full" href="([^"]+)" aria-label="[^"]+"><img src="\/assets\/audiotel-brand-logo-v33\.png"/.exec(html);
+  assert.ok(logo,page.suffix+" logo");
+  assert.equal(logo[1],page.suffix===""?"/":"/distribution-sva/",page.suffix+" destination");
+ }
+});
+
 test("all locales render correctly without leaking French navigation labels",()=>{
  const labels={en:"Overview",es:"Presentación",pt:"Apresentação",de:"Übersicht",it:"Presentazione"};
  for(const [lang,word] of Object.entries(labels)){
@@ -67,9 +82,9 @@ test("only explicitly approved stylesheet served, commercial and private restric
  assert.match(preview,/ds-unified/);
  const styles=fs.readFileSync(new URL("../site/distribution-sva/unified.css",import.meta.url),"utf8");
  assert.match(styles,/\.revenue-quick-nav\{position:fixed!important/);
- assert.match(styles,/background:rgba\(42,45,49,\.99\)!important/);
+ assert.match(styles,/background:rgba\(19,12,10,\.985\)!important/);
  assert.match(styles,/font-weight:500!important/);
  assert.match(styles,/ds-hero-photo-under-title img/);
- assert.match(styles,/aspect-ratio:auto!important/);
+ assert.match(styles,/\.ds-hero-photographic::after/);
  assert.match(styles,/@media\(max-width:365px\)/);
 });
