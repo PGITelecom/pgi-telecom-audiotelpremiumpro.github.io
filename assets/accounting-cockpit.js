@@ -2,7 +2,7 @@ const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const moneyMinor=(v,c="EUR")=>{try{return new Intl.NumberFormat("fr-FR",{style:"currency",currency:c,maximumFractionDigits:2}).format((Number(v)||0)/100)}catch{return ((Number(v)||0)/100).toFixed(2)+" "+c}};
 const money=(v,c="EUR")=>{try{return new Intl.NumberFormat("fr-FR",{style:"currency",currency:c,maximumFractionDigits:2}).format(Number(v)||0)}catch{return (Number(v)||0).toFixed(2)+" "+c}};
 const integer=v=>new Intl.NumberFormat("fr-FR").format(Number(v)||0);
-let root=null,current=null,month=new Date().toISOString().slice(0,7),currency="EUR",busy=false,expertPromise=null,businessUnit="audiotel",directSvaPromise=null,adminSwitchPromise=null,privatePreviewEnabled=false;
+let root=null,current=null,month=new Date().toISOString().slice(0,7),currency="EUR",busy=false,expertPromise=null,businessUnit="audiotel",directSvaPromise=null,privatePreviewEnabled=false,previewStatusLoaded=false;
 
 function apiBase(){const b=String(window.PGI_CONFIG?.apiBaseUrl||"").replace(/\/$/,"");if(!b)throw new Error("API_NOT_CONFIGURED");return b;}
 async function fetchAccounting(){
@@ -60,17 +60,29 @@ function renderExpert(){
   (expertPromise||(expertPromise=import("./accounting-expert.js"))).then(m=>m.mountExpertAccounting(host,{year:Number(month.slice(0,4))})).catch(e=>{host.innerHTML='<div class="acc-empty">Dossier expert-comptable indisponible : '+esc(e?.code||e?.message||"erreur")+'.</div>';});
 }
 function directSvaTabReleased(){return privatePreviewEnabled===true;}
-function renderDirectAdminSwitches(){
-  const host=root?.querySelector("[data-direct-sva-admin-switches]");
-  if(!host)return;
-  (adminSwitchPromise||(adminSwitchPromise=import("./direct-sva-switches.js")))
-    .then(module=>module.mountDirectSvaSwitches(host,{onPreviewChange(enabled){
-      if(!root?.contains(host)||privatePreviewEnabled===enabled)return;
-      privatePreviewEnabled=enabled;
-      if(!enabled&&businessUnit==="direct")businessUnit="audiotel";
-      if(current)render(current);
-    }})).catch(()=>{if(root?.contains(host))host.hidden=true;});
+async function refreshPreviewStatus(){
+  if(previewStatusLoaded)return;
+  try{
+    const response=await fetch(apiBase()+"/platform/direct-sva-switches",{
+      method:"GET",credentials:"include",cache:"no-store",headers:{Accept:"application/json"}
+    });
+    if(response.ok){
+      const result=await response.json();
+      privatePreviewEnabled=result?.interface_preview_enabled===true;
+      previewStatusLoaded=true;
+    }else if(response.status===401||response.status===403){
+      privatePreviewEnabled=false;previewStatusLoaded=true;
+    }
+  }catch(_error){/* Transient connection errors are retried on the next visit. */}
 }
+window.addEventListener("pgi:direct-sva-preview-change",event=>{
+  const enabled=event.detail?.enabled===true;
+  previewStatusLoaded=true;
+  if(privatePreviewEnabled===enabled)return;
+  privatePreviewEnabled=enabled;
+  if(!enabled&&businessUnit==="direct")businessUnit="audiotel";
+  if(root?.isConnected&&current)render(current);
+});
 
 function unitTabs(){
   if(!directSvaTabReleased())return "";
@@ -94,9 +106,9 @@ function renderDirectUnit(){
   if(!root)return;
   if(!directSvaTabReleased()){businessUnit="audiotel";if(current)render(current);return;}
   if(root.querySelector("[data-direct-sva-unit-root]"))return;
-  root.innerHTML='<div class="acc"><div data-direct-sva-admin-switches hidden></div>'+unitTabs()+
+  root.innerHTML='<div class="acc">'+unitTabs()+
     '<div data-direct-sva-unit-root><div class="acc-empty">Chargement de PGI Telecom Distribution...</div></div></div>';
-  bindUnitTabs();renderDirectAdminSwitches();
+  bindUnitTabs();
   const place=root.querySelector("[data-direct-sva-unit-root]");
   (directSvaPromise||(directSvaPromise=import("./direct-sva-cockpit.js")))
     .then(module=>{if(root?.contains(place)&&businessUnit==="direct")module.mountDirectSvaCockpit(place);})
@@ -106,13 +118,13 @@ function render(d){
   current=d;currency=d.currency||currency;month=d.month||month;
   if(businessUnit==="direct"){renderDirectUnit();return;}
   const currencies=Array.isArray(d.currencies)&&d.currencies.length?d.currencies:[currency];
-  root.innerHTML='<div class="acc"><div data-direct-sva-admin-switches hidden></div>'+unitTabs()+
+  root.innerHTML='<div class="acc">'+unitTabs()+
     '<div class="acc-head"><div><p class="panel-kicker">COMPTABILITÉ</p><h2>Pilotage comptable Audiotel Premium Pro</h2><p class="acc-note">Vue consolidée des encaissements, marges, reversements et primes, sans mélange artificiel des bases fiscales.</p></div>'+
     '<div class="acc-controls"><label>Mois<input type="month" data-acc-month value="'+esc(month)+'"></label><label>Devise<select data-acc-currency>'+currencies.map(x=>'<option value="'+esc(x)+'" '+(x===currency?"selected":"")+'>'+esc(x)+'</option>').join("")+'</select></label><button class="acc-btn" type="button" data-acc-refresh>Actualiser</button></div></div>'+
     selectedCards(d)+balances(d)+history(d)+policy(d)+
     '<section class="acc-section"><div class="acc-section-head"><div><p class="panel-kicker">EXPERT-COMPTABLE</p><h3>Comptabilité générale et dossier de révision</h3></div></div><p class="acc-note">Cette couche est distincte du pilotage financier ci-dessus. Les flux sont préparés automatiquement en partie double, puis les comptes et traitements fiscaux sont validés avant qu’une écriture devienne immuable.</p><div data-accounting-expert-root></div></section>'+
   '</div>';
-  bind();bindUnitTabs();renderExpert();renderDirectAdminSwitches();
+  bind();bindUnitTabs();renderExpert();
 }
 function csvCell(v){return '"'+String(v??"").replace(/"/g,'""')+'"';}
 function exportCsv(){
@@ -138,6 +150,7 @@ async function load(){
 }
 export async function mountAccounting(host,options={}){
   if(!host)return;const sameHost=root===host;root=host;css();root.hidden=false;
+  await refreshPreviewStatus();
   if(sameHost&&current&&options.force!==true){render(current);return;}
   await load();
 }

@@ -525,6 +525,7 @@ renderNetworkMix(rows);
 renderAlerts(rows);
 renderWholesale();
 renderSystemState();
+if(RUNTIME.mode==="production")import("./direct-sva-cockpit-entry.js").then(m=>m.mountDirectSvaCockpitControls(state.authUser)).catch(recordRuntimeError);
 break;
 }
 }

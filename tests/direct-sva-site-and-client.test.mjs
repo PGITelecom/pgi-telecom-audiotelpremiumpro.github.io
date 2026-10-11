@@ -196,7 +196,10 @@ test("future direct SVA APIs and admin UI are default-deny even during first Aud
  assert.match(admin,/if\(!directSvaTabReleased\(\)\)return "";/);
  assert.match(admin,/if\(next==="direct"&&!directSvaTabReleased\(\)\)return;/);
  assert.doesNotMatch(admin,/unitTabs\(\)\+unitTabs\(\)/);
- assert.match(admin,/data-direct-sva-admin-switches/);
+ assert.doesNotMatch(admin,/data-direct-sva-admin-switches/);
+ const entry=fs.readFileSync(path.join(root,"assets/direct-sva-cockpit-entry.js"),"utf8");
+ assert.match(entry,/user\?\.role!=="admin"/);
+ assert.match(entry,/overview\.prepend\(host\)/);
  const builder=fs.readFileSync(path.join(root,"scripts/build-static.mjs"),"utf8");
  assert.match(builder,/"assets\/direct-sva-cockpit\.js"/);
  assert.ok(!builder.includes('"site/distribution-sva/index.html"'));
