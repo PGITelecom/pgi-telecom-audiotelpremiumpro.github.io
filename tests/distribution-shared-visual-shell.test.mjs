@@ -87,7 +87,11 @@ test("only explicitly approved stylesheet served, commercial and private restric
  assert.match(preview,/ds-unified/);
  const styles=fs.readFileSync(new URL("../site/distribution-sva/unified.css",import.meta.url),"utf8");
  assert.match(styles,/\.revenue-quick-nav\{position:fixed!important/);
- assert.match(styles,/background:rgba\(19,12,10,\.985\)!important/);
+ assert.match(styles,/background:rgba\(42,45,49,\.985\)!important/);
+ const svaCss=fs.readFileSync(new URL("../site/site.css",import.meta.url),"utf8");
+ assert.match(svaCss,/\.revenue-quick-nav\{position:fixed!important[^}]*background:rgba\(42,45,49,\.985\)!important/);
+ assert.equal((styles.match(/background:rgba\(42,45,49,\.985\)!important/g)||[]).length,2);
+ assert.doesNotMatch(styles,/background:rgba\(19,12,10,\.985\)!important/);
  assert.match(styles,/font-weight:500!important/);
  assert.match(styles,/ds-hero-photo-under-title img/);
  assert.match(styles,/\.ds-hero-photographic::after/);
