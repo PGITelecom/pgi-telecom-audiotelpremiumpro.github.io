@@ -6,6 +6,7 @@ import {
   normalizeStripeConnectedAccount,
   normalizeStripeConnectPaymentEvent,
   stripeConnectState,
+  stripeConnectWebhookSecretForPath,
   createStripeConnectedAccount
 } from "../backend/src/stripe-connect.mjs";
 
@@ -23,6 +24,16 @@ test("Stripe Connect state exposes the fixed PGI fee and webhook readiness",()=>
   assert.equal(state.processing_fees_paid_by,"connected_account");
   assert.equal(state.webhook_configured,true);
   assert.equal(calculateApplicationFee(10000),490);
+});
+
+test("managed-account webhook has a dedicated secret without fallback to the platform signer",()=>{
+  const config={stripeConnectWebhookSecret:"whsec_PlatformSigner123",stripeConnectAccountsWebhookSecret:"whsec_ManagedAccountSigner123"};
+  assert.equal(stripeConnectWebhookSecretForPath(config,"/api/v1/billing/stripe/connect-webhook"),config.stripeConnectWebhookSecret);
+  assert.equal(stripeConnectWebhookSecretForPath(config,"/api/v1/billing/stripe/connect-accounts-webhook"),config.stripeConnectAccountsWebhookSecret);
+  assert.equal(stripeConnectWebhookSecretForPath({stripeConnectWebhookSecret:config.stripeConnectWebhookSecret},"/api/v1/billing/stripe/connect-accounts-webhook"),"");
+  assert.equal(stripeConnectWebhookSecretForPath(config,"/api/v1/billing/stripe/webhook"),"");
+  assert.equal(stripeConnectState(config).connected_account_events_configured,true);
+  assert.equal(stripeConnectState({stripeConnectWebhookSecret:config.stripeConnectWebhookSecret}).connected_account_events_configured,false);
 });
 
 test("v2 connected-account capability is the readiness source of truth",()=>{
