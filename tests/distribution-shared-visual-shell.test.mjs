@@ -48,6 +48,7 @@ test("the approved network photograph integrates real HTML title and copy in its
  assert.ok(photo>0&&title>photo&&lead>title,"title should be readable on image, with long copy below");
  assert.match(html,/class="ds-hero-photographic-copy"/);
  assert.match(html,/src="\/site\/distribution-sva\/telecom-hero\.webp"/);
+ assert.match(html,/width="960" height="1358"/);
  assert.match(html,/alt="Antenne de télécommunications/);
  assert.doesNotMatch(html,/class="hero-visual-brand"/);
  assert.doesNotMatch(html,/<div class="hero-side">/);
