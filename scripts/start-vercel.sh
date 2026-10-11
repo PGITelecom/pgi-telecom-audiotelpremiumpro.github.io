@@ -25,6 +25,14 @@ test -n "$PGI_DATABASE_URL" || {
   exit 1
 }
 
+# Report whether the connected-account Stripe webhook signer is present,
+# without ever disclosing its signing secret in logs or HTTP responses.
+case "${PGI_STRIPE_CONNECT_ACCOUNTS_WEBHOOK_SECRET:-}" in
+  whsec_*) echo "PGI_STRIPE_CONNECT_ACCOUNTS_WEBHOOK_SIGNER_PRESENT" ;;
+  "") echo "PGI_STRIPE_CONNECT_ACCOUNTS_WEBHOOK_SIGNER_MISSING" ;;
+  *) echo "PGI_STRIPE_CONNECT_ACCOUNTS_WEBHOOK_SIGNER_INVALID" >&2 ;;
+esac
+
 # Neon schema evolution is performed outside the generic cold-start migration runner.
 # Application-owned repair guards may self-heal narrowly scoped additive schema.
 node scripts/verify-deployment-schema.mjs
