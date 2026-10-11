@@ -77,12 +77,13 @@ export function stripeConnectState(config){
   const key=String(config?.stripeSecretKey||"");
   const apiConfigured=/^sk_(test|live)_/.test(key);
   const webhookConfigured=/^whsec_[A-Za-z0-9]+$/.test(String(config?.stripeConnectWebhookSecret||""));
+  const connectedAccountEventsConfigured=/^whsec_[A-Za-z0-9]+$/.test(String(config?.stripeConnectAccountsWebhookSecret||""));
   return {
     provider:"stripe_connect",
-    configured:apiConfigured&&webhookConfigured,
+    configured:apiConfigured&&webhookConfigured&&connectedAccountEventsConfigured,
     api_configured:apiConfigured,
     webhook_configured:webhookConfigured,
-    connected_account_events_configured:/^whsec_[A-Za-z0-9]+$/.test(String(config?.stripeConnectAccountsWebhookSecret||"")),
+    connected_account_events_configured:connectedAccountEventsConfigured,
     live_mode:key.startsWith("sk_live_"),
     application_fee_bps:STRIPE_CONNECT_APPLICATION_FEE_BPS,
     application_fee_percent:STRIPE_CONNECT_APPLICATION_FEE_BPS/100,
