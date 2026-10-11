@@ -47,7 +47,7 @@ body.ds-unified .button.secondary{border-color:rgba(236,194,143,.45);background:
 body.ds-unified .actions{gap:10px}
 body.ds-unified .notice{border-color:rgba(232,179,110,.28);background:#38281f;border-radius:15px;color:#e9cda8}
 body.ds-unified .hero-marketing-badge{border-radius:999px;font-size:11px}
-body.ds-unified .hero-brand-signature{font-weight:650;letter-spacing:.07em;font-size:clamp(14px,1.7vw,18px);color:#c7c7c6}
+body.ds-unified .hero-brand-signature{font-weight:650;letter-spacing:.07em;font-size:clamp(14px,1.7vw,18px);color:#e5cdb5}
 body.ds-unified .hero-service-line{font-size:11px;color:#e8b36e;letter-spacing:.09em;font-weight:650}
 body.ds-unified .hero-lead-simple{max-width:770px}
 body.ds-unified .hero-actions{display:grid;grid-template-columns:1fr;gap:11px;max-width:900px}
@@ -55,13 +55,13 @@ body.ds-unified .hero-actions .btn{width:100%;min-height:61px}
 body.ds-unified .hero-action-link,body.ds-unified .section-text-link{font-weight:500!important;font-size:13px;text-decoration:underline}
 body.ds-unified .trust-line{display:flex;flex-wrap:wrap;gap:8px}
 body.ds-unified .trust-line span{font-weight:400;border-radius:999px;border:1px solid rgba(232,179,110,.19);background:rgba(255,255,255,.035);padding:8px 12px}
-body.ds-unified .revenue-quick-nav{position:fixed!important;inset:auto 0 0!important;width:100%!important;max-width:100%!important;z-index:1800!important;display:block!important;padding:6px 0 calc(7px + env(safe-area-inset-bottom))!important;margin:0!important;background:rgba(42,45,49,.99)!important;border-top:1px solid rgba(255,255,255,.12)!important;border-bottom:0!important;box-shadow:0 -14px 35px rgba(0,0,0,.36)!important;backdrop-filter:blur(16px)}
+body.ds-unified .revenue-quick-nav{position:fixed!important;inset:auto 0 0!important;width:100%!important;max-width:100%!important;z-index:1800!important;display:block!important;padding:6px 0 calc(7px + env(safe-area-inset-bottom))!important;margin:0!important;background:rgba(19,12,10,.985)!important;border-top:1px solid rgba(255,255,255,.12)!important;border-bottom:0!important;box-shadow:0 -14px 35px rgba(0,0,0,.36)!important;backdrop-filter:blur(16px)}
 body.ds-unified .revenue-quick-nav>.wrap{width:100%!important;max-width:1180px!important;margin-inline:auto;padding:0 4px!important}
 body.ds-unified .revenue-quick-tabs{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:0!important;min-width:0!important}
 body.ds-unified .revenue-quick-tab{display:grid!important;align-content:center!important;justify-items:center!important;grid-column:auto!important;min-width:0!important;min-height:67px!important;padding:7px 4px!important;margin:0!important;border:0!important;border-left:1px solid rgba(255,255,255,.085)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;transform:none!important;text-align:center!important;text-decoration:none!important;touch-action:manipulation}
 body.ds-unified .revenue-quick-tab:first-child{border-left:0!important}
-body.ds-unified .revenue-quick-tab small{color:#b4bfc9!important;font-size:8.5px!important;font-weight:500!important;letter-spacing:.03em!important;line-height:1.2!important;overflow-wrap:anywhere!important;margin:0 0 4px!important}
-body.ds-unified .revenue-quick-tab strong{font-size:11px!important;line-height:1.17!important;font-weight:550!important;letter-spacing:0!important;color:#f2f4f7!important;overflow-wrap:anywhere!important}
+body.ds-unified .revenue-quick-tab small{color:#e4c7ab!important;font-size:8.5px!important;font-weight:500!important;letter-spacing:.03em!important;line-height:1.2!important;overflow-wrap:anywhere!important;margin:0 0 4px!important}
+body.ds-unified .revenue-quick-tab strong{font-size:11px!important;line-height:1.17!important;font-weight:550!important;letter-spacing:0!important;color:#f8eddf!important;overflow-wrap:anywhere!important}
 body.ds-unified .revenue-quick-tab-primary strong{color:#f4cf95!important}
 body.ds-unified .revenue-quick-tab span{display:none!important}
 body.ds-unified .revenue-quick-tab:focus-visible{outline:2px solid #f4cf95;outline-offset:-2px}
@@ -121,3 +121,92 @@ body.ds-unified .ds-two-univers .panel{box-shadow:0 12px 30px rgba(0,0,0,.16)}
  body.ds-unified .revenue-quick-tab strong{font-size:9px!important}
 }
 @media(prefers-reduced-motion:reduce){body.ds-unified *{scroll-behavior:auto}}
+
+
+/* Hero: use the actual previously prepared network-tower photo as an
+   editorial full-bleed composition. All text is real, selectable HTML. */
+body.ds-unified .ds-hero-photographic{
+ position:relative;isolation:isolate;display:flex;align-items:center;overflow:hidden;
+ min-height:clamp(460px,46vw,620px);width:100%;max-width:1180px;
+ margin:12px 0 25px;border:1px solid rgba(232,179,110,.35);border-radius:24px;
+ background:#251711;box-shadow:0 25px 58px rgba(0,0,0,.28);
+}
+body.ds-unified .ds-hero-photographic::after{
+ content:"";pointer-events:none;position:absolute;inset:0;z-index:1;
+ background:linear-gradient(90deg,rgba(17,10,8,.97) 0%,rgba(23,13,9,.86) 31%,rgba(32,18,12,.52) 53%,rgba(32,18,12,.08) 80%),
+ linear-gradient(0deg,rgba(22,11,8,.56),transparent 32%,rgba(25,12,9,.07));
+}
+body.ds-unified .ds-hero-photographic .ds-network-tower{
+ position:absolute;inset:0;width:100%;height:100%;display:block;
+ object-fit:cover;object-position:78% 51%;max-width:none;
+ filter:saturate(1.08) contrast(1.06) brightness(.94);
+}
+body.ds-unified .ds-hero-photographic-copy{
+ position:relative;z-index:2;max-width:700px;width:min(74%,720px);
+ padding:clamp(24px,5.5vw,74px);margin:0;display:grid;align-content:center;
+ gap:clamp(15px,2.4vw,26px);color:#fff7f0;
+}
+body.ds-unified .ds-hero-photo-kicker{
+ font-size:clamp(10px,1.15vw,13px)!important;font-weight:650!important;
+ letter-spacing:.16em!important;color:#f4cf95!important;line-height:1.5!important;
+ margin:0!important;max-width:40ch;
+}
+body.ds-unified .ds-hero-photo-kicker span{
+ display:block;font-size:.85em;letter-spacing:.19em;margin-top:4px;
+}
+body.ds-unified .ds-hero-photographic h1{
+ color:#fff7f0;line-height:1.025;letter-spacing:-.045em;
+ font-size:clamp(40px,5.8vw,73px);font-weight:800!important;
+ margin:0!important;max-width:650px;overflow-wrap:normal;text-shadow:0 3px 20px rgba(0,0,0,.42);
+}
+body.ds-unified .ds-hero-photographic h1 span{color:#f4cf95}
+body.ds-unified .ds-hero-photo-description{
+ font-size:clamp(14px,1.55vw,17px)!important;line-height:1.63!important;
+ font-weight:400!important;color:#f6e9da!important;
+ max-width:38ch;margin:0!important;text-shadow:0 2px 14px rgba(0,0,0,.4);
+}
+body.ds-unified .ds-card-clickable{position:relative;cursor:pointer;transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease}
+body.ds-unified .ds-card-clickable a::after{content:"";position:absolute;inset:0;border-radius:inherit;z-index:1}
+body.ds-unified .ds-card-clickable:hover,body.ds-unified .ds-card-clickable:focus-within{
+ border-color:rgba(232,179,110,.7);box-shadow:0 16px 39px rgba(0,0,0,.24);transform:translateY(-2px)
+}
+body.ds-unified .ds-card-clickable a:focus-visible{outline:3px solid #f4cf95;outline-offset:4px}
+body.ds-unified .ds-card-action{display:inline-flex;align-items:center;gap:10px;margin-top:12px;font-size:13px!important;font-weight:550!important}
+body.ds-unified .ds-card-clickable a{color:#f4cf95;font-weight:550!important}
+body.ds-unified .ds-two-columns .ds-universe-link{
+ text-decoration:none!important;position:relative;display:grid;align-content:start;gap:4px;
+ padding:20px;border-radius:15px;min-width:0;min-height:155px;
+ background:rgba(255,255,255,.55);border:1px solid rgba(91,62,39,.12);
+ color:#291d15!important;transition:background .2s ease,transform .2s ease,border-color .2s ease
+}
+body.ds-unified .ds-two-columns .ds-universe-link:hover,body.ds-unified .ds-two-columns .ds-universe-link:focus-visible{
+ background:#fffbf5;border-color:#c1935c;transform:translateY(-2px)
+}
+body.ds-unified .ds-two-columns .ds-universe-link strong{color:#1d2b35;font-weight:700!important}
+body.ds-unified .ds-two-columns .ds-universe-link p{color:#5d4537!important;font-weight:400!important;margin:2px 0!important}
+body.ds-unified .ds-universe-arrow{position:absolute;right:17px;top:18px;color:#a67541;font-size:21px;font-weight:450}
+body.ds-unified .revenue-quick-nav{background:rgba(19,12,10,.985)!important;border-top-color:rgba(232,179,110,.25)!important}
+body.ds-unified .revenue-quick-tab small{color:#e4c7ab!important}
+body.ds-unified .revenue-quick-tab strong{color:#f8eddf!important;font-weight:500!important}
+body.ds-unified .hero-brand-signature{color:#e5cdb5!important}
+@media(max-width:680px){
+ body.ds-unified .ds-hero-photographic{min-height:clamp(450px,125vw,580px);border-radius:16px;margin:12px 0 20px}
+ body.ds-unified .ds-hero-photographic .ds-network-tower{object-position:68% 53%}
+ body.ds-unified .ds-hero-photographic::after{
+ background:linear-gradient(90deg,rgba(17,10,8,.91),rgba(21,12,8,.7) 55%,rgba(21,12,8,.14)),
+ linear-gradient(0deg,rgba(21,12,8,.52),transparent 45%)
+ }
+ body.ds-unified .ds-hero-photographic-copy{width:min(94%,520px);padding:clamp(19px,6vw,32px);gap:17px}
+ body.ds-unified .ds-hero-photographic h1{font-size:clamp(37px,10.4vw,58px);max-width:88%;text-wrap:balance}
+ body.ds-unified .ds-hero-photo-description{font-size:14px!important;max-width:31ch}
+ body.ds-unified .ds-two-columns .ds-universe-link{min-height:132px}
+ body.ds-unified .ds-card-clickable:hover{transform:none}
+}
+@media(max-width:375px){
+ body.ds-unified .ds-hero-photographic h1{font-size:clamp(36px,10.1vw,44px)}
+ body.ds-unified .ds-hero-photographic-copy{padding:16px}
+ body.ds-unified .ds-hero-photo-description{font-size:13px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ body.ds-unified .ds-card-clickable,body.ds-unified .ds-two-columns .ds-universe-link{transition:none}
+}
