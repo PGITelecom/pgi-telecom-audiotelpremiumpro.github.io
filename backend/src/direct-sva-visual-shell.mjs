@@ -99,6 +99,16 @@ function enhanceDistributionHome(html){
  return html;
 }
 
+function stretchExistingCardLinks(html){
+ // A single destination on a feature card becomes a real full-card touch target,
+ // including on all informational subpages. Cards without a link remain static.
+ return html.replace(/<article class="card([^"]*)">([\s\S]*?)<\/article>/g,(whole,classes,inner)=>{
+  if(classes.includes("ds-card-clickable"))return whole;
+  const links=inner.match(/<a\s+[^>]*href="[^"]+"[^>]*>/g)||[];
+  if(links.length!==1)return whole;
+  return '<article class="card'+classes+' ds-card-clickable">'+inner+'</article>';
+ });
+}
 export function renderDirectSvaVisualShell(source){
  if(typeof source!=="string"||!source.includes("</head>")||!source.includes("</main>"))return source;
  const lang=(/<html\s+lang="(fr|en|es|pt|de|it)"/i.exec(source)?.[1]||"fr").toLowerCase();
@@ -112,6 +122,7 @@ export function renderDirectSvaVisualShell(source){
  html=html.replace(/<header\b[\s\S]*?<\/header>/i,sharedHeader(lang,pathname));
  html=html.replace(/<section class="revenue-quick-nav"[\s\S]*?<\/section>/g,"");
  if(lang==="fr"&&pathname==="/distribution-sva/")html=enhanceDistributionHome(installHeroPhoto(html));
+ html=stretchExistingCardLinks(html);
  html=html.replace("</main>",sharedBottomBar(lang,pathname)+"</main>");
  return html;
 }
