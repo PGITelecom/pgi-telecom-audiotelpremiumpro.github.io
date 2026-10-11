@@ -75,16 +75,18 @@ function enhanceDistributionHome(html){
  // Informational panels that look actionable should have a real destination,
  // not an inert hover state or a synthetic "button".
  const destinations=new Map([
- ["Numérotation","/distribution-sva/numerotation/"],
- ["Suivi financier","/distribution-sva/releves-reversements/"],
- ["Espace client","/distribution-sva/espace-client/"]
+ ["Numérotation",{href:"/distribution-sva/numerotation/",label:"Comprendre la numérotation SVA"}],
+ ["Suivi financier",{href:"/distribution-sva/releves-reversements/",label:"Comprendre le suivi financier"}],
+ // /distribution-sva/espace-client/ is deliberately private until actual launch.
+ // Do not create an attractive card that points to a 404.
+ ["Espace client",{href:"/distribution-sva/solutions/",label:"Découvrir les fonctions client prévues"}]
  ]);
  html=html.replace(/<article class="card">([\s\S]*?)<\/article>/g,(original,inner)=>{
   let content=inner;
   const title=/<h3>([^<]+)<\/h3>/.exec(inner)?.[1]||"";
-  const href=destinations.get(title);
-  if(!/<a\s/.test(content)&&href){
-   content+='<a class="ds-card-action" href="'+href+'">Découvrir '+htmlEscape(title.toLowerCase())+' <span aria-hidden="true">→</span></a>';
+  const destination=destinations.get(title);
+  if(!/<a\s/.test(content)&&destination){
+   content+='<a class="ds-card-action" href="'+destination.href+'">'+htmlEscape(destination.label)+' <span aria-hidden="true">→</span></a>';
   }
   if(!/<a\s/.test(content))return original;
   return '<article class="card ds-card-clickable">'+content+'</article>';
