@@ -39,18 +39,18 @@ test("no documentary fixture may force a deploy even if all checkboxes are true"
  assert.equal(result.finance_transfer_permitted,false);
 });
 
-test("staged navigation does not link the future distributor from live website",()=>{
+test("staged navigation remains hidden until owner publication",()=>{
  const builder=fs.readFileSync(new URL("../scripts/build-static.mjs",import.meta.url),"utf8");
  const future=fs.readFileSync(new URL("../site/distribution-sva/index.html",import.meta.url),"utf8");
  const home=fs.readFileSync(new URL("../site/index.html",import.meta.url),"utf8");
  assert.match(future,/Navigation de la distribution directe/);
- assert.ok(!home.includes('href="/distribution-sva/"'));
+ assert.match(home,/class="header-distribution-link" href="\/distribution-sva\/" hidden/);
  assert.ok(!builder.includes('"site/distribution-sva/index.html"'));
 });
 
 test("server navigation remains independently gated from the normal customer portal",()=>{
  const source=fs.readFileSync(new URL("../backend/src/static-site.mjs",import.meta.url),"utf8");
- assert.match(source,/site\\\/distribution-sva/);
+ assert.match(source,/isDirectSvaPath\(directSvaPath\)/);
  assert.match(source,/Cache-Control":"no-store"/);
  assert.match(source,/clientUi=requestPath==="\/client.html"\|\|/);
  assert.match(source,/X-Robots-Tag":"noindex, nofollow, noarchive"/);
