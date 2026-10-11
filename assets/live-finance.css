@@ -3,18 +3,3 @@
 .lj-head>div:first-child{text-align:center}.live-jackpot[data-active=true]{animation:blGlow 1.45s ease-in-out infinite alternate}@keyframes blGlow{to{border-color:rgba(240,200,137,.94);box-shadow:0 0 32px rgba(223,175,113,.42),0 22px 56px rgba(0,0,0,.28)}}@media(prefers-reduced-motion:reduce){.live-jackpot[data-active=true]{animation:none}}
 
 .lj-actions{display:flex;gap:9px;align-items:center;padding-top:10px;border-top:1px solid rgba(223,175,113,.14)}.lj-actions small{margin-left:auto;color:#a98e79;font-size:8px}@media(max-width:620px){.lj-actions{display:grid}.lj-actions small{margin:0}}
-
-/* Touch-first actions, adaptive across narrow phones and landscape. */
-.live-jackpot,.lj-actions,.lj-head,.lj-ranking{min-width:0;max-width:100%;box-sizing:border-box}
-.lj-actions>button{min-height:48px;padding:10px 12px;font-size:clamp(13px,2.7vw,15px);line-height:1.4;white-space:normal;overflow-wrap:anywhere;touch-action:manipulation}
-.lj-actions>button:focus-visible{outline:3px solid #f4c97f;outline-offset:2px}
-.lj-actions small{font-size:11px;line-height:1.45;overflow-wrap:anywhere}
-@media(max-width:520px){
- .lj-actions{display:grid;grid-template-columns:minmax(0,1fr);gap:9px}
- .lj-actions>button{width:100%;min-width:0;min-height:52px}
- .lj-actions small{margin:2px 0 0;grid-column:auto}
- .lj-ranking{min-width:0}
- .lj-rank-row{grid-template-columns:24px minmax(0,1fr)}
- .lj-rank-row span:last-child{grid-column:2;text-align:left}
-}
-@media(max-width:350px){.live-jackpot{padding:11px}.lj-head>div>strong{font-size:clamp(28px,9vw,38px)}}
