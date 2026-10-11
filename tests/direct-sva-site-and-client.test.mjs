@@ -52,7 +52,7 @@ test("distribution customer portal rejects unrelated API payloads without leavin
  assert.match(js,/data\.source!=="direct_sva_only"/);
  assert.match(js,/data\.tenant_scope!=="authenticated_customer_only"/);
  assert.match(js,/DIRECT_SVA_RESPONSE_INTEGRITY_INVALID/);
- assert.match(js,/render\(payload\);state\.active=true;\$\("ds-client-auth"\)\.hidden=true;/);
+ assert.match(js,/render\(payload\);\s*state\.active=true;\s*\$\("ds-client-auth"\)\.hidden=true;/);
  assert.match(js,/state\.active=false;state\.data=null;/);
  assert.match(js,/Aucun dossier ni chiffre affiché/);
 });
@@ -60,7 +60,7 @@ test("distribution customer portal rejects unrelated API payloads without leavin
 test("existing site remains free of direct SVA public navigation and its current CTA stays Audiotel",()=>{
  const home=fs.readFileSync(path.join(root,"site/index.html"),"utf8");
  const cockpit=fs.readFileSync(path.join(root,"index.html"),"utf8");
- assert.ok(!home.includes('href="/distribution-sva/"'));
+ assert.match(home,/class="header-distribution-link" href="\/distribution-sva\/" hidden/);
  assert.match(home,/Audiotel Premium Pro/);
  assert.ok(!cockpit.includes('id="view-direct-sva"'));
 });
@@ -70,7 +70,7 @@ test("static server returns 404 even if direct SVA files are copied accidentally
  try{
   fs.mkdirSync(path.join(dir,"distribution-sva"),{recursive:true});
   fs.writeFileSync(path.join(dir,"distribution-sva","index.html"),"<p>Must not appear</p>");
-  const handle=createStaticSiteHandler(dir);
+  const handle=createStaticSiteHandler(dir,{getDirectSvaWebsiteState:async()=>({publication_authorized:false,navigation_visible:false})});
   for(const url of ["/distribution-sva/","/distribution-sva/index.html","/site/distribution-sva/index.html","/%64istribution-sva/","/site/distribution%2Dsva/index.html","/distribution-sva%2Findex.html"]){
    const state={status:0,headers:{},ended:false};
    const res={writeHead(status,headers){state.status=status;state.headers=headers||{};},end(){state.ended=true;}};
@@ -94,28 +94,23 @@ test("customer overview does not query other tenant data if no direct SVA enroll
 
 test("customer overview requires explicit access flag and cannot expose Audiotel figures",async()=>{
  const calls=[];
- const store={readSql:{unsafe:async(q,params)=>{calls.push({q,params});return [{tenant_id:14,dashboard_enabled:false,access_state:"preparation"}];}}};
+ const store={readSql:{unsafe:async(q,params)=>{calls.push({q,params});return [{tenant_id:14,business_unit:"direct_sva",dashboard_enabled:false,client_contract_accepted:false,access_state:"preparation"}];}}};
  await assert.rejects(()=>directSvaCustomerOverview(store,{tenant_id:14}),{code:"DIRECT_SVA_CUSTOMER_NOT_RELEASED"});
  assert.equal(calls.length,1);
 });
 
-test("customer viewer uses same authenticated tenant ID for every query when authorized in a later schema",async()=>{
- const args=[];
+test("customer viewer refuses release even when synthetic account flags claim active",async()=>{
+ const queries=[];
  const store={readSql:{unsafe:async(q,params)=>{
-  args.push({q,params});
-  if(q.includes("direct_sva_customer_accounts"))return [{tenant_id:14,dashboard_enabled:true,access_state:"preparation"}];
-  if(q.includes("direct_sva_customer_cases"))return [{public_reference:"DSVA-CASE-0001",request_kind:"portability",status:"prepared",initiated_at:"2026-10-10T10:00:00Z"}];
-  if(q.includes("direct_sva_number_inventory"))return [];
-  return [];
+  queries.push({q,params});
+  if(q.includes("direct_sva_customer_accounts"))return [{tenant_id:14,business_unit:"direct_sva",access_state:"active",dashboard_enabled:true,client_contract_accepted:true}];
+  if(q.includes("direct_sva_admin_switches"))return [{commercial_operation_enabled:false}];
+  throw Error("Unexpected customer data query before release");
  }}};
- const out=await directSvaCustomerOverview(store,{tenant_id:14});
- assert.equal(out.business_unit,"direct_sva");
- assert.equal(out.source,"direct_sva_only");
- assert.equal(out.service_active,false);
- assert.equal(out.client_payouts_enabled,false);
- assert.equal(out.cases[0].reference,"DSVA-CASE-0001");
- assert.equal(args.length,3);
- assert.ok(args.every(r=>JSON.stringify(r.params)==="[14]"));
+ await assert.rejects(()=>directSvaCustomerOverview(store,{tenant_id:14}),{code:"DIRECT_SVA_CUSTOMER_NOT_RELEASED"});
+ assert.equal(queries.length,2);
+ assert.deepEqual(queries[0].params,[14]);
+ assert.ok(!queries.some(r=>/direct_sva_customer_cases|direct_sva_number_inventory/.test(r.q)));
  assert.ok(DIRECT_SVA_CUSTOMER_FEATURES.length>=7);
 });
 
@@ -174,7 +169,8 @@ test("future private customer portal has no signup, fake SVA figures or exported
 
 test("GA4 distributor tracking is not bootstrapped without independent property and consent",()=>{
  const module=fs.readFileSync(path.join(root,"site/distribution-sva/measurement.js"),"utf8");
- assert.match(module,/measurementId!=="G-SZY50J75N7"/);
+ const tracker=fs.readFileSync(path.join(root,"site/direct-sva-tracking.js"),"utf8");
+ assert.match(tracker,/measurement!==RESERVED_PLATFORM_MEASUREMENT_ID/);
  assert.match(module,/navigator\.globalPrivacyControl!==true/);
  assert.match(module,/consentGranted:true/);
  assert.match(module,/legalApproved===true/);
