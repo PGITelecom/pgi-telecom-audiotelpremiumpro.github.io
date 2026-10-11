@@ -7,17 +7,5 @@ async function refresh(){ui();if(!window.PGIApi?.liveFinance)return;try{d=await 
 async function configureResetSchedule(){if(d?.can_schedule!==true)return;try{let mod=await import("./business-live-reset-schedule.js");mod.openBusinessLiveResetSchedule({scope:"platform",schedule:d?.reset_schedule,onSaved:refresh})}catch{}}
 async function reset(){if(busy||d?.can_reset!==true||!window.PGIApi?.resetLiveFinance)return;if(!confirm("Remettre uniquement Business Live à 0,00 € ? Les appels, CDR, bilans jour/semaine/mois/année, règlements et statistiques officielles resteront inchangés."))return;busy=true;let b=$("live-jackpot-reset");b.disabled=true;try{await PGIApi.resetLiveFinance(PGIApi.newIdempotencyKey());await refresh()}finally{busy=false;b.disabled=false}}
 function events(){if(es||!window.PGIApi?.events)return;try{es=PGIApi.events();["live_call.started","live_call.ended","call.ingested","platform.jackpot.reset"].forEach(k=>es.addEventListener(k,refresh));es.onerror=()=>{if(es.readyState===EventSource.CLOSED){try{es.close()}catch{}es=null;clearTimeout(retry);retry=setTimeout(events,5e3)}}}catch{retry=setTimeout(events,1e4)}}
-function landOnBusinessLive(attempt){
-  let card=$("live-jackpot-card");
-  if(!card){if((attempt||0)<24)setTimeout(()=>landOnBusinessLive((attempt||0)+1),50);return}
-  let header=document.querySelector(".topbar"),offset=header?Math.ceil(header.getBoundingClientRect().height)+10:10,y=Math.max(0,Math.round(card.getBoundingClientRect().top+window.scrollY-offset));
-  try{window.scrollTo({top:y,left:0,behavior:"auto"})}catch{window.scrollTo(0,y)}
-}
-function stabilizeLanding(){
-  landOnBusinessLive(0);
-  requestAnimationFrame(()=>{landOnBusinessLive(0);requestAnimationFrame(()=>landOnBusinessLive(0))});
-  [80,180,360,700,1100].forEach(ms=>setTimeout(()=>landOnBusinessLive(0),ms));
-}
-function init(){ui();refresh();events();stabilizeLanding();setInterval(paint,250);setInterval(refresh,1e4)}
-window.addEventListener("pageshow",()=>setTimeout(stabilizeLanding,0));
+function init(){ui();refresh();events();setInterval(paint,250);setInterval(refresh,1e4)}
 document.readyState==="loading"?document.addEventListener("DOMContentLoaded",init,{once:true}):init()})();
