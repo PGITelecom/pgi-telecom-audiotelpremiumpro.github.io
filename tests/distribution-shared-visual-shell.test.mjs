@@ -23,7 +23,10 @@ test("all 35 publicly eligible Distribution editorial pages share the actual SVA
   assert.match(html,/\/site\/distribution-sva\/unified\.css"/,name+": unified stylesheet");
   assert.match(html,/<body[^>]*class="[^"]*ds-unified/,name+": scoped unified CSS");
   assert.match(html,/class="revenue-quick-tabs"/,name+": real SVA bottom-bar component");
-  if (html.includes('<article class="card">')&&html.includes('href="/distribution-sva/')) assert.match(html,/class="card ds-card-clickable"/,name+": linked cards tappable");
+  for(const match of html.matchAll(/<article class="card([^"]*)">([\s\S]*?)<\/article>/g)){
+   if((match[2].match(/<a\s+[^>]*href="[^"]+"/g)||[]).length===1)
+    assert.ok(match[1].includes("ds-card-clickable"),name+": single-link article should be fully tappable");
+  }
   assert.doesNotMatch(html,/<header class="top">/,name+": no legacy header");
   assert.match(html,/content="index,follow,max-snippet:-1"/,name+": existing editorial release rule");
   assert.ok(html.includes('href="/client.html"'),name+": existing Audiotel login");
