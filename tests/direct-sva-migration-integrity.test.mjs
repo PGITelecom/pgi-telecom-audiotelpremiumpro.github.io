@@ -45,7 +45,7 @@ test("the direct SVA migrations have intact statement boundaries and no duplicat
  for(const name of names){
   const sql=fs.readFileSync(new URL(name,migrationDir),"utf8");
   assert.doesNotThrow(()=>scanSql(sql),name);
-  assert.ok(sql.endsWith(";\n"),name+": expected SQL end");
+  assert.match(sql.trimEnd(),/;$/,name+": expected SQL end");
   const declarations=[...stripSqlComments(sql).matchAll(/\bCREATE TABLE IF NOT EXISTS (\w+)/gi)].map(m=>m[1]);
   const minimum=name.startsWith("079_")?1:2;
   assert.ok(declarations.length>=minimum,name+": empty or truncated migration");
