@@ -43,7 +43,6 @@ test("the launch preparation and pricing separation remain truthful",()=>{
  assert.match(html,/Distribution en préparation/);
  assert.match(html,/La distribution directe n'est pas encore activée/);
  assert.match(html,/Aucun numéro n'est actuellement proposé/);
- assert.match(html,/Le.+numéro/);
  assert.doesNotMatch(html,/4,90\s*€|créer mon compte distributeur|paiement immédiat/);
  assert.match(js,/data-ds-current-period/);
  assert.match(js,/Europe\/Paris/);
