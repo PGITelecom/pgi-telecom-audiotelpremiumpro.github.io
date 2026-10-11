@@ -31,7 +31,7 @@ test("photo used in the SVA-style hero is actually served from our site build",(
  const image=fs.readFileSync(new URL("../site/distribution-sva/telecom-hero.webp",import.meta.url));
  assert.equal(image.subarray(0,4).toString(),"RIFF");
  assert.equal(image.subarray(8,12).toString(),"WEBP");
- assert.ok(image.length>3000);
+ assert.ok(image.length>35000,"retouched hero photo must not be replaced by low-resolution asset");
  assert.match(html,/class="hero-visual-main" src="\/site\/distribution-sva\/telecom-hero\.webp"/);
  assert.match(builder,/cpSync\(path\.join\(root,"site","distribution-sva"\)/);
  assert.doesNotMatch(html,/images\.unsplash\.com/);
