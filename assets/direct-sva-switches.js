@@ -2,35 +2,7 @@
 // publishes informational pages on the owner's decision, independently from
 // carrier operations, client rights, payment setup and payouts.
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]));
-const css=".dss{padding:15px;border:1px solid rgba(148,171,193,.23);border-radius:12px;background:#0a1925;display:grid;gap:13px}.dss-head{display:flex;gap:12px;align-items:start;justify-content:space-between;flex-wrap:wrap}.dss h3{font-size:15px;margin:0}.dss p{margin:5px 0;color:#9cb0c2;font-size:11px;line-height:1.55}.dss-item{border:1px solid rgba(148,171,193,.19);padding:13px;border-radius:9px;display:flex;gap:14px;justify-content:space-between;align-items:center}.dss-item strong{display:block;font-size:12px}.dss-item small{display:block;color:#aec0ce;margin-top:4px;font-size:10px;max-width:620px;line-height:1.5}.dss-toggle{width:44px;min-width:44px;height:24px;accent-color:#8ad9c4;cursor:pointer}.dss-toggle:disabled{opacity:.42;cursor:not-allowed}.dss-alert{font-size:11px;color:#f3c49e;padding:8px 10px;border-radius:8px;background:rgba(161,106,45,.12)}.dss-badge{font-size:10px;color:#b4c6d6}.dss-error{color:#f6b4b4;font-size:11px}.dss-details{font-size:10px;color:#8ca1b3;line-height:1.6}.dss-details summary{cursor:pointer}.dss-details ul{padding-left:18px;margin:7px 0}@media(max-width:700px){.dss-item{align-items:start;gap:10px}.dss-head{gap:5px}}"+`
-/* Distribution switches: touch-first and independently responsive from the accounting cockpit. */
-.dss{min-width:0;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere}
-.dss-head>*{min-width:0}
-.dss-item{position:relative;min-width:0;min-height:66px;cursor:pointer;touch-action:manipulation}
-.dss-item>span{min-width:0}
-.dss-item strong{font-size:clamp(13px,2vw,15px);line-height:1.45}
-.dss-item small{font-size:clamp(11px,1.8vw,13px);line-height:1.5}
-.dss-toggle{width:52px;height:36px;min-width:52px;min-height:36px;flex:none;cursor:pointer;touch-action:manipulation}
-.dss-toggle:focus-visible,.dss button:focus-visible,.dss summary:focus-visible{outline:3px solid #f2bd7f;outline-offset:3px}
-.dss-advanced{min-width:0;border:1px solid rgba(148,171,193,.19);border-radius:10px;padding:2px}
-.dss-advanced>summary{min-height:48px;display:flex;align-items:center;padding:9px 12px;font-weight:750;cursor:pointer;touch-action:manipulation;line-height:1.4;list-style:disclosure-closed inside}
-.dss-advanced[open]>summary{border-bottom:1px solid rgba(148,171,193,.19)}
-.dss-advanced-inner{display:grid;gap:12px;padding:12px;min-width:0}
-.dss .ds-button{display:block;min-height:48px;width:100%;box-sizing:border-box;border:1px solid rgba(140,166,190,.32);background:#183744;color:#f2f8ff;font-weight:750;font-size:14px;line-height:1.4;border-radius:10px;padding:11px 14px;cursor:pointer;touch-action:manipulation;white-space:normal}
-.dss-details{overflow-wrap:anywhere}
-@media(max-width:680px){
- .dss{padding:12px;gap:11px;border-radius:12px}
- .dss-head{display:grid;grid-template-columns:minmax(0,1fr);gap:7px}
- .dss-head h3{font-size:16px;line-height:1.35}
- .dss-head p,.dss-badge{font-size:12px}
- .dss-item{display:grid;grid-template-columns:minmax(0,1fr) 56px;align-items:center;padding:13px 10px;gap:10px}
- .dss-advanced-inner{padding:8px;gap:9px}
- .dss-toggle{justify-self:end}
- .dss .ds-button{font-size:14px;min-height:52px}
- .dss-details summary{min-height:44px;display:flex;align-items:center}
-}
-@media(max-width:340px){.dss{padding:9px}.dss-item{padding:10px 8px;gap:5px;grid-template-columns:minmax(0,1fr) 52px}.dss-toggle{width:48px;min-width:48px}}
-`;
+const css=".dss{padding:15px;border:1px solid rgba(148,171,193,.23);border-radius:12px;background:#0a1925;display:grid;gap:13px}.dss-head{display:flex;gap:12px;align-items:start;justify-content:space-between;flex-wrap:wrap}.dss h3{font-size:15px;margin:0}.dss p{margin:5px 0;color:#9cb0c2;font-size:11px;line-height:1.55}.dss-item{border:1px solid rgba(148,171,193,.19);padding:13px;border-radius:9px;display:flex;gap:14px;justify-content:space-between;align-items:center}.dss-item strong{display:block;font-size:12px}.dss-item small{display:block;color:#aec0ce;margin-top:4px;font-size:10px;max-width:620px;line-height:1.5}.dss-toggle{width:44px;min-width:44px;height:24px;accent-color:#8ad9c4;cursor:pointer}.dss-toggle:disabled{opacity:.42;cursor:not-allowed}.dss-alert{font-size:11px;color:#f3c49e;padding:8px 10px;border-radius:8px;background:rgba(161,106,45,.12)}.dss-badge{font-size:10px;color:#b4c6d6}.dss-error{color:#f6b4b4;font-size:11px}.dss-details{font-size:10px;color:#8ca1b3;line-height:1.6}.dss-details summary{cursor:pointer}.dss-details ul{padding-left:18px;margin:7px 0}@media(max-width:700px){.dss-item{align-items:start;gap:10px}.dss-head{gap:5px}}"+`.dss{min-width:0;max-width:100%;overflow-wrap:anywhere;box-sizing:border-box}.dss-head>*{min-width:0}.dss-item{min-width:0;min-height:66px;cursor:pointer;touch-action:manipulation}.dss-item>span{min-width:0}.dss-item strong{font-size:14px;line-height:1.4}.dss-item small{font-size:12px;line-height:1.45}.dss-toggle{width:52px;min-width:52px;height:36px;min-height:36px;touch-action:manipulation}.dss-advanced{min-width:0;border:1px solid rgba(148,171,193,.19);border-radius:9px;padding:2px}.dss-advanced>summary{display:flex;align-items:center;min-height:48px;padding:9px;cursor:pointer;touch-action:manipulation}.dss-advanced-inner{display:grid;gap:10px;padding:9px}.dss .ds-button{width:100%;min-height:48px;border:1px solid #5d778d;background:#183744;color:#fff;border-radius:10px;padding:11px;cursor:pointer;touch-action:manipulation}.dss input:focus-visible,.dss button:focus-visible,.dss summary:focus-visible{outline:2px solid #f2bd7f}@media(max-width:680px){.dss{padding:12px}.dss-head{display:grid}.dss-head h3{font-size:16px}.dss-item{display:grid;grid-template-columns:minmax(0,1fr) 56px;padding:12px 9px;gap:10px}.dss-toggle{justify-self:end}.dss .ds-button{min-height:52px}.dss-details summary{min-height:44px}}@media(max-width:340px){.dss{padding:9px}.dss-item{grid-template-columns:minmax(0,1fr) 52px;gap:5px}}`;
 function style(){
  if(document.getElementById("pgi-direct-sva-switches-css"))return;
  const node=document.createElement("style");node.id="pgi-direct-sva-switches-css";
