@@ -145,6 +145,8 @@ test("API requires admin and CSRF and remains separated from operator activation
 test("admin UI has separate preview, publication and commercial controls with lazy loading",()=>{
  const ui=fs.readFileSync(new URL("../assets/direct-sva-switches.js",import.meta.url),"utf8");
  const acct=fs.readFileSync(new URL("../assets/accounting-cockpit.js",import.meta.url),"utf8");
+ const app=fs.readFileSync(new URL("../assets/app.js",import.meta.url),"utf8");
+ const index=fs.readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const builder=fs.readFileSync(new URL("../scripts/build-static.mjs",import.meta.url),"utf8");
  assert.match(ui,/data-dss-preview/);
  assert.match(ui,/data-dss-commercial/);
@@ -153,9 +155,13 @@ test("admin UI has separate preview, publication and commercial controls with la
  assert.match(ui,/Exploitation commerciale PGI Telecom Distribution/);
  assert.match(ui,/credentials:"include"/);
  assert.match(ui,/X-CSRF-Token/);
- assert.match(acct,/import\("\.\/direct-sva-switches\.js"\)/);
+ assert.match(app,/import\("\.\/direct-sva-switches\.js"\)/);
+ assert.match(index,/id="direct-sva-cockpit-controls"/);
+ assert.ok(index.indexOf('id="direct-sva-cockpit-controls"')<index.indexOf('class="command-deck"'));
  assert.match(acct,/privatePreviewEnabled===true/);
- assert.match(acct,/renderDirectAdminSwitches/);
+ assert.match(acct,/pgi:direct-sva-preview-change/);
+ assert.doesNotMatch(acct,/renderDirectAdminSwitches/);
+ assert.doesNotMatch(acct,/data-direct-sva-admin-switches/);
  assert.match(builder,/"assets\/direct-sva-switches\.js"/);
  assert.match(builder,/"assets\/direct-sva-cockpit\.js"/);
 });
