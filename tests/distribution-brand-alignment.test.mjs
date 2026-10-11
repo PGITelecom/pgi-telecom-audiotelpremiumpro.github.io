@@ -22,10 +22,15 @@ test("the genuine Distribution webpage loads the matching stylesheet and the tel
  const builder=read("scripts/build-static.mjs");
  assert.match(html,/<link rel="stylesheet" href="\/site\/distribution-sva\/style\.css">/);
  assert.match(html,/<link rel="stylesheet" href="\/site\/distribution-sva\/brand\.css">/);
- assert.match(html,/<figure class="ds-hero-photo">/);
+ assert.match(html,/<figure class="hero-visual">/);
+ assert.match(html,/class="hero-marketing-badge"/);
+ assert.match(html,/class="site-header ds-main-header"/);
+ assert.match(html,/data-site-search/);
+ assert.match(html,/class="revenue-quick-nav"/);
  assert.match(html,/<img src="https:\/\/images\.unsplash\.com\/photo-/);
  assert.match(html,/alt="Antenne de télécommunications au coucher du soleil/);
- assert.match(html,/PGI Telecom Distribution en préparation/);
+ assert.match(html,/PGI Telecom Distribution/);
+ assert.match(html,/EN OCTOBRE 2026/);
  assert.match(html,/<meta name="robots" content="noindex,nofollow,noarchive">/);
  assert.match(html,/Aucun numéro n'est actuellement proposé/);
  assert.match(html,/La distribution directe n'est pas encore activée/);
