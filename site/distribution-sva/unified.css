@@ -1,0 +1,123 @@
+/* PGI Telecom Distribution: single SVA design system for every informational page.
+   Load after site.css, style.css, brand.css and parity.css.
+   Never touches Audiotel production CSS or payment logic. */
+:root{color-scheme:dark}
+html{overflow-x:clip;scroll-padding-top:20px}
+body.ds-unified{--bg:#17100d;--bg2:#211713;--panel:#2a1d18;--panel2:#33231c;--gold:#e8b36e;--gold2:#f4cf95;--text:#fff7f0;--muted:#cdb8a8;--ink:#fff7f0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:linear-gradient(180deg,#17100d,#211713 52%,#17100d);color:#fff7f0;line-height:1.55;overflow-x:clip;padding-bottom:calc(102px + env(safe-area-inset-bottom));font-weight:400}
+body.ds-unified .wrap{width:min(1180px,calc(100% - 28px));max-width:1180px;min-width:0;margin-inline:auto}
+body.ds-unified h1,body.ds-unified h2,body.ds-unified h3{font-family:inherit;color:#fff7f0;font-weight:800;letter-spacing:-.035em}
+body.ds-unified h1{font-size:clamp(41px,6vw,74px);line-height:1.025;letter-spacing:-.047em}
+body.ds-unified h2{font-size:clamp(26px,3vw,40px);line-height:1.15}
+body.ds-unified h3{font-size:clamp(17px,1.9vw,20px);line-height:1.35;font-weight:700}
+body.ds-unified p{font-weight:400}
+body.ds-unified .eyebrow{color:#e8b36e;font-weight:650;letter-spacing:.11em;font-size:11px}
+body.ds-unified .hero{background:radial-gradient(circle at 50% 5%,rgba(232,179,110,.06),transparent 55%),linear-gradient(180deg,#211713,#17100d 85%);padding:40px 0 56px;overflow:visible}
+body.ds-unified .hero>.wrap{max-width:1180px}
+body.ds-unified .hero>.wrap>h1{margin:10px 0 22px}
+body.ds-unified .hero .lead,body.ds-unified .hero .hero-lead{font-size:clamp(15px,1.5vw,18px);line-height:1.63;max-width:74ch;color:#d8c7bb;font-weight:400}
+body.ds-unified .hero-grid{display:grid;grid-template-columns:minmax(0,1fr)!important;gap:20px;min-width:0;max-width:100%}
+body.ds-unified .hero-copy,body.ds-unified .hero-side{min-width:0;max-width:100%}
+body.ds-unified .hero-copy h1{max-width:1050px;margin:10px 0 18px}
+body.ds-unified .hero-copy h1 span{color:#f4cf95}
+body.ds-unified .site-header{position:relative;background:rgba(23,16,13,.96);border-bottom:1px solid rgba(232,179,110,.16);padding-bottom:5px;z-index:190;overflow:visible}
+body.ds-unified .header-inner{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;min-height:95px;max-width:1180px}
+body.ds-unified .brand-full{display:block;max-width:100%;min-width:0}
+body.ds-unified .brand-full img{display:block;max-width:min(238px,100%)!important;width:238px!important;height:auto!important;max-height:78px!important;object-fit:contain}
+body.ds-unified .ds-main-nav{grid-column:1/-1;display:flex;justify-content:center;gap:19px;flex-wrap:wrap;margin:0 auto}
+body.ds-unified .ds-main-nav a{font-size:12px;min-height:40px;display:inline-flex;align-items:center;white-space:nowrap;text-decoration:underline;text-decoration-color:rgba(232,179,110,.2);text-underline-offset:5px;color:#d7c5b5;font-weight:500!important}
+body.ds-unified .ds-main-nav a:hover,body.ds-unified .ds-main-nav a:focus,body.ds-unified .ds-main-nav a[aria-current=page]{color:#f4cf95;text-decoration-color:#e8b36e}
+body.ds-unified .header-account-entry{display:grid;justify-items:end;gap:6px}
+body.ds-unified .header-login{min-height:43px;display:grid;gap:3px;align-content:center;text-align:center;padding:8px 11px;border:1px solid rgba(232,179,110,.31);background:rgba(232,179,110,.04);border-radius:12px;color:#f4cf95;text-decoration:none;font-size:11px;font-weight:500!important}
+body.ds-unified .header-login strong{font-weight:600!important;font-size:12px;color:#f4cf95}
+body.ds-unified .header-distribution-link{color:#e8b36e;text-decoration:underline;text-underline-offset:5px;font-size:12px;font-weight:500!important}
+body.ds-unified .public-search-wrap{width:min(1180px,calc(100% - 28px));margin-inline:auto;max-width:1180px;display:block;padding:0 0 8px}
+body.ds-unified .public-search{width:100%;max-width:100%}
+body.ds-unified .public-search-box{height:46px;border-radius:12px}
+body.ds-unified .public-search-box input{font-size:14px!important;font-weight:400!important}
+body.ds-unified .public-search-results{max-width:100%;z-index:250}
+body.ds-unified .ds-mobile-menu{display:none!important}
+body.ds-unified .panel,body.ds-unified .card{background:linear-gradient(145deg,#32231c,#251a16);border:1px solid rgba(232,179,110,.17);border-radius:17px;box-shadow:0 9px 25px rgba(0,0,0,.14)}
+body.ds-unified .card{min-width:0;padding:22px}
+body.ds-unified .card p,body.ds-unified .panel p{font-size:14px;line-height:1.65;color:#d7c5b6}
+body.ds-unified a{color:#eac692;text-decoration-thickness:1px;text-underline-offset:4px}
+body.ds-unified .card a,body.ds-unified .panel a,body.ds-unified .ds-language-links a,body.ds-unified .ds-topic-links a,body.ds-unified .ds-legal-links a{font-weight:500!important}
+body.ds-unified summary,body.ds-unified .menu a{font-weight:550!important}
+body.ds-unified .button,body.ds-unified .hero-actions .btn{background:linear-gradient(180deg,#f4cf95,#dfa256);border:1px solid #e8b36e;border-radius:15px;box-shadow:0 10px 25px rgba(160,105,49,.12);color:#24180f;text-decoration:none;font-weight:700!important;display:inline-flex;align-items:center;justify-content:center;min-height:58px;padding:13px 19px;text-align:center;line-height:1.35}
+body.ds-unified .button.secondary{border-color:rgba(236,194,143,.45);background:transparent;box-shadow:none;color:#f4d6aa}
+body.ds-unified .actions{gap:10px}
+body.ds-unified .notice{border-color:rgba(232,179,110,.28);background:#38281f;border-radius:15px;color:#e9cda8}
+body.ds-unified .hero-marketing-badge{border-radius:999px;font-size:11px}
+body.ds-unified .hero-brand-signature{font-weight:650;letter-spacing:.07em;font-size:clamp(14px,1.7vw,18px);color:#c7c7c6}
+body.ds-unified .hero-service-line{font-size:11px;color:#e8b36e;letter-spacing:.09em;font-weight:650}
+body.ds-unified .hero-lead-simple{max-width:770px}
+body.ds-unified .hero-actions{display:grid;grid-template-columns:1fr;gap:11px;max-width:900px}
+body.ds-unified .hero-actions .btn{width:100%;min-height:61px}
+body.ds-unified .hero-action-link,body.ds-unified .section-text-link{font-weight:500!important;font-size:13px;text-decoration:underline}
+body.ds-unified .trust-line{display:flex;flex-wrap:wrap;gap:8px}
+body.ds-unified .trust-line span{font-weight:400;border-radius:999px;border:1px solid rgba(232,179,110,.19);background:rgba(255,255,255,.035);padding:8px 12px}
+body.ds-unified .revenue-quick-nav{position:fixed!important;inset:auto 0 0!important;width:100%!important;max-width:100%!important;z-index:1800!important;display:block!important;padding:6px 0 calc(7px + env(safe-area-inset-bottom))!important;margin:0!important;background:rgba(42,45,49,.99)!important;border-top:1px solid rgba(255,255,255,.12)!important;border-bottom:0!important;box-shadow:0 -14px 35px rgba(0,0,0,.36)!important;backdrop-filter:blur(16px)}
+body.ds-unified .revenue-quick-nav>.wrap{width:100%!important;max-width:1180px!important;margin-inline:auto;padding:0 4px!important}
+body.ds-unified .revenue-quick-tabs{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:0!important;min-width:0!important}
+body.ds-unified .revenue-quick-tab{display:grid!important;align-content:center!important;justify-items:center!important;grid-column:auto!important;min-width:0!important;min-height:67px!important;padding:7px 4px!important;margin:0!important;border:0!important;border-left:1px solid rgba(255,255,255,.085)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;transform:none!important;text-align:center!important;text-decoration:none!important;touch-action:manipulation}
+body.ds-unified .revenue-quick-tab:first-child{border-left:0!important}
+body.ds-unified .revenue-quick-tab small{color:#b4bfc9!important;font-size:8.5px!important;font-weight:500!important;letter-spacing:.03em!important;line-height:1.2!important;overflow-wrap:anywhere!important;margin:0 0 4px!important}
+body.ds-unified .revenue-quick-tab strong{font-size:11px!important;line-height:1.17!important;font-weight:550!important;letter-spacing:0!important;color:#f2f4f7!important;overflow-wrap:anywhere!important}
+body.ds-unified .revenue-quick-tab-primary strong{color:#f4cf95!important}
+body.ds-unified .revenue-quick-tab span{display:none!important}
+body.ds-unified .revenue-quick-tab:focus-visible{outline:2px solid #f4cf95;outline-offset:-2px}
+body.ds-unified footer{padding-bottom:30px}
+body.ds-unified .ds-hero-photo-under-title{position:relative;aspect-ratio:auto!important;min-height:0!important;max-height:none!important;height:auto!important;width:min(100%,510px);margin:18px 0 23px;padding:0;border-radius:22px;border:1px solid rgba(232,179,110,.23);overflow:hidden;background:#120e0c;box-shadow:0 20px 54px rgba(0,0,0,.28)}
+body.ds-unified .ds-hero-photo-under-title img{display:block;width:100%;height:auto;max-height:none;object-fit:contain;object-position:center}
+body.ds-unified .ds-hero-photo-under-title figcaption{position:static;display:block;padding:12px 16px;background:linear-gradient(90deg,#261b16,#1c1411);color:#ead5be;font-size:12px;line-height:1.45;font-weight:450}
+body.ds-unified .ds-hero-photo-under-title figcaption strong{font-weight:600}
+body.ds-unified .hero-visual-brand{display:none}
+body.ds-unified .ds-parity .hero{max-height:none}
+body.ds-unified .ds-two-univers .panel{box-shadow:0 12px 30px rgba(0,0,0,.16)}
+@media(max-width:900px){
+ body.ds-unified .ds-main-nav{display:none!important}
+ body.ds-unified .header-inner{grid-template-columns:minmax(0,1fr) auto;min-height:85px;gap:10px}
+ body.ds-unified .brand-full img{width:min(238px,48vw)!important}
+ body.ds-unified .header-account-entry{max-width:43vw}
+ body.ds-unified .header-login{min-height:44px;padding:6px 10px}
+ body.ds-unified .header-login span{display:none}
+ body.ds-unified .header-login strong{font-size:11px}
+ body.ds-unified .header-distribution-link{font-size:10px;white-space:normal;text-align:right}
+ body.ds-unified .hero{padding:36px 0 48px}
+}
+@media(max-width:680px){
+ body.ds-unified .wrap{width:calc(100% - 22px)}
+ body.ds-unified .header-inner{width:calc(100% - 22px);min-height:86px;align-items:center}
+ body.ds-unified .brand-full img{width:min(238px,51vw)!important;max-height:78px!important}
+ body.ds-unified .header-login strong{font-size:10.5px}
+ body.ds-unified .header-distribution-link{font-size:10px}
+ body.ds-unified .public-search-wrap{width:calc(100% - 22px)!important;max-width:calc(100% - 22px)!important}
+ body.ds-unified .hero{padding:30px 0 44px}
+ body.ds-unified h1{font-size:clamp(42px,12.5vw,62px);line-height:1.025;letter-spacing:-.045em}
+ body.ds-unified .hero .lead,body.ds-unified .hero .hero-lead{font-size:16px}
+ body.ds-unified .hero-marketing-badge{margin:0 auto 27px;font-size:10px;white-space:normal}
+ body.ds-unified .hero-copy h1{margin:12px 0 17px}
+ body.ds-unified .hero-actions{margin-top:26px}
+ body.ds-unified .hero-actions .btn,body.ds-unified .actions .button{min-height:59px}
+ body.ds-unified .actions{display:grid;grid-template-columns:minmax(0,1fr)}
+ body.ds-unified .actions .button{width:100%;min-width:0}
+ body.ds-unified .panel,body.ds-unified .card{border-radius:14px;padding:17px}
+ body.ds-unified .cards,body.ds-unified .two,body.ds-unified .ds-two-columns,body.ds-unified .ds-features{grid-template-columns:minmax(0,1fr);gap:13px}
+ body.ds-unified .ds-hero-photo-under-title{margin:15px 0 20px;border-radius:16px;width:100%}
+ body.ds-unified .ds-hero-photo-under-title figcaption{font-size:11px;padding:10px 12px}
+ body.ds-unified .revenue-quick-nav{padding:4px 0 calc(5px + env(safe-area-inset-bottom))!important}
+ body.ds-unified .revenue-quick-nav>.wrap{width:100%!important;padding:0!important}
+ body.ds-unified .revenue-quick-tab{min-height:67px!important;padding:6px 3px!important}
+ body.ds-unified .revenue-quick-tab small{font-size:7.5px!important}
+ body.ds-unified .revenue-quick-tab strong{font-size:10px!important}
+ body.ds-unified{padding-bottom:calc(86px + env(safe-area-inset-bottom))!important}
+}
+@media(max-width:365px){
+ body.ds-unified .brand-full img{width:min(190px,48vw)!important}
+ body.ds-unified .header-account-entry{max-width:45vw}
+ body.ds-unified .header-login strong{font-size:9.5px}
+ body.ds-unified h1{font-size:clamp(37px,12vw,43px)}
+ body.ds-unified .revenue-quick-tab{min-height:73px!important;padding:5px 2px!important}
+ body.ds-unified .revenue-quick-tab small{font-size:7px!important}
+ body.ds-unified .revenue-quick-tab strong{font-size:9px!important}
+}
+@media(prefers-reduced-motion:reduce){body.ds-unified *{scroll-behavior:auto}}
