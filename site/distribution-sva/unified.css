@@ -210,3 +210,93 @@ body.ds-unified .hero-brand-signature{color:#e5cdb5!important}
 @media(prefers-reduced-motion:reduce){
  body.ds-unified .ds-card-clickable,body.ds-unified .ds-two-columns .ds-universe-link{transition:none}
 }
+
+
+/* RELEASE CANDIDATE: Distribution home hero, quiet brand framing and legible beige panels.
+   Deliberately DOES NOT touch the 5-tab SVA-matching gray footer. */
+body.home-page.ds-unified .site-header{padding-bottom:0}
+body.home-page.ds-unified .public-search-wrap{padding-bottom:2px}
+body.home-page.ds-unified .hero{padding:9px 0 42px!important;background:linear-gradient(180deg,#211713 0%,#17100d 94%)}
+body.home-page.ds-unified .hero-grid{gap:0!important}
+body.home-page.ds-unified .hero-copy{max-width:100%}
+body.home-page.ds-unified .hero-marketing-badge{
+ margin:0 auto 6px!important;padding:8px 15px!important;max-width:min(100%,780px);
+ line-height:1.3!important;letter-spacing:.07em!important;font-weight:700!important;
+ border-radius:999px!important;background:rgba(232,179,110,.095)!important;
+ border:1px solid rgba(232,179,110,.32)!important;color:#f4cf95!important
+}
+body.home-page.ds-unified .ds-hero-photographic{
+ margin:1px 0 11px!important;padding:0!important;max-width:1180px;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+ background:radial-gradient(ellipse 76% 76% at 64% 47%,#302016 0%,#211713 61%,#17100d 100%);
+ min-height:clamp(410px,43vw,580px);overflow:hidden
+}
+body.home-page.ds-unified .ds-hero-photographic .ds-network-tower{
+ filter:contrast(1.12) saturate(1.07) brightness(1.055)!important;
+ object-position:74% 47%!important;transform:none!important;
+ -webkit-mask-image:radial-gradient(ellipse 88% 79% at 54% 49%,#000 51%,transparent 100%);
+ mask-image:radial-gradient(ellipse 88% 79% at 54% 49%,#000 51%,transparent 100%);
+}
+body.home-page.ds-unified .ds-hero-photographic::after{
+ background:linear-gradient(90deg,rgba(23,16,13,.92),rgba(23,16,13,.66) 35%,rgba(23,16,13,.18) 71%,transparent 100%),
+ linear-gradient(0deg,rgba(23,16,13,.32),transparent 43%)!important
+}
+body.home-page.ds-unified .ds-hero-photographic-copy{padding:clamp(18px,4.4vw,55px)!important;max-width:670px}
+body.home-page.ds-unified .ds-hero-photo-description{color:#f8eee5!important}
+body.home-page.ds-unified .hero-lead-simple{margin-top:12px!important}
+body.home-page.ds-unified .hero-actions{margin-top:20px!important}
+body.home-page.ds-unified .hero-note{margin-top:13px!important}
+/* All informational panels on the Distribution landing are warm beige, not gray. */
+body.home-page.ds-unified .panel,body.home-page.ds-unified .card{
+ background:linear-gradient(145deg,#f8eee5,#eaddcc)!important;color:#231812!important;
+ border:1px solid rgba(177,125,75,.34)!important;box-shadow:0 12px 35px rgba(0,0,0,.14)
+}
+body.home-page.ds-unified .panel h2,body.home-page.ds-unified .panel h3,
+body.home-page.ds-unified .card h2,body.home-page.ds-unified .card h3{color:#231812!important}
+body.home-page.ds-unified .panel p,body.home-page.ds-unified .card p,
+body.home-page.ds-unified .panel li,body.home-page.ds-unified .card li{
+ color:#503c30!important;font-weight:400!important
+}
+body.home-page.ds-unified .panel .eyebrow,body.home-page.ds-unified .card .eyebrow{color:#8e592e!important}
+body.home-page.ds-unified .panel a,body.home-page.ds-unified .card a{
+ color:#805024!important;font-weight:550!important;text-decoration:underline;text-decoration-thickness:1px
+}
+body.home-page.ds-unified .card .ds-feature-symbol{
+ color:#624021!important;background:#ead0ae!important;border:1px solid rgba(150,101,54,.24)!important
+}
+body.home-page.ds-unified .ds-card-clickable:hover,body.home-page.ds-unified .ds-card-clickable:focus-within{
+ background:linear-gradient(145deg,#fff9f0,#f1dfc8)!important;border-color:#b88a59!important
+}
+body.home-page.ds-unified .ds-two-univers .notice{
+ background:#e8d6be!important;color:#4d3021!important;border:1px solid #c59e72!important;
+}
+body.home-page.ds-unified .ds-two-columns .ds-universe-link{
+ background:#fff9f0!important;border-color:rgba(167,112,67,.24)!important;color:#231812!important
+}
+body.home-page.ds-unified .ds-two-columns .ds-universe-link p{color:#503c30!important}
+body.home-page.ds-unified .ds-launch-note .eyebrow{color:#8e592e!important}
+body.home-page.ds-unified .ds-launch-note p{color:#503c30!important}
+body.home-page.ds-unified .ds-feature-head h2{color:#fff7f0}
+body.home-page.ds-unified .ds-geo-faq{margin-top:10px}
+body.home-page.ds-unified .ds-geo-faq .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+body.home-page.ds-unified .ds-geo-faq .card{min-height:160px}
+body.home-page.ds-unified .ds-geo-faq .card h3{font-size:17px;line-height:1.38}
+body.home-page.ds-unified .ds-geo-faq .card p{margin:11px 0}
+body.home-page.ds-unified .ds-geo-faq .card a{display:inline-block;margin-top:8px}
+@media(max-width:680px){
+ body.home-page.ds-unified .hero{padding-top:6px!important}
+ body.home-page.ds-unified .hero-marketing-badge{margin-bottom:3px!important;padding:7px 11px!important}
+ body.home-page.ds-unified .ds-hero-photographic{min-height:clamp(390px,104vw,520px);margin-top:0!important;margin-bottom:8px!important}
+ body.home-page.ds-unified .ds-hero-photographic .ds-network-tower{
+  object-position:66% 48%!important;
+  -webkit-mask-image:radial-gradient(ellipse 99% 86% at 54% 49%,#000 56%,transparent 100%);
+  mask-image:radial-gradient(ellipse 99% 86% at 54% 49%,#000 56%,transparent 100%);
+ }
+ body.home-page.ds-unified .ds-hero-photographic-copy{padding:clamp(16px,5vw,25px)!important}
+ body.home-page.ds-unified .ds-geo-faq .cards{grid-template-columns:minmax(0,1fr)}
+ body.home-page.ds-unified .panel,body.home-page.ds-unified .card{padding:17px}
+}
+@media(max-width:360px){
+ body.home-page.ds-unified .ds-hero-photographic{min-height:390px}
+ body.home-page.ds-unified .ds-hero-photographic h1{font-size:clamp(35px,10vw,42px)}
+}
