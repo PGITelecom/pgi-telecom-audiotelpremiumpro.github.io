@@ -59,7 +59,7 @@ function installHeroPhoto(html){
  // Reuse the originally selected tower-at-sunset image. Unlike the old card,
  // the title and a short statement live inside the photographic composition.
  const art='<div class="ds-hero-photographic" role="group" aria-label="Pôle Télécom et Réseau">'+
- '<img class="ds-network-tower" src="/site/distribution-sva/telecom-hero.webp" alt="Antenne de télécommunications, ville au soleil couchant et connexions lumineuses" width="333" height="471" decoding="async" fetchpriority="high">'+
+ '<img class="ds-network-tower" src="/site/distribution-sva/telecom-hero.webp" alt="Antenne de télécommunications, ville au soleil couchant et connexions lumineuses" width="960" height="1358" decoding="async" fetchpriority="high">'+
  '<div class="ds-hero-photographic-copy">'+
  '<p class="ds-hero-photo-kicker">PGI TELECOM DISTRIBUTION <span>EN PRÉPARATION</span></p>'+
  heading+
