@@ -1,4 +1,5 @@
-# Vercel release validation: preview branch uses its isolated Neon database override.\nFROM node:22-alpine AS verify
+FROM node:22-alpine AS verify
+# Vercel release validation: preview branch uses its isolated Neon database override.
 WORKDIR /src
 RUN apk add --no-cache bash git
 COPY package.json package-lock.json ./
