@@ -1,0 +1,51 @@
+name: Stripe Connect public webhook security smoke
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/connect-webhook-public-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  webhook-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify production health endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(curl --silent --show-error --location --max-time 25 \
+            --output /tmp/pgi-health-check.json --write-out '%{http_code}' \
+            'https://audiotel-premium-pro.com/api/v1/health')"
+          echo "Production health HTTP status: ${status}"
+          test "${status}" = "200"
+
+      - name: Verify production Connect webhook rejects requests without signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(curl --silent --show-error --max-time 25 \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --data '{"id":"evt_pgi_unsigned_synthetic_probe","type":"payment_intent.succeeded","account":"acct_PGISyntheticProbe","data":{"object":{}}}' \
+            --output /tmp/pgi-webhook-check.json --write-out '%{http_code}' \
+            'https://audiotel-premium-pro.com/api/v1/billing/stripe/connect-accounts-webhook')"
+          echo "Unsigned Stripe Connect event rejected with HTTP status: ${status}"
+          if [ "${status}" != "400" ]; then
+            echo "Expected HTTP 400 for invalid Stripe signature. Failing closed is mandatory."
+            cat /tmp/pgi-webhook-check.json
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json
+          with open('/tmp/pgi-webhook-check.json',encoding='utf-8') as f:
+              body=json.load(f)
+          code=(body.get('error') or {}).get('code')
+          if code not in ('STRIPE_SIGNATURE_INVALID','STRIPE_SIGNATURE_EXPIRED'):
+              raise SystemExit('Unexpected response error code: '+repr(code))
+          print('Unsigned event safely rejected: '+code)
+          PY
