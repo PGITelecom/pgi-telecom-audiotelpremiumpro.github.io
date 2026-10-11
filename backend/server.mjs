@@ -15,7 +15,7 @@ import {webauthnConfigured,publicPasskeyOptions,verifyWebAuthnState,validateWebA
 import {customerPermissions,hasCustomerPermission,requireCustomerPermission,scopeCustomerPortalData,scopeCustomerAnnualProgressData} from "./src/customer-access.mjs";
 import {createStaticSiteHandler} from "./src/static-site.mjs";
 import {stripeProviderReadiness,invalidateStripeProviderReadiness,createStripeCheckout,createStripePortalSession,createStripePortabilityPriorityCheckout,verifyStripeWebhook,normalizeStripePortabilityPriorityEvent,normalizeStripeBillingEvent,normalizeStripeRefundEvent} from "./src/stripe-billing.mjs";
-import {STRIPE_CONNECT_APPLICATION_FEE_BPS,stripeConnectState,createStripeConnectedAccount,retrieveStripeConnectedAccount,normalizeStripeConnectedAccount,createStripeConnectOnboardingLink,createStripeCardCheckout,retrieveStripeCardCheckout,normalizeStripeConnectPaymentEvent,hashStripeEventPayload,createStripeReferralRecipientAccount,retrieveStripeReferralRecipientAccount,normalizeStripeReferralRecipientAccount,createStripeReferralOnboardingLink} from "./src/stripe-connect.mjs";
+import {STRIPE_CONNECT_APPLICATION_FEE_BPS,stripeConnectState,createStripeConnectedAccount,retrieveStripeConnectedAccount,normalizeStripeConnectedAccount,createStripeConnectOnboardingLink,createStripeCardCheckout,retrieveStripeCardCheckout,normalizeStripeConnectPaymentEvent,hashStripeEventPayload,stripeConnectWebhookSecretForPath,createStripeReferralRecipientAccount,retrieveStripeReferralRecipientAccount,normalizeStripeReferralRecipientAccount,createStripeReferralOnboardingLink} from "./src/stripe-connect.mjs";
 import {runReferralAutomaticPayouts} from "./src/referral-payout-automation.mjs";
 import {expertAccountingSnapshot,refreshExpertAccountingLedger,updateExpertAccountingSettings,createExpertAccountingEntry,validateExpertAccountingEntry,reverseExpertAccountingEntry,setAccountingPeriodState,importAccountingBankTransactions,matchAccountingBankTransaction,expertAccountingFec} from "./src/accounting-expert.mjs";
 import {ga4MeasurementState,sanitizeGa4CheckoutContext,buildGa4PurchaseFromStripe,buildGa4RefundFromStripe,sendGa4Measurement} from "./src/ga4-measurement.mjs";
@@ -132,10 +132,16 @@ export function createBackend(options={}){
         res.pgiRoute="metrics";
         return metricsResponse(res,metrics,store,workers);
       }
-      if(method==="POST"&&pathname==="/api/v1/billing/stripe/connect-webhook"){
-        if(!config.externalBillingEnabled||!config.stripeConnectWebhookSecret)return done(res,metrics,started,"billing.stripe_connect_webhook",404,{error:{code:"STRIPE_CONNECT_WEBHOOK_DISABLED"}});
-        const event=await verifyStripeWebhook(req,config,config.stripeConnectWebhookSecret);
+      if(method==="POST"&&(pathname==="/api/v1/billing/stripe/connect-webhook"||pathname==="/api/v1/billing/stripe/connect-accounts-webhook")){
+        const signatureSecret=stripeConnectWebhookSecretForPath(config,pathname);
+        if(!config.externalBillingEnabled||!signatureSecret)return done(res,metrics,started,"billing.stripe_connect_webhook",404,{error:{code:"STRIPE_CONNECT_WEBHOOK_DISABLED"}});
+        const event=await verifyStripeWebhook(req,config,signatureSecret);
         const type=String(event.type||"");
+        // Managed-account events must carry an account reference. Never use the
+        // platform endpoint's secret to authorize this separate payment stream.
+        if(pathname==="/api/v1/billing/stripe/connect-accounts-webhook"&&!/^acct_[A-Za-z0-9]+$/.test(String(event.account||""))){
+          return done(res,metrics,started,"billing.stripe_connect_webhook",200,{received:true,ignored:true,reason:"connected_account_missing"});
+        }
         if(["account.updated","capability.updated"].includes(type)){
           const object=event?.data?.object||{};
           const accountId=[event.account,object.account,object.id].map(x=>String(x||"")).find(x=>/^acct_[A-Za-z0-9]+$/.test(x))||null;

@@ -67,15 +67,23 @@ function cleanCountry(v){const x=String(v||"FR").trim().toUpperCase();return /^[
 function cleanEmail(v){const x=String(v||"").trim().toLowerCase();return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x)?x:null}
 function cleanText(v,max=180){return String(v||"").trim().replace(/[\u0000-\u001f\u007f]/g," ").replace(/\s+/g," ").slice(0,max)}
 
+export function stripeConnectWebhookSecretForPath(config,pathname){
+  if(pathname==="/api/v1/billing/stripe/connect-webhook")return String(config?.stripeConnectWebhookSecret||"");
+  if(pathname==="/api/v1/billing/stripe/connect-accounts-webhook")return String(config?.stripeConnectAccountsWebhookSecret||"");
+  return "";
+}
+
 export function stripeConnectState(config){
   const key=String(config?.stripeSecretKey||"");
   const apiConfigured=/^sk_(test|live)_/.test(key);
   const webhookConfigured=/^whsec_[A-Za-z0-9]+$/.test(String(config?.stripeConnectWebhookSecret||""));
+  const connectedAccountEventsConfigured=/^whsec_[A-Za-z0-9]+$/.test(String(config?.stripeConnectAccountsWebhookSecret||""));
   return {
     provider:"stripe_connect",
-    configured:apiConfigured&&webhookConfigured,
+    configured:apiConfigured&&webhookConfigured&&connectedAccountEventsConfigured,
     api_configured:apiConfigured,
     webhook_configured:webhookConfigured,
+    connected_account_events_configured:connectedAccountEventsConfigured,
     live_mode:key.startsWith("sk_live_"),
     application_fee_bps:STRIPE_CONNECT_APPLICATION_FEE_BPS,
     application_fee_percent:STRIPE_CONNECT_APPLICATION_FEE_BPS/100,

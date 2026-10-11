@@ -6,6 +6,7 @@ import {
   normalizeStripeConnectedAccount,
   normalizeStripeConnectPaymentEvent,
   stripeConnectState,
+  stripeConnectWebhookSecretForPath,
   createStripeConnectedAccount
 } from "../backend/src/stripe-connect.mjs";
 
@@ -13,16 +14,28 @@ const requestId="11111111-1111-4111-8111-111111111111";
 const accountId="acct_ConnectTest123";
 
 test("Stripe Connect state exposes the fixed PGI fee and webhook readiness",()=>{
-  const state=stripeConnectState({stripeSecretKey:"sk_live_"+"x".repeat(24),stripeConnectWebhookSecret:"whsec_ConnectTest1234567890"});
+  const state=stripeConnectState({stripeSecretKey:"sk_live_"+"x".repeat(24),stripeConnectWebhookSecret:"whsec_ConnectTest1234567890",stripeConnectAccountsWebhookSecret:"whsec_ConnectAccountsTest1234567890"});
   assert.equal(STRIPE_CONNECT_APPLICATION_FEE_BPS,490);
   assert.equal(state.configured,true);
   assert.equal(state.api_configured,true);
   assert.equal(state.webhook_configured,true);
+  assert.equal(state.connected_account_events_configured,true);
   assert.equal(state.application_fee_percent,4.9);
   assert.equal(state.pricing_model,"direct_charges_stripe_owned_pricing");
   assert.equal(state.processing_fees_paid_by,"connected_account");
   assert.equal(state.webhook_configured,true);
   assert.equal(calculateApplicationFee(10000),490);
+});
+
+test("managed-account webhook has a dedicated secret without fallback to the platform signer",()=>{
+  const config={stripeConnectWebhookSecret:"whsec_PlatformSigner123",stripeConnectAccountsWebhookSecret:"whsec_ManagedAccountSigner123"};
+  assert.equal(stripeConnectWebhookSecretForPath(config,"/api/v1/billing/stripe/connect-webhook"),config.stripeConnectWebhookSecret);
+  assert.equal(stripeConnectWebhookSecretForPath(config,"/api/v1/billing/stripe/connect-accounts-webhook"),config.stripeConnectAccountsWebhookSecret);
+  assert.equal(stripeConnectWebhookSecretForPath({stripeConnectWebhookSecret:config.stripeConnectWebhookSecret},"/api/v1/billing/stripe/connect-accounts-webhook"),"");
+  assert.equal(stripeConnectWebhookSecretForPath(config,"/api/v1/billing/stripe/webhook"),"");
+  assert.equal(stripeConnectState(config).connected_account_events_configured,true);
+  assert.equal(stripeConnectState({stripeConnectWebhookSecret:config.stripeConnectWebhookSecret}).connected_account_events_configured,false);
+  assert.equal(stripeConnectState({stripeSecretKey:"sk_live_"+"x".repeat(24),stripeConnectWebhookSecret:config.stripeConnectWebhookSecret}).configured,false);
 });
 
 test("v2 connected-account capability is the readiness source of truth",()=>{
