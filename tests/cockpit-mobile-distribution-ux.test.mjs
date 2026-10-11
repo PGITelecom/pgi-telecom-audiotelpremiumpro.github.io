@@ -48,9 +48,10 @@ test("Business Live and its schedule stay accessible on 320px and other phone wi
  const global=read("assets/styles.css");
  assert.ok(live.indexOf('<div class="lj-actions">')<live.indexOf('<div class="lj-ranking">'));
  assert.doesNotMatch(live,/stabilizeLanding|landOnBusinessLive/);
- assert.match(css,/@media\(max-width:520px\)/);
- assert.match(css,/min-height:52px/);
- assert.match(css,/overflow-wrap:anywhere/);
+ assert.match(css,/\.lj-actions\{display:flex/);
+ assert.match(global,/@media\(max-width:520px\)/);
+ assert.match(global,/min-height:52px/);
+ assert.match(global,/overflow-wrap:anywhere/);
  assert.match(dialog,/max-height:calc\(100dvh/);
  assert.match(dialog,/overflow-y:auto/);
  assert.match(dialog,/position:sticky/);
