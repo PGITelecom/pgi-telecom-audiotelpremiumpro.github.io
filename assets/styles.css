@@ -110,3 +110,7 @@ html{background:#2b1b15}body{background:radial-gradient(circle at 18% -5%,rgba(2
  .pgi-direct-sva-cockpit-controls{margin-bottom:12px}
 }
 @media(max-width:340px){.main{padding-left:6px;padding-right:6px}.command-deck{padding:9px}}
+
+.lj-actions>button{white-space:normal!important;overflow-wrap:anywhere!important;touch-action:manipulation;line-height:1.4!important;min-height:48px!important}
+.lj-actions>button:focus-visible{outline:3px solid #f4c97f;outline-offset:2px}
+.lj-actions>small{overflow-wrap:anywhere;font-size:11px!important}
