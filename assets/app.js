@@ -1,6 +1,30 @@
 (function(){
 "use strict";var RUNTIME=window.PGI_CONFIG||{mode:"demo",apiBaseUrl:"",features:{}};var CONFIG={serviceRate:.8,payoutRate:.46,expertCostPerMin:.18,fixedCostPerCall:.03};var state={period:"today",custom:null,baseline:null,resets:[],callFilters:{search:"",expert:"",carrier:"",status:""},diagnostics:{errors:0,lastRenderMs:0,apiStatus:"not_configured"},live:{calls:0,available:0,queue:0},authUser:null,eventSource:null,syncTimer:null,syncInFlight:false,pendingSync:false,pendingSyncMode:"dashboard",scheduledSyncMode:"dashboard",hiddenAt:null,lastSyncAt:null,activeView:"overview",system:null,route:null,wholesale:null,serverSummary:null,previousSummary:null,serverAnalytics:null,serverReconciliation:null,cdrSampleTruncated:false,market:null,marketCurrency:"EUR",mobileOverviewExpanded:true};var titles={overview:"Cockpit",calls:"Appels",finance:"Finance",accounting:"Comptabilité",experts:"Intervenants",carriers:"Opérateurs",wholesale:"Plateforme SVA",system:"Supervision",settings:"Paramètres"};var experts=["Accueil","Service commercial","Support client","Service technique","Prise de rendez-vous","Comptabilité"];var carriers=["Orange","SFR","Bouygues","Free"];var number089="0890 80 24 24";var callToolsPromise=null;function callTools(){return callToolsPromise||(callToolsPromise=import("./call-tools.js"));}
 var accountingPromise;function renderAccounting(){var h=$("accounting-cockpit-root");if(!h)return;(accountingPromise||(accountingPromise=import("./accounting-cockpit.js"))).then(function(m){m.mountAccounting(h);}).catch(function(){h.textContent="Comptabilité indisponible.";});}
+var directSvaControlsPromise=null;
+function renderDirectSvaCockpitControls(){
+  var host=$("direct-sva-cockpit-controls");if(!host)return;
+  if(RUNTIME.mode!=="production"||state.authUser?.role!=="admin"){
+    host.hidden=true;host.replaceChildren();
+    delete host.dataset.mounted;delete host.dataset.loading;
+    return;
+  }
+  if(host.dataset.mounted==="true"||host.dataset.loading==="true")return;
+  host.dataset.loading="true";
+  (directSvaControlsPromise||(directSvaControlsPromise=import("./direct-sva-switches.js")))
+    .then(function(module){return module.mountDirectSvaSwitches(host,{onPreviewChange:function(enabled){
+      window.dispatchEvent(new CustomEvent("pgi:direct-sva-preview-change",{detail:{enabled:enabled===true}}));
+    }});})
+    .then(function(){
+      delete host.dataset.loading;
+      if(state.authUser?.role==="admin")host.dataset.mounted="true";
+      else {host.hidden=true;host.replaceChildren();}
+    })
+    .catch(function(){
+      delete host.dataset.loading;host.hidden=false;
+      host.textContent="Commandes Distribution indisponibles. Actualisez le cockpit.";
+    });
+}
 var cockpitProPromise=null,cockpitProPayload=null;function renderCockpitPro(payload){cockpitProPayload=payload;if(window.PGICockpitPro)return window.PGICockpitPro.render(payload);if(!cockpitProPromise)cockpitProPromise=import("./cockpit-pro.js").then(function(){if(window.PGICockpitPro)window.PGICockpitPro.render(cockpitProPayload);}).catch(function(){});}
 function $(id){return document.getElementById(id);}
 function qsa(sel){return Array.prototype.slice.call(document.querySelectorAll(sel));}
@@ -525,6 +549,7 @@ renderNetworkMix(rows);
 renderAlerts(rows);
 renderWholesale();
 renderSystemState();
+renderDirectSvaCockpitControls();
 break;
 }
 }
