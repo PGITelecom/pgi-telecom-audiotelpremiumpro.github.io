@@ -142,7 +142,7 @@ test("API requires admin and CSRF and remains separated from operator activation
  assert.match(excerpt,/pathname\.startsWith\("\/api\/v1\/customer\/direct-sva\/"\)/);
 });
 
-test("admin UI has two accessible toggle controls and lazy module loading",()=>{
+test("admin UI has separate preview, publication and commercial controls with lazy loading",()=>{
  const ui=fs.readFileSync(new URL("../assets/direct-sva-switches.js",import.meta.url),"utf8");
  const acct=fs.readFileSync(new URL("../assets/accounting-cockpit.js",import.meta.url),"utf8");
  const builder=fs.readFileSync(new URL("../scripts/build-static.mjs",import.meta.url),"utf8");
@@ -150,7 +150,7 @@ test("admin UI has two accessible toggle controls and lazy module loading",()=>{
  assert.match(ui,/data-dss-commercial/);
  assert.match(ui,/role="switch"/);
  assert.match(ui,/disabled aria-disabled="true"/);
- assert.match(ui,/Exploitation commerciale SVA directe/);
+ assert.match(ui,/Exploitation commerciale PGI Telecom Distribution/);
  assert.match(ui,/credentials:"include"/);
  assert.match(ui,/X-CSRF-Token/);
  assert.match(acct,/import\("\.\/direct-sva-switches\.js"\)/);
