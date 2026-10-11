@@ -4,18 +4,16 @@ import {readFileSync} from "node:fs";
 
 const read=p=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
 
-test("Distribution controls live in the primary Cockpit, never the accounting screen",()=>{
- const cockpit=read("index.html"),app=read("assets/app.js"),acct=read("assets/accounting-cockpit.js");
- const overview=cockpit.indexOf('id="view-overview"');
- const switches=cockpit.indexOf('id="direct-sva-cockpit-controls"');
- const accounting=cockpit.indexOf('id="view-accounting"');
- assert.ok(overview>=0&&switches>overview&&accounting>switches);
- assert.ok(switches<cockpit.indexOf('class="command-deck"'));
- assert.equal((cockpit.match(/id="direct-sva-cockpit-controls"/g)||[]).length,1);
- assert.match(app,/renderDirectSvaCockpitControls\(\)/);
- assert.match(app,/state\.authUser\?\.role!=="admin"/);
- assert.match(app,/import\("\.\/direct-sva-switches\.js"\)/);
- assert.match(app,/pgi:direct-sva-preview-change/);
+test("Distribution controls mount only in the primary Cockpit after administrator login",()=>{
+ const cockpit=read("index.html"),app=read("assets/app.js"),entry=read("assets/direct-sva-cockpit-entry.js"),acct=read("assets/accounting-cockpit.js");
+ assert.match(cockpit,/id="view-overview"/);
+ assert.match(entry,/document\.getElementById\("view-overview"\)/);
+ assert.match(entry,/user\?\.role!=="admin"/);
+ assert.match(entry,/overview\.prepend\(host\)/);
+ assert.match(entry,/host\.id="direct-sva-cockpit-controls"/);
+ assert.match(app,/import\("\.\/direct-sva-cockpit-entry\.js"\)/);
+ assert.match(entry,/import\("\.\/direct-sva-switches\.js"\)/);
+ assert.match(entry,/pgi:direct-sva-preview-change/);
  assert.match(acct,/refreshPreviewStatus/);
  assert.match(acct,/pgi:direct-sva-preview-change/);
  assert.doesNotMatch(acct,/data-direct-sva-admin-switches/);
@@ -45,7 +43,7 @@ test("Business Live and its schedule stay accessible on 320px and other phone wi
  const live=read("assets/live-finance.js");
  const css=read("assets/live-finance.css");
  const dialog=read("assets/business-live-reset-schedule.css");
- const global=read("assets/styles.css");
+ const global=read("assets/cockpit-touch.css");
  assert.ok(live.indexOf('<div class="lj-actions">')<live.indexOf('<div class="lj-ranking">'));
  assert.doesNotMatch(live,/stabilizeLanding|landOnBusinessLive/);
  assert.match(css,/\.lj-actions\{display:flex/);
