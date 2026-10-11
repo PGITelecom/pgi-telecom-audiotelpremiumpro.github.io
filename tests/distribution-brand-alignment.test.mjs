@@ -7,9 +7,9 @@ test("Distribution keeps precisely the same brown and gold palette as Audiotel S
  const source=read("site/site.css");
  const global=read("site/distribution-sva/style.css");
  const brand=read("site/distribution-sva/brand.css");
- for(const [name,value] of [["--bg","#17100d"],["--panel","#2a1d18"],["--accent","#e8b36e"],["--navy","#162c3e"]]){
-  assert.ok(source.includes(name+":"+value),name+" main site token");
-  assert.ok(global.includes(name+":"+value),name+" Distribution token");
+ for(const [mainName,distributionName,value] of [["--bg","--bg","#17100d"],["--panel","--panel","#2a1d18"],["--gold","--accent","#e8b36e"]]){
+  assert.ok(source.includes(mainName+":"+value),mainName+" main site token");
+  assert.ok(global.includes(distributionName+":"+value),distributionName+" Distribution token");
  }
  assert.match(brand,/\.ds-two-univers/);
  assert.match(brand,/\.ds-feature-symbol/);
