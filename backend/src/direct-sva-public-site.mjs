@@ -10,7 +10,7 @@ export function directSvaPublicPagePath(pathname){
  return ROUTES.get(p)||null;
 }
 export function isDirectSvaPublicAsset(pathname){
- return /^\/site\/distribution-sva\/(?:style\.css|brand\.css|parity\.css|telecom-hero\.webp|site\.js|measurement\.js|complaints-form\.js|client-portal\.js)$/.test(pathname);
+ return /^\/site\/distribution-sva\/(?:style\.css|brand\.css|parity\.css|unified\.css|telecom-hero\.webp|site\.js|measurement\.js|complaints-form\.js|client-portal\.js)$/.test(pathname);
 }
 export function isDirectSvaPath(pathname){
  return /^\/(?:distribution-sva(?:\/|$)|site\/distribution-sva(?:\/|$))/.test(String(pathname||""));
