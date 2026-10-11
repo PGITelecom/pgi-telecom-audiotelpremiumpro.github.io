@@ -16,6 +16,7 @@ export function loadConfig(env=process.env){
   const stripeSecretKey=String(env.PGI_STRIPE_SECRET_KEY||env.STRIPE_SECRET_KEY||"").trim();
   const stripeWebhookSecret=String(env.PGI_STRIPE_WEBHOOK_SECRET||"").trim();
   const stripeConnectWebhookSecret=String(env.PGI_STRIPE_CONNECT_WEBHOOK_SECRET||"").trim();
+  const stripeConnectAccountsWebhookSecret=String(env.PGI_STRIPE_CONNECT_ACCOUNTS_WEBHOOK_SECRET||"").trim();
   const stripeApiVersion=String(env.PGI_STRIPE_API_VERSION||"2026-08-26.dahlia").trim();
   const stripePortalConfigurationId=String(env.PGI_STRIPE_PORTAL_CONFIGURATION_ID||"").trim();
   const stripePriceLookupKey=String(env.PGI_STRIPE_PRICE_LOOKUP_KEY||"pgi_audiotel_premium_pro_monthly_eur_490").trim();
@@ -95,6 +96,7 @@ export function loadConfig(env=process.env){
   if(stripeSecretKey&&!/^sk_(test|live)_[A-Za-z0-9]+$/.test(stripeSecretKey))throw new Error("PGI_STRIPE_SECRET_KEY must be a Stripe secret key");
   if(stripeWebhookSecret&&!/^whsec_[A-Za-z0-9]+$/.test(stripeWebhookSecret))throw new Error("PGI_STRIPE_WEBHOOK_SECRET invalid");
   if(stripeConnectWebhookSecret&&!/^whsec_[A-Za-z0-9]+$/.test(stripeConnectWebhookSecret))throw new Error("PGI_STRIPE_CONNECT_WEBHOOK_SECRET invalid");
+  if(stripeConnectAccountsWebhookSecret&&!/^whsec_[A-Za-z0-9]+$/.test(stripeConnectAccountsWebhookSecret))throw new Error("PGI_STRIPE_CONNECT_ACCOUNTS_WEBHOOK_SECRET invalid");
   if(stripePortalConfigurationId&&!/^bpc_[A-Za-z0-9]+$/.test(stripePortalConfigurationId))throw new Error("PGI_STRIPE_PORTAL_CONFIGURATION_ID invalid");
   if(!/^[A-Za-z0-9_\-]{3,200}$/.test(stripePriceLookupKey))throw new Error("PGI_STRIPE_PRICE_LOOKUP_KEY invalid");
   if(stripeSecretKey&&stripeLiveMode!==stripeSecretKey.startsWith("sk_live_"))throw new Error("PGI_STRIPE_LIVE_MODE must match the Stripe secret key mode");
@@ -134,7 +136,7 @@ export function loadConfig(env=process.env){
 
   return Object.freeze({
     mode,authMode,host,port,releaseId,staticDir,trustProxy,protectMachineEndpoints,googleClientId,customerSelfRegistrationEnabled,webauthnRpId,webauthnOrigin,
-    sessionSecret,adminPasswordHash,ingestToken,billingIngestToken,externalBillingEnabled,directSvaOperatorApiEnabled,stripeSecretKey,stripeWebhookSecret,stripeConnectWebhookSecret,stripeApiVersion,stripePortalConfigurationId,stripePriceLookupKey,stripeLiveMode,ga4MeasurementEnabled,ga4MeasurementId,ga4ApiSecret,b2cCommercialRequested,b2cCommercialReady,legalOperatorConfigured,legalOperatorName,legalOperatorStatus,legalOperatorAddress,legalOperatorRegistration,publicationDirector,consumerMediatorConfigured,consumerMediatorName,consumerMediatorContact,consumerMediatorUrl,onlineWithdrawalReady,emailVerificationEnabled,transactionalEmailEnabled,dailyReportEnabled,dailyReportRecipient,resendApiKey,resendReceivingApiKey,resendWebhookSecret,transactionalDomain,transactionalReplyTo,internalNotificationEmail,cronSecret,emailVerificationPepper,transactionalFromEmail,transactionalFromName,publicBaseUrl,telephonyUser,telephonyPassword,callerHashKey,portabilitySecretKey,databaseUrl,databaseReadUrl,databaseSsl,
+    sessionSecret,adminPasswordHash,ingestToken,billingIngestToken,externalBillingEnabled,directSvaOperatorApiEnabled,stripeSecretKey,stripeWebhookSecret,stripeConnectWebhookSecret,stripeConnectAccountsWebhookSecret,stripeApiVersion,stripePortalConfigurationId,stripePriceLookupKey,stripeLiveMode,ga4MeasurementEnabled,ga4MeasurementId,ga4ApiSecret,b2cCommercialRequested,b2cCommercialReady,legalOperatorConfigured,legalOperatorName,legalOperatorStatus,legalOperatorAddress,legalOperatorRegistration,publicationDirector,consumerMediatorConfigured,consumerMediatorName,consumerMediatorContact,consumerMediatorUrl,onlineWithdrawalReady,emailVerificationEnabled,transactionalEmailEnabled,dailyReportEnabled,dailyReportRecipient,resendApiKey,resendReceivingApiKey,resendWebhookSecret,transactionalDomain,transactionalReplyTo,internalNotificationEmail,cronSecret,emailVerificationPepper,transactionalFromEmail,transactionalFromName,publicBaseUrl,telephonyUser,telephonyPassword,callerHashKey,portabilitySecretKey,databaseUrl,databaseReadUrl,databaseSsl,
     adminUsername:env.PGI_ADMIN_USERNAME||"admin",
     sessionTtlSeconds:integer(env.PGI_SESSION_TTL_SECONDS,3600,300,86400,"PGI_SESSION_TTL_SECONDS"),
     adminRememberTtlSeconds:integer(env.PGI_ADMIN_REMEMBER_TTL_SECONDS,2592000,86400,7776000,"PGI_ADMIN_REMEMBER_TTL_SECONDS"),
