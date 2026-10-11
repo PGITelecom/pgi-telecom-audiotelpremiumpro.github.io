@@ -27,7 +27,12 @@ test("the genuine Distribution webpage loads the matching stylesheet and the tel
  assert.match(html,/class="site-header ds-main-header"/);
  assert.match(html,/data-site-search/);
  assert.match(html,/class="revenue-quick-nav"/);
- assert.match(html,/<img src="https:\/\/images\.unsplash\.com\/photo-/);
+ assert.match(html,/href="\/site\/site\.css"/);
+ assert.match(html,/data-site-search-input/);
+ assert.match(html,/href="\/site\/distribution-sva\/parity\.css"/);
+ assert.match(html,/class="brand brand-full"/);
+ assert.match(html,/class="hero-actions"/);
+ assert.match(html,/<img class="hero-visual-main" src="\/site\/distribution-sva\/telecom-hero\.webp"/);
  assert.match(html,/alt="Antenne de télécommunications au coucher du soleil/);
  assert.match(html,/PGI Telecom Distribution/);
  assert.match(html,/EN OCTOBRE 2026/);
