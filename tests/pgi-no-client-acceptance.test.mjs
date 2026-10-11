@@ -75,23 +75,22 @@ test("the future customer space rejects a missing enrollment without another ten
  assert.deepEqual(calls[0].args,[tenant]);
 });
 test("the future customer space rejects a non-released account",async()=>{
- const store={readSql:{unsafe:async()=>[{tenant_id:tenant,access_state:"preparation",dashboard_enabled:false}]}};
+ const store={readSql:{unsafe:async()=>[{tenant_id:tenant,business_unit:"direct_sva",access_state:"preparation",dashboard_enabled:false,client_contract_accepted:false}]}};
  await assert.rejects(()=>directSvaCustomerOverview(store,{tenant_id:tenant}),{code:"DIRECT_SVA_CUSTOMER_NOT_RELEASED"});
 });
-test("synthetic customer data are always queried using the same tenant scope",async()=>{
+test("synthetic customer access cannot read direct accounts before commercial release",async()=>{
  const seen=[];const store={readSql:{unsafe:async(query,args)=>{
-  seen.push(args);
-  if(query.includes("direct_sva_customer_accounts"))return [{tenant_id:tenant,access_state:"preparation",dashboard_enabled:true}];
-  if(query.includes("direct_sva_customer_cases"))return [{public_reference:"DSVA-SIM-20261010",request_kind:"portability",status:"prepared",initiated_at:"2026-10-10T12:00:00Z"}];
-  return [];
+  seen.push({query,args});
+  if(query.includes("direct_sva_customer_accounts"))
+   return [{tenant_id:tenant,business_unit:"direct_sva",access_state:"active",dashboard_enabled:true,client_contract_accepted:true}];
+  if(query.includes("direct_sva_admin_switches"))
+   return [{commercial_operation_enabled:false}];
+  throw Error("Customer cases must not be queried before release");
  }}};
- const out=await directSvaCustomerOverview(store,{tenant_id:tenant});
- assert.equal(out.business_unit,"direct_sva");
- assert.equal(out.source,"direct_sva_only");
- assert.equal(out.service_active,false);
- assert.equal(out.client_payouts_enabled,false);
- assert.equal(seen.length,3);
- assert.ok(seen.every(params=>JSON.stringify(params)===JSON.stringify([tenant])));
+ await assert.rejects(()=>directSvaCustomerOverview(store,{tenant_id:tenant}),{code:"DIRECT_SVA_CUSTOMER_NOT_RELEASED"});
+ assert.equal(seen.length,2);
+ assert.deepEqual(seen[0].args,[tenant]);
+ assert.ok(!seen.some(x=>/direct_sva_customer_cases|direct_sva_number_inventory/.test(x.query)));
 });
 test("all 13 automation jobs remain non-executable in preparation",()=>{
  const out=inspectDirectSvaWorkflows([{workflow_key:"publisher_payout",count:1}]);
