@@ -1,0 +1,125 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+
+const migrationDir=new URL("../database/migrations/",import.meta.url);
+const names=["073_direct_sva_operator_business_unit.sql","074_single_company_two_business_units.sql","075_direct_sva_customer_and_automation_foundation.sql","076_direct_sva_admin_switches.sql","077_existing_customer_provider_transition_preparation.sql","078_direct_sva_complaint_inbox_preparation.sql","079_direct_sva_automation_rehearsals.sql"];
+
+function stripSqlComments(sql){
+ return sql.replace(/\/\*[\s\S]*?\*\//g," ").replace(/--[^\n]*/g," ");
+}
+
+// Balance basic structural tokens while ignoring quoted SQL strings, dollar-quoted bodies and comments.
+// This is a defensive lint pass, not a substitute for a PostgreSQL migration on an isolated test branch.
+function scanSql(sql){
+ let state="code",depth=0,dollarTag="";
+ for(let i=0;i<sql.length;i++){
+  const ch=sql[i],next=sql[i+1];
+  if(state==="code"){
+   if(ch==="-"&&next==="-"){state="line";i++;continue;}
+   if(ch==="/"&&next==="*"){state="comment";i++;continue;}
+   if(ch==="'"){state="single";continue;}
+   if(ch==='"'){state="double";continue;}
+   if(ch==="$"){const m=/^\$[A-Za-z_][A-Za-z0-9_]*\$|^\$\$/.exec(sql.slice(i));if(m){dollarTag=m[0];state="dollar";i+=dollarTag.length-1;continue;}}
+   if(ch==="(")depth++;
+   else if(ch===")"){depth--;if(depth<0)throw Error("Orphan SQL closing parenthesis at "+i);}
+  }else if(state==="line"){
+   if(ch==="\n")state="code";
+  }else if(state==="comment"){
+   if(ch==="*"&&next==="/"){state="code";i++;}
+  }else if(state==="single"){
+   if(ch==="'"&&next==="'"){i++;continue;}
+   if(ch==="'")state="code";
+  }else if(state==="double"){
+   if(ch==='"'&&next==='"'){i++;continue;}
+   if(ch==='"')state="code";
+  }else if(state==="dollar"){
+   if(sql.startsWith(dollarTag,i)){state="code";i+=dollarTag.length-1;}
+  }
+ }
+ if(depth!==0||!["code","line"].includes(state))throw Error("SQL has unclosed parentheses or quoted body: "+JSON.stringify({depth,state}));
+}
+
+test("the direct SVA migrations have intact statement boundaries and no duplicate table definitions",()=>{
+ for(const name of names){
+  const sql=fs.readFileSync(new URL(name,migrationDir),"utf8");
+  assert.doesNotThrow(()=>scanSql(sql),name);
+  assert.match(stripSqlComments(sql).trimEnd(),/;$/,name+": expected SQL statement terminator, ignoring trailing comments");
+  const declarations=[...stripSqlComments(sql).matchAll(/\bCREATE TABLE IF NOT EXISTS (\w+)/gi)].map(m=>m[1]);
+  const minimum=name.startsWith("079_")?1:2;
+  assert.ok(declarations.length>=minimum,name+": empty or truncated migration");
+  assert.equal(new Set(declarations).size,declarations.length,name+": duplicate table definitions");
+  assert.ok(!/^\s*\),\s*$/m.test(sql),name+": unexpected detached closing column definition");
+ }
+});
+
+test("accounting migration 073 preserves direct-number syntax and full audit triggers",()=>{
+ const sql=fs.readFileSync(new URL(names[0],migrationDir),"utf8");
+ assert.match(sql,/e164 text NOT NULL UNIQUE CHECK \(e164 ~ '\^\\\+33\(81\|82\|89\)\[0-9\]\{7\}\$'\)/);
+ assert.match(sql,/CHECK \(number_status NOT IN \('assigned','testing','active'\)\)/);
+ assert.match(sql,/CHECK \(number_activation_enabled=false\)/);
+ assert.match(sql,/CHECK \(payouts_enabled=false\)/);
+ assert.equal((sql.match(/CREATE FUNCTION direct_sva_guard_posted_entry\(\)/g)||[]).length,1);
+ assert.equal((sql.match(/CREATE TABLE IF NOT EXISTS direct_sva_journal_entries \(/g)||[]).length,1);
+ assert.match(sql,/FOR EACH ROW EXECUTE FUNCTION direct_sva_guard_audit_append_only\(\);\s*$/);
+ assert.doesNotMatch(sql,/^\),\s*editor_tenant_id\b/m);
+});
+
+test("one legal entity and CRM/analytics sync disabled by database constraints",()=>{
+ const sql=fs.readFileSync(new URL(names[1],migrationDir),"utf8");
+ assert.match(sql,/legal_accounting_profile_id=1/);
+ assert.match(sql,/CHECK\(separate_legal_fec=false\)/);
+ assert.match(sql,/CHECK\(can_send_data=false\)/);
+ assert.match(sql,/CHECK\(send_enabled=false\)/);
+ assert.match(sql,/CHECK\(statutory_entry_id IS NULL\)/);
+});
+
+test("customer enrolment and all automations stay inaccessible or blocked",()=>{
+ const sql=fs.readFileSync(new URL(names[2],migrationDir),"utf8");
+ assert.match(sql,/CHECK\(dashboard_enabled=false\)/);
+ assert.match(sql,/CHECK\(client_contract_accepted=false\)/);
+ assert.match(sql,/CHECK\(external_execution_enabled=false\)/);
+ assert.match(sql,/CHECK\(financial_transfer_enabled=false\)/);
+ assert.match(sql,/idempotency_key text NOT NULL UNIQUE/);
+ assert.match(sql,/direct_sva_guard_automation_events/);
+});
+
+test("new switches only allow private preview while commercial operation is locked",()=>{
+ const sql=fs.readFileSync(new URL(names[3],migrationDir),"utf8");
+ assert.match(sql,/interface_preview_enabled boolean NOT NULL DEFAULT false/);
+ assert.match(sql,/commercial_operation_enabled boolean NOT NULL DEFAULT false/);
+ assert.match(sql,/CHECK \(commercial_operation_enabled=false\)/);
+ assert.match(sql,/CREATE TRIGGER direct_sva_guard_admin_switch_audit_immutable/);
+});
+
+
+test("migration 077 preserves customer identity, forbids routing and verifies source carrier",()=>{
+ const sql=fs.readFileSync(new URL(names[4],migrationDir),"utf8");
+ assert.match(sql,/CREATE TABLE IF NOT EXISTS direct_sva_existing_customer_transition_plans/);
+ assert.match(sql,/UNIQUE\(assignment_id,revision_no\)/);
+ assert.match(sql,/current_tenant<>NEW\.tenant_id/);
+ assert.match(sql,/current_e164<>NEW\.e164_snapshot/);
+ assert.match(sql,/actual_host<>NEW\.source_host_carrier_id/);
+ assert.match(sql,/CHECK\(routing_authorized=false\)/);
+ assert.match(sql,/CHECK\(portability_authorized=false\)/);
+ assert.match(sql,/CHECK\(money_transfer_authorized=false\)/);
+ assert.match(sql,/\$pgi_transition\$/);
+ assert.ok(sql.includes("substring(e164_snapshot,6) ~ '^[0-9]{7}$'"));
+ assert.equal((sql.match(/CREATE FUNCTION direct_sva_validate_transition_snapshot\(\)/g)||[]).length,1);
+ assert.equal((sql.match(/CREATE TRIGGER direct_sva_transition_audit_immutable/g)||[]).length,1);
+ assert.match(sql,/FOR EACH ROW EXECUTE FUNCTION direct_sva_guard_customer_transition_immutable\(\);\s*$/);
+ assert.doesNotMatch(stripSqlComments(sql),/\bUPDATE\s+tenant_number_assignments\b|\bDROP\b|\bTRUNCATE\b/i);
+});
+
+test("migration 078 is an immutable, release-locked customer complaint inbox",()=>{
+ const sql=fs.readFileSync(new URL(names[5],migrationDir),"utf8");
+ assert.match(sql,/direct_sva_complaint_cases/);
+ assert.match(sql,/direct_sva_complaint_delivery_queue/);
+ assert.match(sql,/delivery_state text NOT NULL DEFAULT 'blocked_release' CHECK\(delivery_state='blocked_release'\)/);
+ assert.match(sql,/external_execution_allowed boolean NOT NULL DEFAULT false CHECK\(external_execution_allowed=false\)/);
+ assert.match(sql,/crm_ticket_authorized boolean NOT NULL DEFAULT false CHECK\(crm_ticket_authorized=false\)/);
+ assert.match(sql,/compensation_authorized boolean NOT NULL DEFAULT false CHECK\(compensation_authorized=false\)/);
+ assert.match(sql,/direct_sva_complaint_audit_append_only/);
+ assert.doesNotMatch(stripSqlComments(sql),/\bDROP\b|\bTRUNCATE\b|\bDELETE FROM\b/i);
+});

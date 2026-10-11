@@ -21,9 +21,24 @@ import {expertAccountingSnapshot,refreshExpertAccountingLedger,updateExpertAccou
 import {ga4MeasurementState,sanitizeGa4CheckoutContext,buildGa4PurchaseFromStripe,buildGa4RefundFromStripe,sendGa4Measurement} from "./src/ga4-measurement.mjs";
 import {createEmailVerificationChallenge,verificationTokenHash,emailVerificationCodeHash,sendResendVerificationCode,sendTransactionalEmail,sendPublicContactMessage,sendSupportTicketNotification,sendSupportTicketReply,forwardInboundEmailToInternal,normalizeEmail,emailHash,sendReferralInvitation} from "./src/resend-email.mjs";
 import {verifyResendWebhook} from "./src/resend-webhook.mjs";
-import {applyResendWebhookEvent,drainTransactionalEmails,drainDunningTransactionalEmails} from "./src/email-dispatcher.mjs";
+import {applyResendWebhookEvent,acknowledgeResendInboundForward,drainTransactionalEmails,drainDunningTransactionalEmails} from "./src/email-dispatcher.mjs";
 import {submitHubSpotLead,syncHubSpotCommercialLead,syncHubSpotCommercialTenant,syncHubSpotSupportMessage,syncHubSpotInboundEmail,syncHubSpotCustomerIncident,syncHubSpotCardPaymentState} from "./src/hubspot-crm.mjs";
 import {evaluateLaunchReadiness} from "./src/launch-readiness.mjs";
+import {directSvaBusinessSnapshot,directSvaAccountingExport,createDirectSvaDraft,approveDirectSvaDraft} from "./src/direct-sva-business.mjs";
+import {analyzeDirectSvaSettlement} from "./src/direct-sva-reconciliation.mjs";
+import {prepareDirectSvaCollectionAccounting} from "./src/direct-sva-collection-planner.mjs";
+import {planDirectSvaFinancialCycle} from "./src/direct-sva-financial-cycle.mjs";
+import {directSvaFinancialReadiness} from "./src/direct-sva-financial-readiness.mjs";
+import {isDirectSvaStripeEvent} from "./src/direct-sva-stripe-catalog.mjs";
+import {directSvaIntegrationOverview} from "./src/direct-sva-integrations.mjs";
+import {directSvaCustomerOverview,directSvaWorkflowOverview} from "./src/direct-sva-customer.mjs";
+import {directSvaAccessReadiness} from "./src/direct-sva-access-readiness.mjs";
+import {recordDirectSvaWorkflowSimulation,directSvaSimulationDashboard} from "./src/direct-sva-automation-rehearsal.mjs";
+import {getDirectSvaSwitches,setDirectSvaPreview,setDirectSvaCommercial} from "./src/direct-sva-admin-switches.mjs";
+import {readDirectSvaWebsiteVisibility,setDirectSvaWebsiteNavigation} from "./src/direct-sva-website-visibility.mjs";
+import {eligibleExistingCustomerNumbers,preparedExistingCustomerTransitions,prepareExistingCustomerTransition} from "./src/direct-sva-customer-transition.mjs";
+import {directSvaProductionReadiness} from "./src/direct-sva-production-readiness.mjs";
+import {directSvaComplaintPreparatoryOverview} from "./src/direct-sva-complaint-automation.mjs";
 import {runDailyReportCron} from "./src/daily-report.mjs";
 
 export async function createDefaultBackend(){
@@ -53,7 +68,7 @@ export function createBackend(options={}){
 
   const store=options.store||new MemoryStore(config,eventBus);
   if(config.mode==="simulator"&&typeof store.seedSimulator==="function")store.seedSimulator();
-  const staticSite=createStaticSiteHandler(config.staticDir);
+  const staticSite=createStaticSiteHandler(config.staticDir,{getDirectSvaWebsiteState:()=>readDirectSvaWebsiteVisibility(store)});
 
   const metrics={
     requests:0,errors:0,rateLimited:0,authFailures:0,authRateLimited:0,
@@ -168,6 +183,14 @@ export function createBackend(options={}){
       if(method==="POST"&&pathname==="/api/v1/billing/stripe/webhook"){
         if(!config.externalBillingEnabled||!config.stripeWebhookSecret)return done(res,metrics,started,"billing.stripe_webhook",404,{error:{code:"STRIPE_WEBHOOK_DISABLED"}});
         const event=await verifyStripeWebhook(req,config);
+        // Stripe account is shared; existing Audiotel billing must never
+        // process Distribution activity. Separate Distribution endpoint is
+        // intentionally not active until the bank/PSP release is authorized.
+        if(isDirectSvaStripeEvent(event)){
+          return done(res,metrics,started,"billing.stripe_webhook",200,
+           {received:true,ignored:true,business_unit:"direct_sva",
+            reason:"distribution_uses_separate_financial_pipeline"});
+        }
         if(String(event.type||"")==="account.updated"){
           invalidateStripeProviderReadiness();
           return done(res,metrics,started,"billing.stripe_webhook",200,{received:true,account_readiness_invalidated:true});
@@ -243,6 +266,10 @@ export function createBackend(options={}){
             try{crmSync=await syncHubSpotInboundEmail(store,routing.tenant_public_id,context,{routing});}
             catch(error){logHubSpotSyncFailure("inbound_email",error);}
           }
+          // Commit the webhook receipt only AFTER forwarding was accepted by
+          // Resend. If forwarding fails the webhook can safely retry, using the
+          // same Resend idempotency key and its source provider email ID.
+          await acknowledgeResendInboundForward(store,verified);
         }
         return done(res,metrics,started,"email.resend_webhook",200,{received:true,duplicate:Boolean(result.duplicate),event_type:result.event_type||verified.event.type,inbound,crm_sync:Boolean(crmSync?.synced),support_ticket_journaled:Boolean(incidentJournal&&!incidentJournal.duplicate)});
       }
@@ -337,6 +364,20 @@ export function createBackend(options={}){
         return done(res,metrics,started,"public.ambassador_apply",202,{accepted:true,status:application.status,application_id:application.public_id,already_active:application.already_active===true});
       }
 
+      // Direct SVA complaints are intentionally unavailable to the public
+      // until operator, payment, legal and mailbox evidence has been approved.
+      // This read-only capability never reveals configuration or customer data.
+      if(method==="GET"&&pathname==="/api/v1/public/direct-sva/complaints/capabilities"){
+        return done(res,metrics,started,"public.direct_sva_complaints_capabilities",200,{
+          business_unit:"direct_sva",intake_enabled:false,
+          legal_review_approved:false,notification_channel_verified:false,
+          customer_receipt_enabled:false,commercial_operation_active:false
+        });
+      }
+      if(method==="POST"&&pathname==="/api/v1/public/direct-sva/complaints"){
+        return done(res,metrics,started,"public.direct_sva_complaints_not_released",404,
+          {error:{code:"DIRECT_SVA_COMPLAINT_INTAKE_NOT_RELEASED"}});
+      }
       if(method==="POST"&&pathname==="/api/v1/public/contact"){
         requireSameOriginBrowser(req);
         if(!config.transactionalEmailEnabled||!config.resendApiKey)return done(res,metrics,started,"public.contact",503,{error:{code:"CONTACT_UNAVAILABLE"}});
@@ -699,6 +740,70 @@ export function createBackend(options={}){
 
       const actor=authenticate(req,config);
       const customerActor=authenticateCustomer(req,config);
+
+      // A read-only release dossier is available even before the preparatory migrations.
+      if(method==="GET"&&pathname==="/api/v1/platform/direct-sva-release-readiness"){
+        requireRole(actor,["admin"]);
+        return done(res,metrics,started,"platform.direct_sva_release_readiness",200,
+          await directSvaProductionReadiness(store));
+      }
+
+      // The two admin switches are independent of the future business API.
+      // They never change network, payments, analytics, CRM or client access.
+      if(method==="GET"&&pathname==="/api/v1/platform/direct-sva-switches"){
+        requireRole(actor,["admin"]);
+        return done(res,metrics,started,"platform.direct_sva_switches",200,
+          await getDirectSvaSwitches(store));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/direct-sva-switches/interface"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.direct_sva_preview_toggle",200,
+          await setDirectSvaPreview(store,actor,body));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/direct-sva-switches/commercial"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.direct_sva_commercial_toggle",200,
+          await setDirectSvaCommercial(store,actor,body));
+      }
+
+      // Website presentation toggle: hide the marketing link, never deindex published content.
+      if(method==="GET"&&pathname==="/api/v1/platform/direct-sva-website"){
+        requireRole(actor,["admin"]);
+        return done(res,metrics,started,"platform.direct_sva_website_visibility",200,
+          await readDirectSvaWebsiteVisibility(store));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/direct-sva-website/navigation"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.direct_sva_website_navigation",200,
+          await setDirectSvaWebsiteNavigation(store,actor,body));
+      }
+
+      // The first switch gives administrators a PRIVATE technical preview only.
+      // Direct customer routes and commercial features remain inaccessible.
+      if(pathname.startsWith("/api/v1/platform/direct-sva/")||
+         pathname.startsWith("/api/v1/customer/direct-sva/")){
+        if(pathname.startsWith("/api/v1/customer/direct-sva/")||actor?.role!=="admin"){
+          return done(res,metrics,started,"direct_sva.staged_off",404,
+            {error:{code:"DIRECT_SVA_PREPARATION_DISABLED"}});
+        }
+        if(!store?.sql?.unsafe){
+          return done(res,metrics,started,"direct_sva.staged_off",404,
+            {error:{code:"DIRECT_SVA_PREPARATION_DISABLED"}});
+        }
+        const directSwitchState=await getDirectSvaSwitches(store);
+        if(!directSwitchState.interface_preview_enabled){
+          return done(res,metrics,started,"direct_sva.staged_off",404,
+            {error:{code:"DIRECT_SVA_PREPARATION_DISABLED"}});
+        }
+      }
+      if(method==="GET"&&pathname==="/api/v1/platform/direct-sva/access-readiness"){
+        requireRole(actor,["admin"]);
+        return done(res,metrics,started,"direct_sva.access_readiness",200,
+          await directSvaAccessReadiness(store));
+      }
       if(method==="GET"&&pathname==="/api/v1/customer/security/passkeys"){
         requireActor(customerActor);
         return done(res,metrics,started,"customer.security.passkeys",200,{configured:webauthnConfigured(config),data:await store.listWebauthnCredentials("customer",customerActor.sub)});
@@ -736,6 +841,14 @@ export function createBackend(options={}){
       if(method==="POST"&&pathname==="/api/v1/customer/auth/logout"){
         requireCustomerCsrf(req,customerActor,config);
         return done(res,metrics,started,"customer.auth.logout",200,{ok:true},{"Set-Cookie":clearCustomerSessionCookies()});
+      }
+      // Isolated customer-facing direct SVA data. Auth and tenant scoping required.
+      if(method==="GET"&&pathname==="/api/v1/customer/direct-sva/overview"){
+        requireActor(customerActor);
+        const context=await store.customerSessionContext(customerActor);
+        requireCustomerPermission(context,"overview.read");
+        return done(res,metrics,started,"customer.direct_sva_overview",200,
+          await directSvaCustomerOverview(store,context));
       }
       if(method==="GET"&&pathname==="/api/v1/customer/auth/me"){
         requireActor(customerActor);
@@ -1795,6 +1908,111 @@ export function createBackend(options={}){
         requireRole(actor,["admin","finance","readonly"]);
         const params=Object.fromEntries(url.searchParams.entries());
         return done(res,metrics,started,"platform.customer_profitability",200,await store.customerProfitability(params));
+      }
+
+      // Independent direct SVA operator business unit. No active numbering or payout route.
+      if(method==="GET"&&pathname==="/api/v1/platform/direct-sva/integrations"){
+        requireRole(actor,["admin","finance","readonly"]);
+        return done(res,metrics,started,"platform.direct_sva_integrations",200,await directSvaIntegrationOverview(store));
+      }
+      // Customer-stable upstream transition. Planning is independent from telecom porting.
+       if(method==="GET"&&pathname==="/api/v1/platform/direct-sva/transitions/eligible"){
+         requireRole(actor,["admin"]);
+         return done(res,metrics,started,"platform.direct_sva_transition_eligible",200,
+           await eligibleExistingCustomerNumbers(store,{tenant_id:url.searchParams.get("tenant_id")}));
+       }
+       if(method==="GET"&&pathname==="/api/v1/platform/direct-sva/transitions"){
+         requireRole(actor,["admin"]);
+         return done(res,metrics,started,"platform.direct_sva_transition_plans",200,
+           await preparedExistingCustomerTransitions(store,{tenant_id:url.searchParams.get("tenant_id")}));
+       }
+       if(method==="POST"&&pathname==="/api/v1/platform/direct-sva/transitions/prepare"){
+         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+         const body=await readJson(req,config.bodyLimitBytes);
+         const result=await store.idempotent(req.headers["idempotency-key"],
+           "platform.direct_sva.customer_transition.prepare",body,
+           ()=>prepareExistingCustomerTransition(store,actor,body));
+         return done(res,metrics,started,"platform.direct_sva_transition_prepare",201,
+           {...result.value,replayed:result.replayed});
+       }
+       // Complaints intake and external delivery remain blocked. An admin may
+      // inspect only anonymized readiness/counters during private preparation.
+      if(method==="GET"&&pathname==="/api/v1/platform/direct-sva/complaints/readiness"){
+        requireRole(actor,["admin"]);
+        return done(res,metrics,started,"platform.direct_sva_complaints_readiness",200,
+          await directSvaComplaintPreparatoryOverview(store));
+      }
+      // Internal rehearsal of an automation, without running CRM/GA4/PSP/carrier jobs.
+      if(method==="GET"&&pathname==="/api/v1/platform/direct-sva/automation/rehearsals"){
+        requireRole(actor,["admin"]);
+        return done(res,metrics,started,"platform.direct_sva_rehearsals",200,
+          await directSvaSimulationDashboard(store));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/direct-sva/automation/rehearsals"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.direct_sva_rehearsal_create",201,
+          await recordDirectSvaWorkflowSimulation(store,actor,body));
+      }
+      if(method==="GET"&&pathname==="/api/v1/platform/direct-sva/automation"){
+        requireRole(actor,["admin","finance","readonly"]);
+        return done(res,metrics,started,"platform.direct_sva_automation",200,
+          await directSvaWorkflowOverview(store));
+      }
+      if(method==="GET"&&pathname==="/api/v1/platform/direct-sva/accounting/export"){
+        requireRole(actor,["admin","finance","readonly"]);
+        return done(res,metrics,started,"platform.direct_sva_accounting_export",200,
+          await directSvaAccountingExport(store,{month:url.searchParams.get("month")}));
+      }
+      if(method==="GET"&&pathname==="/api/v1/platform/direct-sva/overview"){
+        requireRole(actor,["admin","finance","readonly"]);
+        const params=Object.fromEntries(url.searchParams.entries());
+        return done(res,metrics,started,"platform.direct_sva_overview",200,await directSvaBusinessSnapshot(store,params));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/direct-sva/reconciliation/preview"){
+        requireRole(actor,["admin","finance"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.direct_sva_reconciliation_preview",200,analyzeDirectSvaSettlement(body));
+      }
+      // Distributor cash-collection and accounting simulation only. No ledger write,
+      // no bank/Stripe request and no third-party payment.
+      if(method==="POST"&&pathname==="/api/v1/platform/direct-sva/collections/preview"){
+        requireRole(actor,["admin","finance"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.direct_sva_collections_preview",200,
+          prepareDirectSvaCollectionAccounting(body));
+      }
+
+      // Read-only dashboard for preparatory financial source connections.
+      if(method==="GET"&&pathname==="/api/v1/platform/direct-sva/financial-cycle/readiness"){
+        requireRole(actor,["admin","finance","readonly"]);
+        return done(res,metrics,started,"platform.direct_sva_financial_cycle_readiness",200,
+          await directSvaFinancialReadiness(store));
+      }
+      // Zero-execution multi-publisher financial cycle preview. No data persistence,
+      // payment mandate, KYC assertion or source authentication by the caller.
+      if(method==="POST"&&pathname==="/api/v1/platform/direct-sva/financial-cycle/preview"){
+        requireRole(actor,["admin","finance"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.direct_sva_financial_cycle_preview",200,
+          planDirectSvaFinancialCycle(body));
+      }
+
+      if(method==="POST"&&pathname==="/api/v1/platform/direct-sva/accounting/drafts"){
+        requireRole(actor,["admin","finance"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        const result=await store.idempotent(req.headers["idempotency-key"],"platform.direct_sva.accounting_draft",body,
+          ()=>createDirectSvaDraft(store,body,actor));
+        return done(res,metrics,started,"platform.direct_sva_accounting_draft",201,{...result.value,replayed:result.replayed});
+      }
+      match=routeMatch(pathname,"/api/v1/platform/direct-sva/accounting/drafts/:id/approve");
+      if(method==="POST"&&match){
+        requireRole(actor,["admin","finance"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        const payload={id:match.id,approval_evidence:body.approval_evidence};
+        const result=await store.idempotent(req.headers["idempotency-key"],"platform.direct_sva.accounting_approve",payload,
+          ()=>approveDirectSvaDraft(store,match.id,actor,body));
+        return done(res,metrics,started,"platform.direct_sva_accounting_approve",200,{...result.value,replayed:result.replayed});
       }
 
       if(method==="GET"&&pathname==="/api/v1/platform/accounting"){

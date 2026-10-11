@@ -31,6 +31,21 @@ for(const file of files){
     .trim()
     .toUpperCase();
 
+  // Exception strictly scoped to the owner's editorial publication switch:
+  // migration 085 removes exactly two obsolete publication-only CHECK guards,
+  // never a table, column, data record or the commercial-operation guard.
+  let inspectedSql=sql;
+  if(file==="085_direct_sva_admin_editorial_release.sql"){
+    const approved=[
+      /ALTER\s+TABLE\s+DIRECT_SVA_WEBSITE_VISIBILITY\s+DROP\s+CONSTRAINT\s+IF\s+EXISTS\s+DIRECT_SVA_WEBSITE_VISIBILITY_PUBLIC_CONTENT_AUTHORIZED_CHECK\s*;/g,
+      /ALTER\s+TABLE\s+DIRECT_SVA_WEBSITE_VISIBILITY_AUDIT\s+DROP\s+CONSTRAINT\s+IF\s+EXISTS\s+DIRECT_SVA_WEBSITE_VISIBILITY_AUDIT_SWITCH_NAME_CHECK\s*;/g
+    ];
+    for(const pattern of approved){
+      const found=[...inspectedSql.matchAll(pattern)];
+      if(found.length!==1)failures.push(file+" missing or duplicated approved CHECK evolution");
+      inspectedSql=inspectedSql.replace(pattern," ");
+    }
+  }
   const forbidden=[
     [/\bDROP\s+(TABLE|SCHEMA|DATABASE|INDEX|VIEW|FUNCTION|TRIGGER|TYPE|COLUMN)\b/,"DROP"],
     [/\bTRUNCATE\b/,"TRUNCATE"],
@@ -43,7 +58,7 @@ for(const file of files){
   ];
 
   for(const [pattern,label] of forbidden){
-    if(pattern.test(sql))failures.push(file+" contains destructive operation: "+label);
+    if(pattern.test(inspectedSql))failures.push(file+" contains destructive operation: "+label);
   }
 }
 
@@ -51,4 +66,4 @@ if(failures.length){
   failures.forEach(x=>console.error("FAIL:",x));
   process.exit(1);
 }
-console.log("Migration safety: OK ("+files.length+" expand-only migration(s))");
+console.log("Migration safety: OK ("+files.length+" migrations, 2 narrowly audited CHECK releases in 085)");

@@ -107,6 +107,10 @@ const files=[
   "assets/customer-admin.js",
   "assets/customer-profitability.js",
   "assets/accounting-cockpit.js",
+  "assets/direct-sva-cockpit.js",
+  "assets/direct-sva-automation-lab.js",
+  "assets/direct-sva-transitions.js",
+  "assets/direct-sva-switches.js",
   "assets/accounting-expert.js",
   "assets/customer-relations.js",
   "assets/customer-admin.css",
@@ -143,6 +147,12 @@ for(const file of files){
   fs.mkdirSync(path.dirname(dst),{recursive:true});
   fs.copyFileSync(src,dst);
 }
+
+// Package future telecom pages as inert sources. The HTTP server denies them
+// until a separately reviewed publication migration; the cockpit switch only
+// controls navigation after that release, never deletion from the sitemap.
+fs.cpSync(path.join(root,"site","distribution-sva"),path.join(dist,"site","distribution-sva"),{recursive:true});
+fs.copyFileSync(path.join(root,"site","direct-sva-tracking.js"),path.join(dist,"site","direct-sva-tracking.js"));
 
 // Compatibility alias for AI crawlers and answer engines that probe /ai.txt.
 // Keep a single source of truth by publishing the exact llms.txt content.
