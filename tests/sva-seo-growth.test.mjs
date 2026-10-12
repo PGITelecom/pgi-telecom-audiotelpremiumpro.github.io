@@ -20,7 +20,8 @@ test("all SVA landing pages have a valid basic semantic and crawlable foundation
   assert.match(html,/<meta name="description" content="[^"]{60,}"/i,slug+" description");
   assert.match(html,/<link rel="canonical" href="[^"]+"/i,slug+" canonical");
   assert.ok((html.match(/<h1\b/gi)||[]).length>=1,slug+" must have a semantic H1");
-  assert.match(html,/content="index,follow/,slug+" indexed marketing page");
+  if(slug==="mentions-legales") assert.match(html,/content="noindex,follow/,slug+" intentionally excluded legal notice");
+  else assert.match(html,/content="index,follow/,slug+" indexed marketing page");
  }
 });
 
