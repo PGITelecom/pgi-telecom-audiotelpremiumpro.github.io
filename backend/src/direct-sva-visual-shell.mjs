@@ -64,7 +64,7 @@ function installHeroPhoto(html){
  '<div class="ds-hero-photographic-copy">'+
  '<p class="ds-hero-photo-kicker">PGI TELECOM DISTRIBUTION <span>EN PRÉPARATION</span></p>'+
  heading+
- '<p class="ds-hero-photo-description">L’infrastructure de demain, pensée pour la continuité de vos services à valeur ajoutée.</p>'+
+ '<p class="ds-hero-photo-description">Une organisation télécom pensée pour la continuité de vos numéros, la traçabilité des appels et la transparence des reversements.</p>'+
  '</div></div>';
  let out=html.replace(/<div class="hero-side"><figure class="hero-visual">[\s\S]*?<\/figure><\/div>/,"");
  // The original source includes the pre-image typography lines. Move their
