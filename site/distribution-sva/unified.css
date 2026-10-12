@@ -328,3 +328,30 @@ body.ds-unified .ds-card-action{display:inline-flex;min-height:40px;align-items:
  body.ds-unified .ds-related-topic{padding-bottom:27px}
 }
 @media(prefers-reduced-motion:reduce){body.ds-unified .ds-related-grid .ds-related-link{transition:none}}
+
+
+/* Second homepage visual: approved 1536 x 864 telecom/supervision image.
+   Maintain native aspect ratio, clear descriptive content, and SVA warm palette. */
+body.home-page.ds-unified .ds-network-showcase{padding:36px 0 55px;background:radial-gradient(ellipse at 75% 28%,rgba(232,179,110,.09),transparent 60%),#17100d}
+body.home-page.ds-unified .ds-network-showcase-intro{max-width:880px;margin:0 auto 24px;text-align:center}
+body.home-page.ds-unified .ds-network-showcase-intro .eyebrow{color:#e8b36e;font-size:11px;font-weight:600}
+body.home-page.ds-unified .ds-network-showcase-intro h2{margin:8px 0 15px;color:#fff7f0;font-size:clamp(28px,3.4vw,43px);line-height:1.13;font-weight:750}
+body.home-page.ds-unified .ds-network-showcase-intro p:not(.eyebrow){margin:0 auto;max-width:82ch;font-size:clamp(14px,1.45vw,17px);line-height:1.7;color:#e3d0bd}
+body.home-page.ds-unified .ds-network-showcase-figure{position:relative;width:100%;max-width:1180px;margin:0 auto;overflow:hidden;border:0;border-radius:20px;background:#17100d}
+body.home-page.ds-unified .ds-network-showcase-figure>img{display:block;width:100%;height:auto!important;aspect-ratio:16/9!important;max-height:none;object-fit:contain;object-position:center;filter:contrast(1.025) saturate(1.015)}
+body.home-page.ds-unified .ds-network-showcase-figure:after{content:"";pointer-events:none;position:absolute;top:0;right:0;left:0;height:7%;background:linear-gradient(180deg,rgba(23,16,13,.19),transparent)}
+body.home-page.ds-unified .ds-network-showcase-figure figcaption{margin:0;padding:12px 17px;background:linear-gradient(90deg,#2c1e17,#211713);color:#e9d4be;font-size:12px;line-height:1.6;font-weight:400;text-align:center}
+body.home-page.ds-unified .ds-network-showcase-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:21px 0 0}
+body.home-page.ds-unified .ds-network-showcase-links a{display:flex;min-height:65px;align-items:center;justify-content:space-between;gap:15px;padding:13px 17px;border:1px solid rgba(183,132,81,.25);border-radius:13px;background:linear-gradient(145deg,#f8eee5,#eaddcc);color:#503323!important;font-size:13px;line-height:1.4;font-weight:550!important;text-decoration:underline;text-decoration-color:rgba(80,51,35,.25);text-decoration-thickness:1px;text-underline-offset:4px;transition:border-color .18s ease,box-shadow .18s ease}
+body.home-page.ds-unified .ds-network-showcase-links a span{color:#a3713d;font-size:20px;text-decoration:none}
+body.home-page.ds-unified .ds-network-showcase-links a:hover,body.home-page.ds-unified .ds-network-showcase-links a:focus-visible{border-color:#ac7d4b;box-shadow:0 8px 23px rgba(0,0,0,.2);outline-offset:3px}
+@media(max-width:760px){
+ body.home-page.ds-unified .ds-network-showcase{padding:24px 0 38px}
+ body.home-page.ds-unified .ds-network-showcase-intro{text-align:left;margin-bottom:16px}
+ body.home-page.ds-unified .ds-network-showcase-intro h2{font-size:clamp(27px,7vw,37px)}
+ body.home-page.ds-unified .ds-network-showcase-figure{border-radius:13px}
+ body.home-page.ds-unified .ds-network-showcase-figure figcaption{padding:11px 12px;font-size:11px;text-align:left}
+ body.home-page.ds-unified .ds-network-showcase-links{grid-template-columns:minmax(0,1fr);gap:9px;margin-top:13px}
+ body.home-page.ds-unified .ds-network-showcase-links a{min-height:55px;padding:11px 15px;font-size:13px}
+}
+@media(prefers-reduced-motion:reduce){body.home-page.ds-unified .ds-network-showcase-links a{transition:none}}
