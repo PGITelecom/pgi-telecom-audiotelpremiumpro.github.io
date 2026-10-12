@@ -170,7 +170,7 @@ const internalLinkGraph=Object.freeze({
     ["numero-sva","Obtenir un numéro SVA","Les étapes utiles pour préparer une demande de numéro surtaxé."],
     ["portabilite-numero-sva","Conserver un numéro existant","Comprendre la portabilité d’un numéro SVA et les vérifications nécessaires."],
     ["reversement-audiotel","Comprendre les reversements Audiotel","Voir comment les minutes et les montants peuvent être suivis et comparés."],
-    ["comparateur-audiotel","Comparer votre offre Audiotel","Mesurer l’écart potentiel de reversement selon votre activité."]
+    ["changer-operateur-audiotel","Changer d’opérateur Audiotel sans perdre son numéro","Étapes, éligibilité et comparaison pour les détenteurs d’un 08 existant."]
   ],
   "solutions-audiotel":[
     ["guide-audiotel-sva","Guide complet Audiotel et SVA","Retrouvez les notions essentielles avant de choisir votre solution."],
@@ -291,7 +291,7 @@ const internalLinkGraph=Object.freeze({
   "paiement-cb-audiotel":[
     ["solutions-audiotel","Voir les solutions Audiotel Premium Pro","Replacez le paiement CB dans l’ensemble des services disponibles."],
     ["audiotel-professionnels","Audiotel pour professionnels","Découvrez les usages adaptés aux activités professionnelles."],
-    ["guide-audiotel-sva","Comprendre Audiotel et les SVA","Consultez les bases du service avant de choisir vos options."],
+    ["audiotel-coaching","Paiement CB et consultations téléphoniques","Découvrez l’utilisation du service dans une activité de conseil ou coaching."],
     ["numero-sva","Comprendre le numéro SVA","Découvrez le socle principal de l’offre Audiotel."]
   ],
   "guide-audiotel-sva":[
@@ -611,18 +611,18 @@ function applyPublicMetadata(html,baseUrl){
 function LANDING_SEO_META(slug){return ({
   "business-live-audiotel":{title:"Business Live Audiotel | Audiotel Premium Pro",description:"Suivez en direct l’activité, les minutes et les montants estimés pendant vos appels, avec distinction entre estimé, confirmé et validé."},
   "audiotel-sans-siret":{title:"Audiotel sans SIRET | Audiotel Premium Pro",description:"Déposez une première demande Audiotel sans SIRET, pour un nouveau numéro ou une portabilité, puis découvrez les justificatifs requis avant activation."},
-  "changer-operateur-audiotel":{title:"Changer d’opérateur Audiotel | Audiotel Premium Pro",description:"Changez de solution Audiotel sans repartir de zéro : portabilité d’un numéro SVA éligible, comparaison de l’offre actuelle et étapes du transfert."},
+  "changer-operateur-audiotel":{title:"Changer d’opérateur Audiotel : étapes et portabilité | Audiotel Premium Pro",description:"Vous avez déjà un numéro surtaxé ? Comparez les reversements, vérifiez son éligibilité et préparez un changement d’opérateur Audiotel sans résiliation prématurée."},
   "audiotel-voyance":{title:"Audiotel voyance : numéro SVA | Audiotel Premium Pro",description:"Audiotel pour voyance et astrologie : numéro SVA, suivi des appels, reversements, portabilité et espace client."},
   "audiotel-independants":{title:"Audiotel indépendant : numéro SVA | Audiotel Premium Pro",description:"Audiotel pour indépendants et porteurs de projet : numéro SVA, reversements, portabilité et demande initiale possible sans SIRET selon la situation."},
   "audiotel-coaching":{title:"Audiotel coaching : numéro SVA | Audiotel Premium Pro",description:"Audiotel pour coaching et conseil téléphonique : numéro SVA, appels, minutes, reversements, portabilité et suivi en ligne."},
-  "audiotel-professionnels":{title:"Audiotel professionnel : numéro SVA | Audiotel Premium Pro",description:"Audiotel pour professionnels et entreprises : numéro SVA, suivi des appels, reversements, portabilité et gestion depuis un espace client."},
+  "audiotel-professionnels":{title:"Numéro surtaxé professionnel | Audiotel Premium Pro",description:"Numéro Audiotel professionnel : préparation d’une ouverture ou portabilité d’un 08 éligible, suivi des appels, reversements et espace client. Activation sous conditions."},
   "reversement-audiotel":{title:"Reversement Audiotel : taux et gains | Audiotel Premium Pro",description:"Comparez taux de reversement, minutes facturables et montants attendus, confirmés et validés avec une simulation transparente."},
   "numero-sva":{title:"Numéro SVA / Audiotel : ouverture | Audiotel Premium Pro",description:"Numéro SVA/Audiotel pour particuliers et professionnels : ouverture, suivi des appels, portabilité, tarification et reversements."},
   "portabilite-numero-sva":{title:"Portabilité numéro SVA | Audiotel Premium Pro",description:"Conservez un numéro surtaxé SVA éligible : préparation du transfert, vérification du titulaire et suivi de la confirmation opérateur."},
   "numero-surtaxe-08":{title:"Numéro surtaxé 08 : 081, 082, 089 | Audiotel Premium Pro",description:"Comprenez les numéros 081, 082 et 089, les tarifs SVA, la composante service et les principales obligations d’information."},
   "tarif-numero-sva":{title:"Tarif numéro surtaxé SVA | Audiotel Premium Pro",description:"Comprenez les tarifs des numéros SVA en France, les paliers 08, le prix du service et l’abonnement Audiotel Premium Pro."},
   "comparateur-audiotel":{title:"Comparateur Audiotel : reversements | Audiotel Premium Pro",description:"Comparez un écart de reversement Audiotel et mesurez l’impact potentiel par minute, jour, mois et année selon votre volume d’appels."},
-  "paiement-cb-audiotel":{title:"Paiement CB sécurisé | Audiotel Premium Pro",description:"Paiement CB sécurisé : suivi des encaissements, commission de service de 4,9 % et frais de traitement distincts."},
+  "paiement-cb-audiotel":{title:"Paiement CB pour consultations téléphoniques | Audiotel Premium Pro",description:"Encaissez des consultations ou forfaits par carte bancaire en complément de votre activité Audiotel : suivi des paiements, commission de service et activation sous conditions."},
   "guide-audiotel-sva":{title:"Guide Audiotel / SVA | Audiotel Premium Pro",description:"Guide Audiotel et SVA : numéro surtaxé, reversement, portabilité, tarifs, éligibilité et suivi d’activité."},
   "demande-ouverture":{title:"Demande d’ouverture | Audiotel Premium Pro",description:"Demandez un nouveau numéro ou une portabilité Audiotel Premium Pro, particulier ou professionnel, avec ou sans SIRET au dépôt initial."},
   "accord-traitement-donnees":{title:"Accord de traitement des données | Audiotel Premium Pro",description:"Accord RGPD Audiotel Premium Pro : sécurité, assistance, sous-traitants, audit et fin de contrat."}
