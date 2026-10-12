@@ -300,3 +300,31 @@ body.home-page.ds-unified .ds-geo-faq .card a{display:inline-block;margin-top:8p
  body.home-page.ds-unified .ds-hero-photographic{min-height:390px}
  body.home-page.ds-unified .ds-hero-photographic h1{font-size:clamp(35px,10vw,42px)}
 }
+
+
+/* Contextual topical reading: relevant guides, short descriptions, no generic link stuffing. */
+body.ds-unified .ds-related-topic{padding-top:26px;padding-bottom:46px}
+body.ds-unified .ds-related-topic h2{font-size:clamp(23px,2.5vw,31px);margin:0 0 19px;color:#fff7f0}
+body.ds-unified .ds-related-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:10px 0 0}
+body.ds-unified .ds-related-grid .ds-related-link{
+ position:relative;display:grid;gap:9px;align-content:start;min-height:122px;padding:18px 39px 17px 17px;
+ border:1px solid rgba(177,125,75,.35);border-radius:15px;background:linear-gradient(145deg,#f8eee5,#eaddcc);
+ color:#231812!important;text-decoration:none!important;touch-action:manipulation;
+ transition:border-color .2s ease,box-shadow .2s ease
+}
+body.ds-unified .ds-related-link strong{font-size:14px;line-height:1.35;color:#362015;font-weight:650!important}
+body.ds-unified .ds-related-link span:not(.ds-related-arrow){font-size:12px;line-height:1.5;color:#654f40;font-weight:400}
+body.ds-unified .ds-related-link .ds-related-arrow{position:absolute;right:14px;top:14px;font-size:18px;color:#a3713d;font-weight:500}
+body.ds-unified .ds-related-link:hover,body.ds-unified .ds-related-link:focus-visible{
+ border-color:#b78855;box-shadow:0 8px 24px rgba(0,0,0,.17);outline-offset:3px
+}
+body.ds-unified .ds-topic-links.ds-related-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+body.ds-unified .ds-topic-links.ds-related-grid .ds-related-link{min-width:0;margin:0}
+body.ds-unified .ds-card-action{display:inline-flex;min-height:40px;align-items:center;gap:9px;text-decoration:underline!important;text-underline-offset:4px}
+@media(max-width:780px){body.ds-unified .ds-related-grid,body.ds-unified .ds-topic-links.ds-related-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:530px){
+ body.ds-unified .ds-related-grid,body.ds-unified .ds-topic-links.ds-related-grid{grid-template-columns:minmax(0,1fr)}
+ body.ds-unified .ds-related-grid .ds-related-link{min-height:82px;padding:15px 36px 14px 15px}
+ body.ds-unified .ds-related-topic{padding-bottom:27px}
+}
+@media(prefers-reduced-motion:reduce){body.ds-unified .ds-related-grid .ds-related-link{transition:none}}
