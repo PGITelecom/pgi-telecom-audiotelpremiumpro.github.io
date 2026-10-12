@@ -1,3 +1,4 @@
+import {renderDistributionContextLinks} from "./direct-sva-internal-links.mjs";
 // One public SVA visual shell for all prepared Distribution editorial pages.
 // Keep editorial copy, SEO metadata, locale, consent and commercial locks intact.
 const LABELS={
@@ -124,6 +125,7 @@ export function renderDirectSvaVisualShell(source){
  html=html.replace(/<header\b[\s\S]*?<\/header>/i,sharedHeader(lang,pathname));
  html=html.replace(/<section class="revenue-quick-nav"[\s\S]*?<\/section>/g,"");
  if(lang==="fr"&&pathname==="/distribution-sva/")html=enhanceDistributionHome(installHeroPhoto(html));
+ html=renderDistributionContextLinks(html,pathname,lang);
  html=stretchExistingCardLinks(html);
  html=html.replace("</main>",sharedBottomBar(lang,pathname)+"</main>");
  return html;
