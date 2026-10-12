@@ -56,7 +56,7 @@ test("the approved network photograph integrates real HTML title and copy in its
  assert.match(html,/class="ds-universe-link"/);
  assert.match(html,/href="\/distribution-sva\/numerotation\/"/);
  assert.match(html,/href="\/distribution-sva\/releves-reversements\/"/);
- assert.match(html,/href="\/distribution-sva\/espace-client\/"/);
+ assert.doesNotMatch(html,/href="\/distribution-sva\/espace-client\/"/,"private Distribution portal must not be advertised as a public link");
 });
 test("brand logo returns to SVA on Pôle home and to Pôle home everywhere else",()=>{
  for(const page of pages){
