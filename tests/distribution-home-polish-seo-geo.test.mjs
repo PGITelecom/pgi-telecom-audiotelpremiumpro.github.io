@@ -26,7 +26,7 @@ test("hero spacing and photography blend are optimized for desktop and narrow mo
 });
 test("SEO title, indexation gate and structured data are accurate",()=>{
  assert.match(raw,/<title>PGI Telecom Distribution \| Numérotation SVA et Réseau<\/title>/);
- assert.match(raw,/name="description" content="Découvrez le futur Pôle Télécom/);
+ assert.match(raw,/name="description" content="PGI Telecom prépare son Pôle Télécom/);
  assert.match(raw,/name="robots" content="noindex,nofollow,noarchive"/);
  assert.match(html,/name="robots" content="index,follow,max-snippet:-1"/);
  const json=JSON.parse(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(raw)[1]);
