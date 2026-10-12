@@ -68,3 +68,22 @@ test("homepage remains the same commercial SVA business, with no early Distribut
  assert.match(build,/\"robots\.txt\"/);
  assert.doesNotMatch(build,/\\bnoindex\\b.*?site\\/index\\.html/);
 });
+
+
+test("priority SVA source pages have title, social snippets and WebPage data aligned",()=>{
+ for(const slug of ["changer-operateur-audiotel","paiement-cb-audiotel","audiotel-professionnels"]){
+  const html=findRawSlug(slug);
+  const title=/<title>([^<]+)<\/title>/.exec(html)?.[1];
+  const description=/<meta name="description" content="([^"]+)"/.exec(html)?.[1];
+  assert.ok(title&&description,slug);
+  assert.ok(html.includes('property="og:title" content="'+title+'"'),slug+" Open Graph title");
+  assert.ok(html.includes('property="og:description" content="'+description+'"'),slug+" Open Graph description");
+  const blocks=[...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+  assert.ok(blocks.length,slug+" structured data");
+  const data=JSON.parse(blocks[0][1]);
+  const entity=(data["@graph"]||[data]).find(x=>x["@type"]==="WebPage");
+  assert.ok(entity,slug+" WebPage");
+  assert.equal(entity.name,title,slug+" structured title");
+  assert.equal(entity.description,description,slug+" structured description");
+ }
+});
