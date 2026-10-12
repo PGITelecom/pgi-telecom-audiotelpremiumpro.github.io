@@ -40,9 +40,9 @@ test("photo used in the SVA-style hero is actually served from our site build",(
 test("the launch preparation and pricing separation remain truthful",()=>{
  const html=load("site/distribution-sva/index.html");
  const js=load("site/distribution-sva/site.js");
- assert.match(html,/Distribution en préparation/);
+ assert.match(html,/Activité en préparation/);
  assert.match(html,/La distribution directe n'est pas encore activée/);
- assert.match(html,/Aucun numéro n'est actuellement proposé/);
+ assert.match(html,/aucun numéro n'est commercialisé comme ressource directement attribuée/);
  assert.doesNotMatch(html,/4,90\s*€|créer mon compte distributeur|paiement immédiat/);
  assert.match(js,/data-ds-current-period/);
  assert.match(js,/Europe\/Paris/);
