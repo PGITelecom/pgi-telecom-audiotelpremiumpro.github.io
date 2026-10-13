@@ -7209,7 +7209,7 @@ export class PostgresStore{
           const label=policy.action_type==="request_customer_info"?"Information complémentaire demandée":"Réponse du service client";
           await tx.unsafe("INSERT INTO tenant_relation_case_events(case_id,tenant_id,event_type,actor_type,actor_user_id,message,customer_visible,details) VALUES($1,$2,'staff_message','agent',$3,$4,true,$5::jsonb)",[relation.id,relation.tenant_id,actorId,message,JSON.stringify({label,action_type:policy.action_type})]);
           await tx.unsafe("UPDATE tenant_relation_cases SET first_responded_at=COALESCE(first_responded_at,now()),last_pgi_update_at=now(),status=CASE WHEN $2='request_customer_info' THEN 'waiting_customer' WHEN status IN ('open','triage') THEN 'investigating' ELSE status END,updated_at=now() WHERE id=$1",[relation.id,policy.action_type]);
-          actionResult={message_sent:true,customer_visible:true};
+          actionResult={message_recorded:true,customer_visible:true,external_delivery_confirmed:false};
         }else if(policy.action_type==="prepare_mediation"){
           if(relation.customer_capacity!=="consumer")throw problem(409,"MEDIATION_CONSUMER_ONLY");
           const eligibleAt=relation.mediation_eligible_at?new Date(relation.mediation_eligible_at):null;
@@ -7361,6 +7361,33 @@ export class PostgresStore{
           eventType="final_invoice_ready";message="Compte final disponible";
         }
       }else if(row.action_type==="revoke_access"&&["success","completed"].includes(outcome)){
+        // Fail closed: a provider response is not a substitute for the complete exit checklist.
+        const safeExit=(await tx.unsafe(
+          "SELECT id,exit_scope,customer_confirmed,final_invoice_status,final_settlement_status,data_export_status"+
+          " FROM tenant_exit_requests WHERE case_id=$1 FOR UPDATE",[row.case_id]
+        ))[0];
+        if(!safeExit||safeExit.exit_scope!=="all_services"||safeExit.customer_confirmed!==true)
+          throw problem(409,"EXIT_FINALIZATION_NOT_AUTHORIZED");
+        if(!["ready","settled","not_applicable"].includes(safeExit.final_invoice_status))
+          throw problem(409,"EXIT_FINAL_INVOICE_UNCONFIRMED");
+        if(!["settled","not_applicable"].includes(safeExit.final_settlement_status))
+          throw problem(409,"EXIT_FINAL_SETTLEMENT_UNCONFIRMED");
+        if(safeExit.data_export_status!=="delivered")
+          throw problem(409,"EXIT_DATA_EXPORT_NOT_DELIVERED");
+        const exitLines=(await tx.unsafe(
+          "SELECT count(*)::int AS total,"+
+          " count(*) FILTER(WHERE status<>'completed')::int AS incomplete,"+
+          " count(*) FILTER(WHERE requested_action='port_out' AND (operator_reference IS NULL OR operator_reference=''))::int AS missing_operator"+
+          " FROM tenant_exit_lines WHERE exit_request_id=$1",[safeExit.id]
+        ))[0];
+        if(Number(exitLines?.incomplete||0)>0||Number(exitLines?.missing_operator||0)>0)
+          throw problem(409,"EXIT_NUMBERS_NOT_EXTERNALLY_CONFIRMED");
+        const activeSub=(await tx.unsafe(
+          "SELECT 1 FROM tenant_subscriptions WHERE tenant_id=$1"+
+          " AND status NOT IN ('cancelled','ended') AND (current_period_end IS NULL OR current_period_end>now()) LIMIT 1",
+          [row.tenant_id]
+        )).length>0;
+        if(activeSub)throw problem(409,"EXIT_STRIPE_SUBSCRIPTION_STILL_ACTIVE");
         const ex=(await tx.unsafe("UPDATE tenant_exit_requests SET status='completed',access_revocation_at=now(),completed_at=now(),number_quarantine_until=CASE WHEN port_out_requested THEN number_quarantine_until ELSE COALESCE(number_quarantine_until,current_date+40) END,updated_at=now() WHERE case_id=$1 RETURNING port_out_requested,number_quarantine_until",[row.case_id]))[0];
         await tx.unsafe("UPDATE tenant_relation_cases SET status='resolved',resolved_at=now(),ai_state='done',updated_at=now() WHERE id=$1",[row.case_id]);
         eventType="access_revoked";message="Clôture technique confirmée";
