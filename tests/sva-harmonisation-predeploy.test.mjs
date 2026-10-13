@@ -37,3 +37,11 @@ test("irreversible access closure is guarded by business proofs",()=>{
   assert.match(store,/FROM tenant_exit_lines WHERE exit_request_id=\$1/);
   assert.match(store,/status<>'completed'/);
 });
+
+test("priority checkout cannot proceed without a connected eligible operator API",()=>{
+  const method=store.split("async preparePortabilityPriorityCheckout(")[1]?.split("async attachPortabilityPriorityCheckout(")[0]||"";
+  assert.match(method,/PORTABILITY_PRIORITY_OPERATOR_NOT_READY/);
+  assert.match(method,/portability_submit_url/);
+  assert.match(method,/portability_eligibility_url/);
+  assert.match(method,/portability_status_url/);
+});

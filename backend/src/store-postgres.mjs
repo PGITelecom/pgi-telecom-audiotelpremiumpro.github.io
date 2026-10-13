@@ -5296,6 +5296,21 @@ export class PostgresStore{
     if(["ported","rejected","cancelled"].includes(String(row.status)))throw problem(409,"PORTABILITY_PRIORITY_NOT_AVAILABLE");
     const meta=row.metadata&&typeof row.metadata==="object"?row.metadata:{},priority=meta.priority_service&&typeof meta.priority_service==="object"?meta.priority_service:{};
     if(String(priority.status||"")==="paid")throw problem(409,"PORTABILITY_PRIORITY_ALREADY_PAID");
+    // Do not offer a paid processing priority when a real SVA portability API is not ready.
+    // This is in addition to normal commercial readiness and does not validate legal licitness.
+    const carrierPriorityReady=await this.readSql.unsafe(
+      "SELECT cc.settings FROM logical_carrier_routes r"+
+      " JOIN carriers c ON c.id=r.active_carrier_id AND c.kind='sva_host' AND c.enabled"+
+      " JOIN carrier_connections cc ON cc.carrier_id=c.id AND cc.purpose='api' AND cc.state IN ('ready','active')"+
+      " JOIN carrier_adapters ca ON ca.carrier_id=c.id AND ca.enabled AND (ca.capabilities ? 'portability' OR lower(ca.adapter_key) LIKE '%portability%')"+
+      " WHERE r.route_key='sva-primary' LIMIT 1"
+    );
+    const priorityOperatorSettings=carrierPriorityReady[0]?.settings||{};
+    if(!carrierPriorityReady.length
+      ||!String(priorityOperatorSettings.portability_submit_url||"").trim()
+      ||!String(priorityOperatorSettings.portability_eligibility_url||priorityOperatorSettings.portability_check_url||"").trim()
+      ||!String(priorityOperatorSettings.portability_status_url||priorityOperatorSettings.portability_status_url_template||"").trim())
+      throw problem(409,"PORTABILITY_PRIORITY_OPERATOR_NOT_READY");
     return {
       portability_request_id:id,tenant_public_id:String(row.tenant_public_id),billing_email:row.billing_email||null,
       existing_checkout_session_reference:priority.checkout_session_reference||null,
