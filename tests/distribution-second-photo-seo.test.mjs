@@ -19,12 +19,15 @@ test("the approved user image is an optimized real 1536x864 WebP with its own fi
  assert.equal(isDirectSvaPublicAsset("/site/distribution-sva/secret-image.webp"),false);
 });
 
-test("homepage keeps original hero and integrates user photo after the two-activities explanation",()=>{
+test("homepage keeps dark hero and network showcase ahead of the lower two-activities section",()=>{
  const old=visible.indexOf('src="/site/distribution-sva/telecom-hero.webp"');
  const two=visible.indexOf('class="ds-two-univers"');
  const newPhoto=visible.indexOf('src="'+assetPath+'"');
  const cards=visible.indexOf('class="cards ds-features"');
- assert.ok(old>0 && two>old && newPhoto>two && cards>newPhoto,"expected editorial flow: hero, two activities, new image, features");
+ const faq=visible.indexOf('id="questions-pole-telecom"');
+ const resources=visible.indexOf('id="ressources-du-pole"');
+ assert.ok(old>0 && newPhoto>old && cards>newPhoto && faq>cards && two>faq && resources>two,
+   "expected editorial flow: dark hero, network image, features, FAQ, two activities, resources");
  assert.equal((visible.match(/<h1\b/g)||[]).length,1,"one primary heading");
  assert.match(visible,/<section class="section-space ds-network-showcase" id="infrastructure-telecom"/);
  assert.match(visible,new RegExp('src="'+assetPath.replaceAll(".","\\.")+'"'));
