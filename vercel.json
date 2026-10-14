@@ -14,15 +14,15 @@
     },
     {
       "path": "/api/v1/internal/business-live/reset-schedules/run",
-      "schedule": "* * * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/v1/internal/referral-payouts/run",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/v1/internal/accounting/refresh",
-      "schedule": "17 * * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/v1/internal/daily-report/run",
