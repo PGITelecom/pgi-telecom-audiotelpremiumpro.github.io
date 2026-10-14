@@ -1,3 +1,4 @@
+import {renderDistributionContextLinks} from "./direct-sva-internal-links.mjs";
 // One public SVA visual shell for all prepared Distribution editorial pages.
 // Keep editorial copy, SEO metadata, locale, consent and commercial locks intact.
 const LABELS={
@@ -63,7 +64,7 @@ function installHeroPhoto(html){
  '<div class="ds-hero-photographic-copy">'+
  '<p class="ds-hero-photo-kicker">PGI TELECOM DISTRIBUTION <span>EN PRÉPARATION</span></p>'+
  heading+
- '<p class="ds-hero-photo-description">L’infrastructure de demain, pensée pour la continuité de vos services à valeur ajoutée.</p>'+
+ '<p class="ds-hero-photo-description">Une organisation télécom pensée pour la continuité de vos numéros, la traçabilité des appels et la transparence des reversements.</p>'+
  '</div></div>';
  let out=html.replace(/<div class="hero-side"><figure class="hero-visual">[\s\S]*?<\/figure><\/div>/,"");
  // The original source includes the pre-image typography lines. Move their
@@ -75,16 +76,18 @@ function enhanceDistributionHome(html){
  // Informational panels that look actionable should have a real destination,
  // not an inert hover state or a synthetic "button".
  const destinations=new Map([
- ["Numérotation","/distribution-sva/numerotation/"],
- ["Suivi financier","/distribution-sva/releves-reversements/"],
- ["Espace client","/distribution-sva/espace-client/"]
+ ["Numérotation",{href:"/distribution-sva/numerotation/",label:"Comprendre la numérotation SVA"}],
+ ["Suivi financier",{href:"/distribution-sva/releves-reversements/",label:"Comprendre le suivi financier"}],
+ // /distribution-sva/espace-client/ is deliberately private until actual launch.
+ // Do not create an attractive card that points to a 404.
+ ["Espace client",{href:"/distribution-sva/solutions/",label:"Découvrir les fonctions client prévues"}]
  ]);
  html=html.replace(/<article class="card">([\s\S]*?)<\/article>/g,(original,inner)=>{
   let content=inner;
   const title=/<h3>([^<]+)<\/h3>/.exec(inner)?.[1]||"";
-  const href=destinations.get(title);
-  if(!/<a\s/.test(content)&&href){
-   content+='<a class="ds-card-action" href="'+href+'">Découvrir '+htmlEscape(title.toLowerCase())+' <span aria-hidden="true">→</span></a>';
+  const destination=destinations.get(title);
+  if(!/<a\s/.test(content)&&destination){
+   content+='<a class="ds-card-action" href="'+destination.href+'">'+htmlEscape(destination.label)+' <span aria-hidden="true">→</span></a>';
   }
   if(!/<a\s/.test(content))return original;
   return '<article class="card ds-card-clickable">'+content+'</article>';
@@ -122,6 +125,7 @@ export function renderDirectSvaVisualShell(source){
  html=html.replace(/<header\b[\s\S]*?<\/header>/i,sharedHeader(lang,pathname));
  html=html.replace(/<section class="revenue-quick-nav"[\s\S]*?<\/section>/g,"");
  if(lang==="fr"&&pathname==="/distribution-sva/")html=enhanceDistributionHome(installHeroPhoto(html));
+ html=renderDistributionContextLinks(html,pathname,lang);
  html=stretchExistingCardLinks(html);
  html=html.replace("</main>",sharedBottomBar(lang,pathname)+"</main>");
  return html;

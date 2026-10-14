@@ -66,7 +66,7 @@ test("French telecom landing page links six technical dossiers without merging A
   assert.match(home,/<h1>(?:<span>)?Pôle Télécom(?:<\/span>)? &amp; Réseau\.?<\/h1>/);
   assert.match(home,/Audiotel Premium Pro/);
   assert.match(home,/PGI Telecom Distribution/);
-  assert.match(source("questions-frequentes/"),/assistants vocaux|moteurs de réponse/);
+  assert.match(source("questions-frequentes/"),/sans confondre fonctionnalités prévues et services disponibles/);
 });
 test("direct telecom SEO remains unpublished until distinct launch approval",()=>{
   const build=fs.readFileSync("scripts/build-static.mjs","utf8");

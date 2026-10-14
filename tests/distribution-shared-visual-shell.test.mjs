@@ -56,7 +56,7 @@ test("the approved network photograph integrates real HTML title and copy in its
  assert.match(html,/class="ds-universe-link"/);
  assert.match(html,/href="\/distribution-sva\/numerotation\/"/);
  assert.match(html,/href="\/distribution-sva\/releves-reversements\/"/);
- assert.match(html,/href="\/distribution-sva\/espace-client\/"/);
+ assert.doesNotMatch(html,/href="\/distribution-sva\/espace-client\/"/,"private Distribution portal must not be advertised as a public link");
 });
 test("brand logo returns to SVA on Pôle home and to Pôle home everywhere else",()=>{
  for(const page of pages){
@@ -87,7 +87,11 @@ test("only explicitly approved stylesheet served, commercial and private restric
  assert.match(preview,/ds-unified/);
  const styles=fs.readFileSync(new URL("../site/distribution-sva/unified.css",import.meta.url),"utf8");
  assert.match(styles,/\.revenue-quick-nav\{position:fixed!important/);
- assert.match(styles,/background:rgba\(19,12,10,\.985\)!important/);
+ assert.match(styles,/background:rgba\(42,45,49,\.985\)!important/);
+ const svaCss=fs.readFileSync(new URL("../site/site.css",import.meta.url),"utf8");
+ assert.match(svaCss,/\.revenue-quick-nav\{position:fixed!important[^}]*background:rgba\(42,45,49,\.985\)!important/);
+ assert.equal((styles.match(/background:rgba\(42,45,49,\.985\)!important/g)||[]).length,2);
+ assert.doesNotMatch(styles,/background:rgba\(19,12,10,\.985\)!important/);
  assert.match(styles,/font-weight:500!important/);
  assert.match(styles,/ds-hero-photo-under-title img/);
  assert.match(styles,/\.ds-hero-photographic::after/);
