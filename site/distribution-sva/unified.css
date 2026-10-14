@@ -361,3 +361,36 @@ body.home-page.ds-unified .ds-network-showcase-links a:hover,body.home-page.ds-u
 body.ds-unified .ds-language-section,
 body.ds-unified .ds-language-links,
 body.ds-unified section:has(> .wrap > nav.ds-language-links) { display:none!important; }
+
+
+/* Rendu final des deux activités après transformation en liens cliquables.
+   Le site publie des <a class="ds-universe-link">, pas les <div> d'origine :
+   l'intitulé doit donc rester SUR LA MÊME LIGNE que 01 / 02, même sur mobile. */
+body.home-page.ds-unified .ds-two-columns > .ds-universe-link{
+  display:grid;
+  grid-template-columns:43px minmax(0,1fr);
+  column-gap:12px;
+  row-gap:0;
+  align-content:start;
+  align-items:center;
+}
+body.home-page.ds-unified .ds-two-columns > .ds-universe-link > .ds-unit-icon{
+  grid-column:1;
+  grid-row:1;
+  margin:0;
+}
+body.home-page.ds-unified .ds-two-columns > .ds-universe-link > strong{
+  grid-column:2;
+  grid-row:1;
+  margin:0;
+  min-width:0;
+  padding-right:28px;
+  align-self:center;
+  line-height:1.35;
+  overflow-wrap:break-word;
+}
+body.home-page.ds-unified .ds-two-columns > .ds-universe-link > p{
+  grid-column:1 / -1;
+  grid-row:2;
+  margin:14px 0 0!important;
+}
