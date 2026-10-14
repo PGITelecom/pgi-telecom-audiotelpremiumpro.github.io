@@ -61,3 +61,16 @@ test("structured data describes the photograph accurately without implying opera
  assert.match(second.caption,/Illustration/);
  assert.match(home,/noindex,nofollow,noarchive/,"publication gate remains active");
 });
+
+
+test("les deux activités apparaissent à la fin et leurs numéros 01/02 restent accolés aux titres publiés",()=>{
+ const light=visible.indexOf('class="ds-two-univers"');
+ const faq=visible.indexOf('id="questions-pole-telecom"');
+ const resources=visible.indexOf('id="ressources-du-pole"');
+ assert.ok(faq>0&&light>faq&&resources>light,"beige organizational panel should come near page end");
+ assert.match(visible,/<a class="ds-universe-link"[^>]*><span class="ds-unit-icon"[^>]*>01<\/span><strong>Audiotel Premium Pro<\/strong>/);
+ assert.match(visible,/<a class="ds-universe-link"[^>]*><span class="ds-unit-icon"[^>]*>02<\/span><strong>PGI Telecom Distribution<\/strong>/);
+ assert.match(css,/body\.home-page\.ds-unified \.ds-two-columns > \.ds-universe-link\{[\s\S]*?grid-template-columns:43px minmax\(0,1fr\)/);
+ assert.match(css,/\.ds-universe-link > strong\{[\s\S]*?grid-column:2;[\s\S]*?grid-row:1;/);
+ assert.match(css,/\.ds-universe-link > p\{[\s\S]*?grid-column:1 \/ -1;[\s\S]*?grid-row:2;/);
+});
