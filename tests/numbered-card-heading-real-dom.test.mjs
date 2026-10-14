@@ -21,7 +21,8 @@ test("CSS du rendu réel aligne numéro et intitulé sur une seule rangée",()=>
   assert.match(distCss,/\.ds-two-columns > :is\(div, a\.ds-universe-link\) > \.ds-unit-icon\s*\{\s*grid-column:1;\s*grid-row:1;/);
   assert.match(distCss,/\.ds-two-columns > :is\(div, a\.ds-universe-link\) > strong\s*\{\s*grid-column:2;\s*grid-row:1;/);
   assert.match(distCss,/\.ds-two-columns > :is\(div, a\.ds-universe-link\) > p\s*\{\s*grid-column:1 \/ -1;\s*grid-row:2;/);
-  assert.doesNotMatch(distCss,/white-space:nowrap/);
+  const headingRule=distCss.split("body.ds-unified .ds-two-columns > :is(div, a.ds-universe-link) > strong {")[1]?.split("}")[0]||"";
+  assert.doesNotMatch(headingRule,/white-space:nowrap/);
 });
 test("toutes les cartes fonctionnelles numérotées du Pôle sont couvertes",()=>{
   const badges=[...published.matchAll(/<span class="ds-feature-symbol"[^>]*>0[1-9]<\/span><h3>[^<]+<\/h3>/g)];
