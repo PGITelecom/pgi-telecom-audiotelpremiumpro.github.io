@@ -7,12 +7,12 @@ const server=fs.readFileSync("backend/server.mjs","utf8");
 const store=fs.readFileSync("backend/src/store-postgres.mjs","utf8");
 
 test("onboarding explains the free calendar month instead of immediate payment",()=>{
-  assert.match(billing,/mois civil de souscription est offert/);
+  assert.match(billing,/mois civil en cours offert/);
   assert.doesNotMatch(billing,/la première période est payée maintenant/);
-  assert.match(billing,/premier prélèvement payant à la date confirmée par Stripe/);
+  assert.match(billing,/mensualités selon les échéances Stripe/);
 });
 test("Stripe checkout return is not claimed to be proof of payment",()=>{
-  assert.match(billing,/Demande d’abonnement reçue par Stripe/);
+  assert.match(billing,/Demande reçue par Stripe/);
   assert.doesNotMatch(billing,/Paiement reçu par Stripe/);
 });
 test("customer departure does not falsely promise a carrier request",()=>{
