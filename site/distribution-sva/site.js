@@ -6,16 +6,16 @@
  const parisNow=new Date();
  const language=(document.documentElement.lang||"fr").slice(0,2).toLowerCase();
  const periods={
-  fr:{locale:"fr-FR",before:"EN ",after:" ... PÔLE TÉLÉCOM & RÉSEAU EN PRÉPARATION"},
-  en:{locale:"en-GB",before:"IN ",after:" ... TELECOM & NETWORK DIVISION IN PREPARATION"},
-  es:{locale:"es-ES",before:"EN ",after:" ... ÁREA DE TELECOMUNICACIONES Y RED EN PREPARACIÓN"},
-  pt:{locale:"pt-PT",before:"EM ",after:" ... POLO DE TELECOMUNICAÇÕES E REDE EM PREPARAÇÃO"},
-  de:{locale:"de-DE",before:"IM ",after:" ... TELEKOMMUNIKATIONS- UND NETZBEREICH IN VORBEREITUNG"},
-  it:{locale:"it-IT",before:"A ",after:" ... POLO TELECOMUNICAZIONI E RETE IN PREPARAZIONE"}
+  fr:{l:"fr-FR",p:"EN ",s:" ... PÔLE TÉLÉCOM & RÉSEAU EN PRÉPARATION"},
+  en:{l:"en-GB",p:"IN ",s:" ... TELECOM & NETWORK DIVISION IN PREPARATION"},
+  es:{l:"es-ES",p:"EN ",s:" ... ÁREA DE TELECOMUNICACIONES Y RED EN PREPARACIÓN"},
+  pt:{l:"pt-PT",p:"EM ",s:" ... POLO DE TELECOMUNICAÇÕES E REDE EM PREPARAÇÃO"},
+  de:{l:"de-DE",p:"IM ",s:" ... TELEKOMMUNIKATIONS- UND NETZBEREICH IN VORBEREITUNG"},
+  it:{l:"it-IT",p:"A ",s:" ... POLO TELECOMUNICAZIONI E RETE IN PREPARAZIONE"}
  };
  const period=periods[language]||periods.fr;
- const distributionMonth=new Intl.DateTimeFormat(period.locale,{timeZone:"Europe/Paris",month:"long",year:"numeric"}).format(parisNow).toLocaleUpperCase(period.locale);
- document.querySelectorAll("[data-ds-current-period]").forEach(n=>n.textContent=period.before+distributionMonth+period.after);
+ const distributionMonth=new Intl.DateTimeFormat(period.l,{timeZone:"Europe/Paris",month:"long",year:"numeric"}).format(parisNow).toLocaleUpperCase(period.l);
+ document.querySelectorAll("[data-ds-current-period]").forEach(n=>n.textContent=period.p+distributionMonth+period.s);
  const currentYear=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Paris",year:"numeric"}).format(new Date());
  document.querySelectorAll("[data-ds-year]").forEach(n=>n.textContent=currentYear);
  const activePath=location.pathname;
