@@ -119,7 +119,7 @@ test("Business Live reste cumulatif, programmable et isolé des bilans officiels
   assert.match(store,/queue_name=\'business_live_reset\'/);
   assert.match(store,/work_queue/);
   assert.match(vercelConfig,/"\/api\/v1\/internal\/business-live\/reset-schedules\/run"/);
-  assert.match(vercelConfig,/"schedule": "\* \* \* \* \*"/);
+  assert.match(vercelConfig,/"schedule": "0 \* \* \* \*"/);
   assert.match(store,/status IN \('active','ended'\)/);
   assert.match(store,/accounting_impact:"none"/);
   assert.match(store,/reporting_impact:"none"/);
