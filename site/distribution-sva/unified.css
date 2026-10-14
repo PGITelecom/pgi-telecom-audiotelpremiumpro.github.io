@@ -355,3 +355,9 @@ body.home-page.ds-unified .ds-network-showcase-links a:hover,body.home-page.ds-u
  body.home-page.ds-unified .ds-network-showcase-links a{min-height:55px;padding:11px 15px;font-size:13px}
 }
 @media(prefers-reduced-motion:reduce){body.home-page.ds-unified .ds-network-showcase-links a{transition:none}}
+
+/* Distribution : choix de langues masqués visuellement sur toutes les pages.
+   Les véritables traductions, leurs URL, canonicals et hreflang restent présents. */
+body.ds-unified .ds-language-section,
+body.ds-unified .ds-language-links,
+body.ds-unified section:has(> .wrap > nav.ds-language-links) { display:none!important; }
