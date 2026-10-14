@@ -37,7 +37,7 @@ test("the genuine Distribution webpage loads the matching stylesheet and the tel
  assert.match(html,/PGI Telecom Distribution/);
  assert.match(html,/EN OCTOBRE 2026/);
  assert.match(html,/<meta name="robots" content="noindex,nofollow,noarchive">/);
- assert.match(html,/Aucun numéro n'est actuellement proposé/);
+ assert.match(html,/aucun numéro n'est commercialisé comme ressource directement attribuée à PGI Telecom Distribution/);
  assert.match(html,/La distribution directe n'est pas encore activée/);
  assert.match(builder,/cpSync\(path\.join\(root,"site","distribution-sva"\)/);
 });
