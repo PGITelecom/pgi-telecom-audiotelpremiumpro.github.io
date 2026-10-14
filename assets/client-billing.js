@@ -13,7 +13,7 @@ export function createController(ctx){
     const stateEl=$("client-billing-provider-state"),chipEl=$("client-billing-provider-chip"),start=$("client-billing-start"),manage=$("client-billing-manage"),offerDetail=$("client-billing-offer-detail"),offerChip=$("client-billing-offer-chip"),consent=$("client-billing-consent");
     if(consent){
       const terms=$("client-billing-terms"),span=terms&&terms.closest("label")?.querySelector("span");
-      if(span)span.innerHTML='Avant mon premier paiement, j’accepte les <a href="/conditions-abonnement/" target="_blank" rel="noopener">conditions générales de vente, d’abonnement et de services</a> et les <a href="/conditions-utilisation/" target="_blank" rel="noopener">CGU</a>, applicables selon mon profil particulier ou professionnel. L’abonnement est sans engagement de durée. Le mois civil de souscription est offert au titre de l’abonnement plateforme. La première mensualité payante, puis les suivantes, seront prélevées aux échéances confirmées par Stripe, jusqu’à la prise d’effet de la résiliation. La résiliation peut être demandée à tout moment et prend normalement effet à la fin de la période déjà payée. J’ai pris connaissance de la <a href="/confidentialite/" target="_blank" rel="noopener">politique de confidentialité</a> et, lorsque j’agis comme consommateur, des modalités de <a href="/retractation/" target="_blank" rel="noopener">rétractation</a>.';
+      if(span)span.innerHTML='Avant mon premier paiement, j’accepte les <a href="/conditions-abonnement/" target="_blank" rel="noopener">conditions générales de vente, d’abonnement et de services</a> et les <a href="/conditions-utilisation/" target="_blank" rel="noopener">CGU</a>, applicables selon mon profil particulier ou professionnel. Sans engagement : mois civil en cours offert, puis mensualités selon les échéances Stripe. Résiliation à tout moment. La résiliation peut être demandée à tout moment et prend normalement effet à la fin de la période déjà payée. J’ai pris connaissance de la <a href="/confidentialite/" target="_blank" rel="noopener">politique de confidentialité</a> et, lorsque j’agis comme consommateur, des modalités de <a href="/retractation/" target="_blank" rel="noopener">rétractation</a>.';
       if(!$("client-billing-immediate"))consent.insertAdjacentHTML("beforeend",'<label class="cp-check"><input id="client-billing-immediate" type="checkbox"><span>Je demande expressément que l’accès payant commence immédiatement avant la fin du délai de rétractation lorsque ce droit m’est applicable. Je reconnais qu’en cas d’exécution complète du service avant la fin de ce délai, je perds mon droit de rétractation dans les conditions prévues par la loi.</span></label>');
     }
     const currentSubscription=rows.some(x=>["active","past_due"].includes(String(x.status||"").toLowerCase()));
@@ -22,7 +22,7 @@ export function createController(ctx){
     const connected=provider.checkout_available===true&&provider.webhook_ingest_enabled===true;
     if(offer&&offer.amount_minor!=null){
       const cadence=offer.billing_interval==="year"?"an":"mois",offerPrice=money(n(offer.amount_minor)/100,offer.currency)+" TTC / "+cadence;
-      if(offerDetail)offerDetail.textContent=offerPrice+" · "+tr("mois civil de souscription offert · premier prélèvement payant à la date confirmée par Stripe · ensuite mensualités d’avance · résiliation à tout moment");
+      if(offerDetail)offerDetail.textContent=offerPrice+" · "+tr("mois en cours offert · puis facturation mensuelle Stripe · sans engagement");
       if(offerChip){offerChip.textContent=money(n(offer.amount_minor)/100,offer.currency);offerChip.className="cp-chip ok";}
       if(start)start.textContent=tr("Souscrire avec obligation de paiement")+" : "+offerPrice;
     }else{
@@ -63,7 +63,7 @@ export function createController(ctx){
   function handleReturn(){
     const url=new URL(location.href),result=url.searchParams.get("billing");if(!result)return;
     url.searchParams.delete("billing");url.searchParams.delete("session_id");history.replaceState(null,"",url.pathname+(url.search?"?"+url.searchParams.toString():"")+url.hash);
-    if(result==="success")ctx.toast("Demande d’abonnement reçue par Stripe. Le mois civil de souscription est offert. L’état du contrat et les échéances sont confirmés après synchronisation sécurisée avec Stripe.");
+    if(result==="success")ctx.toast("Demande reçue par Stripe. Mois en cours offert. Activation après confirmation sécurisée.");
     else if(result==="cancelled")ctx.toast("Paiement annulé. Aucun changement n’a été appliqué.");
     else if(result==="portal-return")ctx.toast("Retour de la facturation sécurisé. Les changements confirmés par Stripe seront synchronisés automatiquement.");
   }
