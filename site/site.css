@@ -400,3 +400,45 @@ body{padding-bottom:112px}
  .header-account-entry{gap:6px;max-width:min(100%,220px)}
  .header-distribution-link{font-size:11px;line-height:1.35}
 }
+
+/* Harmonisation des repères numérotés : numéro et intitulé sur la même ligne.
+   Conserve les titres HTML d'origine pour SEO, accessibilité et maillage. */
+@supports selector(article:has(> span + h3)) {
+  .benefit-grid article:has(> span:first-child + h3) {
+    display:grid;
+    grid-template-columns:34px minmax(0,1fr);
+    column-gap:12px;
+    align-content:start;
+  }
+  .benefit-grid article:has(> span:first-child + h3) > span:first-child {
+    grid-column:1;
+    grid-row:1;
+    margin:0;
+    align-self:center;
+  }
+  .benefit-grid article:has(> span:first-child + h3) > h3 {
+    grid-column:2;
+    grid-row:1;
+    margin:0;
+    align-self:center;
+    min-width:0;
+    overflow-wrap:break-word;
+    line-height:1.4;
+  }
+  .benefit-grid article:has(> span:first-child + h3) > :not(span):not(h3) {
+    grid-column:1 / -1;
+    min-width:0;
+  }
+  .benefit-grid article:has(> span:first-child + h3) > p:first-of-type {margin-top:12px;}
+
+  /* Les quatre étapes de l'accueil SVA : même règle, même lecture immédiate. */
+  .steps li:has(> span:first-child + div) {
+    display:grid;
+    grid-template-columns:34px minmax(0,1fr);
+    align-items:start;
+    column-gap:12px;
+  }
+  .steps li:has(> span:first-child + div) > span:first-child {grid-column:1;grid-row:1;}
+  .steps li:has(> span:first-child + div) > div {grid-column:2;grid-row:1;min-width:0;}
+  .steps li:has(> span:first-child + div) > div > h3 {margin:0 0 7px;overflow-wrap:break-word;}
+}
