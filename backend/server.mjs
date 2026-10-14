@@ -1431,7 +1431,8 @@ export function createBackend(options={}){
         if(!["owner","admin"].includes(context.customer_role))throw Object.assign(new Error("Customer role cannot request account exit"),{status:403,code:"CUSTOMER_RELATIONS_FORBIDDEN"});
         const body=await readJson(req,config.bodyLimitBytes),payload={tenant_id:context.tenant_id,...body};
         const result=await store.idempotent(req.headers["idempotency-key"],"customer.exit.create",payload,()=>store.createCustomerExitRequest(context.tenant_id,body,customerActor.sub));
-        await syncHubSpotTenantLifecycle(store,context.tenant_public_id,"Perdu / non abouti","customer_exit");
+        // A request to exit is not a completed departure. Do not classify the tenant as lost.
+        // CRM lifecycle synchronization must follow verified full closure, never a partial request.
         return done(res,metrics,started,"customer.exit.create",201,{...result.value,replayed:result.replayed});
       }
       match=routeMatch(pathname,"/api/v1/customer/relations/:id/messages");

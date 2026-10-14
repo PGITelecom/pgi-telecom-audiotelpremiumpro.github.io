@@ -107,3 +107,57 @@ footer{border-top-color:rgba(237,193,133,.18);background:#17100d}
 @media(max-width:350px){.wrap{width:calc(100% - 18px)}.identity strong{font-size:13px}.ds-two-univers .panel{padding:14px}.ds-hero-photo{height:250px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 @media print{.ds-mobile-menu{display:none!important}.ds-hero-photo{display:none}.ds-two-univers .panel{background:#fff!important;color:#000!important}.ds-two-univers h2,.ds-two-columns strong{color:#000!important}}
+
+/* Repères 01, 02, 03... : intitulé visible immédiatement à droite. */
+@supports selector(article:has(> span + h3)) {
+  .ds-features .card:has(> .ds-feature-symbol + h3) {
+    display:grid;
+    grid-template-columns:45px minmax(0,1fr);
+    column-gap:12px;
+    align-content:start;
+  }
+  .ds-features .card:has(> .ds-feature-symbol + h3) > .ds-feature-symbol {
+    grid-column:1;
+    grid-row:1;
+    margin-bottom:0;
+    align-self:center;
+  }
+  .ds-features .card:has(> .ds-feature-symbol + h3) > h3 {
+    grid-column:2;
+    grid-row:1;
+    margin:0;
+    align-self:center;
+    min-width:0;
+    line-height:1.35;
+    overflow-wrap:break-word;
+  }
+  .ds-features .card:has(> .ds-feature-symbol + h3) > :not(.ds-feature-symbol):not(h3) {
+    grid-column:1 / -1;
+    min-width:0;
+  }
+  .ds-features .card:has(> .ds-feature-symbol + h3) > p:first-of-type {margin-top:12px;}
+  .ds-two-columns > div:has(> .ds-unit-icon + strong) {
+    display:grid;
+    grid-template-columns:43px minmax(0,1fr);
+    column-gap:12px;
+    align-content:start;
+  }
+  .ds-two-columns > div:has(> .ds-unit-icon + strong) > .ds-unit-icon {
+    grid-column:1;
+    grid-row:1;
+    margin-bottom:0;
+    align-self:center;
+  }
+  .ds-two-columns > div:has(> .ds-unit-icon + strong) > strong {
+    grid-column:2;
+    grid-row:1;
+    align-self:center;
+    min-width:0;
+    overflow-wrap:break-word;
+  }
+  .ds-two-columns > div:has(> .ds-unit-icon + strong) > :not(.ds-unit-icon):not(strong) {
+    grid-column:1 / -1;
+    min-width:0;
+  }
+  .ds-two-columns > div:has(> .ds-unit-icon + strong) > p {margin-top:12px;}
+}

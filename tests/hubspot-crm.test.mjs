@@ -182,10 +182,11 @@ test("tenant lifecycle sync advances CRM and closes the open deal when service b
 
 test("server maps only objective lifecycle events to HubSpot",()=>{
   const server=fs.readFileSync("backend/server.mjs","utf8");
-  for(const marker of ["billing_active","tenant_active","assignment_active","portability_complete","customer_exit"])assert.match(server,new RegExp(marker));
+  for(const marker of ["billing_active","tenant_active","assignment_active","portability_complete"])assert.match(server,new RegExp(marker));
   assert.match(server,/En attente d’ouverture/);
   assert.match(server,/Client actif/);
-  assert.match(server,/Perdu \/ non abouti/);
+  const route=server.split('if(method==="POST"&&pathname==="/api/v1/customer/relations/exits")')[1]?.split("match=routeMatch(pathname,")[0]||"";
+  assert.doesNotMatch(route,/syncHubSpotTenantLifecycle/);
 });
 
 
