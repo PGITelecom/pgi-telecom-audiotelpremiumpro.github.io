@@ -123,7 +123,7 @@ test("la préparation comptable s exécute automatiquement sans intervention hum
   assert.match(server,/accounting_expert\.auto_refresh/);
   const cron=vercel.crons.find(x=>x.path==="/api/v1/internal/accounting/refresh");
   assert.ok(cron);
-  assert.equal(cron.schedule,"17 * * * *");
+  assert.equal(cron.schedule,"0 * * * *");
 });
 
 test("les routes expert-comptable sont privées, protégées et idempotentes",()=>{
