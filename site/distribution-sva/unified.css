@@ -361,3 +361,30 @@ body.home-page.ds-unified .ds-network-showcase-links a:hover,body.home-page.ds-u
 body.ds-unified .ds-language-section,
 body.ds-unified .ds-language-links,
 body.ds-unified section:has(> .wrap > nav.ds-language-links) { display:none!important; }
+
+/* Uniform pre-launch spacing. Period badge on all Distribution editorial pages. */
+body.ds-unified .ds-period-strip{padding:16px 0 14px;background:#17100d}
+body.ds-unified .ds-period-strip>.wrap{display:flex;justify-content:center;align-items:center}
+body.ds-unified .ds-period-strip .hero-marketing-badge{
+ display:block;width:max-content;max-width:100%;margin:0!important;
+ padding:9px 17px;border:1px solid rgba(232,179,110,.32);
+ border-radius:999px;background:rgba(232,179,110,.095);color:#f4cf95;
+ text-align:center;white-space:normal;line-height:1.45;letter-spacing:.06em;
+}
+body.home-page.ds-unified .site-header+main>.hero:first-child{padding-top:18px!important}
+body.home-page.ds-unified .hero-marketing-badge{margin-top:6px!important}
+@media(max-width:760px){
+ body.ds-unified .ds-period-strip{padding:14px 0 16px}
+ body.ds-unified .ds-period-strip .hero-marketing-badge{padding:9px 12px;font-size:10px;line-height:1.5}
+ body.home-page.ds-unified .site-header+main>.hero:first-child{padding-top:16px!important}
+}
+/* Every Distribution footer ends with the copyright BELOW all editorial and legal links. */
+body.ds-unified footer>.ds-footer-rights{
+ display:block!important;box-sizing:border-box;width:min(1180px,calc(100% - 28px));
+ max-width:1180px;margin:19px auto 0!important;padding:16px 0 0!important;
+ border-top:1px solid rgba(255,255,255,.12);text-align:center;
+}
+body.ds-unified footer>.ds-footer-rights p{
+ margin:0!important;color:#af9d8b;font-size:11px;line-height:1.6;
+ letter-spacing:.01em;text-align:center;overflow-wrap:break-word;
+}
