@@ -361,3 +361,76 @@ body.home-page.ds-unified .ds-network-showcase-links a:hover,body.home-page.ds-u
 body.ds-unified .ds-language-section,
 body.ds-unified .ds-language-links,
 body.ds-unified section:has(> .wrap > nav.ds-language-links) { display:none!important; }
+
+
+/*
+ * Repères numérotés SVA / Pôle : correction du rendu réel.
+ * Le moteur de publication transforme les <div> de présentation en
+ * <a class="ds-universe-link"> cliquables. Le CSS antérieur ne visait
+ * que les <div> initiaux : le titre retombait sous 01 / 02.
+ * Cette disposition explicite couvre les deux versions et le mobile.
+ */
+body.ds-unified .ds-two-columns > :is(div, a.ds-universe-link) {
+  display:grid;
+  grid-template-columns:43px minmax(0,1fr);
+  column-gap:14px;
+  row-gap:0;
+  align-content:start;
+  align-items:center;
+}
+body.ds-unified .ds-two-columns > :is(div, a.ds-universe-link) > .ds-unit-icon {
+  grid-column:1;
+  grid-row:1;
+  margin:0;
+  align-self:center;
+}
+body.ds-unified .ds-two-columns > :is(div, a.ds-universe-link) > strong {
+  grid-column:2;
+  grid-row:1;
+  margin:0;
+  min-width:0;
+  align-self:center;
+  line-height:1.3;
+  overflow-wrap:anywhere;
+  padding-right:18px;
+}
+body.ds-unified .ds-two-columns > :is(div, a.ds-universe-link) > p {
+  grid-column:1 / -1;
+  grid-row:2;
+  min-width:0;
+  margin:14px 0 0!important;
+}
+body.ds-unified .ds-two-columns > a.ds-universe-link > .ds-universe-arrow {
+  position:absolute;
+  top:18px;
+  right:17px;
+}
+/* Cartes fonctionnelles numérotées du Pôle, y compris les cartes liées. */
+body.ds-unified .ds-features > article.card:has(> .ds-feature-symbol + h3) {
+  display:grid;
+  grid-template-columns:45px minmax(0,1fr);
+  column-gap:14px;
+  align-content:start;
+}
+body.ds-unified .ds-features > article.card:has(> .ds-feature-symbol + h3) > .ds-feature-symbol {
+  grid-column:1;
+  grid-row:1;
+  align-self:center;
+  margin:0;
+}
+body.ds-unified .ds-features > article.card:has(> .ds-feature-symbol + h3) > h3 {
+  grid-column:2;
+  grid-row:1;
+  align-self:center;
+  margin:0;
+  min-width:0;
+  line-height:1.3;
+  overflow-wrap:anywhere;
+}
+body.ds-unified .ds-features > article.card:has(> .ds-feature-symbol + h3) > :not(.ds-feature-symbol):not(h3) {
+  grid-column:1 / -1;
+  min-width:0;
+}
+body.ds-unified .ds-features > article.card:has(> .ds-feature-symbol + h3) > p:first-of-type {
+  margin-top:14px;
+}
