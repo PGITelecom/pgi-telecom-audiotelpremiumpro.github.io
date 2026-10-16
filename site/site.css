@@ -442,3 +442,15 @@ body{padding-bottom:112px}
   .steps li:has(> span:first-child + div) > div {grid-column:2;grid-row:1;min-width:0;}
   .steps li:has(> span:first-child + div) > div > h3 {margin:0 0 7px;overflow-wrap:break-word;}
 }
+
+/* Lisibilité du parcours SVA sur mobile : des cartes assez larges, jamais 4 colonnes étroites. */
+.home-page #fonctionnement .steps{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:16px}
+.home-page #fonctionnement .steps>li,.home-page #fonctionnement .steps>li>div{min-width:0}
+.home-page #fonctionnement .steps h3{font-size:17px;line-height:1.38;word-break:normal!important;overflow-wrap:normal!important;hyphens:none}
+.home-page #fonctionnement .steps p{font-size:14px;line-height:1.58;color:#d1bdaf;word-break:normal!important;overflow-wrap:normal!important;hyphens:none}
+@media(max-width:1100px){.home-page #fonctionnement .steps{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:700px){
+.home-page #fonctionnement .steps{grid-template-columns:minmax(0,1fr)!important;gap:14px;margin-top:26px}
+.home-page #fonctionnement .steps>li{padding:20px 18px}
+.home-page #fonctionnement .steps h3{font-size:18px}
+}
