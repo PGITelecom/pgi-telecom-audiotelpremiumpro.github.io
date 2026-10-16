@@ -606,7 +606,7 @@ async function init(){
   if(location.search.includes("invite=")){showActivation();return;}
   var openingState=new URLSearchParams(location.search).get("opening");
   if(openingState==="access-sent"){showLogin();setAuthMessage("Votre dossier a été créé. Un e-mail sécurisé vient de vous être envoyé pour activer votre espace client.",false);return;}
-  if(openingState==="received"){showLogin();setAuthMessage("Votre demande d’ouverture a bien été enregistrée. Consultez votre e-mail pour la suite de votre dossier.",false);return;}
+  if(openingState==="received"){showLogin();setAuthMessage("Votre demande d’ouverture a bien été enregistrée. Si vous ne recevez pas d’e-mail d’activation, contactez notre support en indiquant l’adresse e-mail utilisée pour la demande.",false);return;}
   try{var me=await window.PGICustomerApi.me();state.user=me.user;showApp();}catch(_e){showLogin();}
 }
 window.addEventListener("pageshow",function(){
