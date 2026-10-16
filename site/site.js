@@ -102,18 +102,37 @@ document.querySelectorAll("[data-order-type]").forEach(link=>link.addEventListen
 }));
 form.addEventListener("input",saveDraft);
 form.addEventListener("change",saveDraft);
-async function captureLead(i){try{const r=await fetch("/api/v1/public/hubspot/lead",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",keepalive:true,body:JSON.stringify({...i,page_uri:location.href.split("#")[0],page_name:document.title})}),data=await r.json().catch(()=>({}));if(r.ok&&data.accepted)window.PGIAnalytics?.track("generate_lead");return {ok:r.ok,data}}catch(_e){return null}}
+async function captureLead(i){
+  const controller=typeof AbortController==="function"?new AbortController():null;
+  const timeout=controller?setTimeout(()=>controller.abort(),18000):null;
+  try{
+    const r=await fetch("/api/v1/public/hubspot/lead",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",keepalive:true,...(controller?{signal:controller.signal}:{}),body:JSON.stringify({...i,page_uri:location.href.split("#")[0],page_name:document.title})});
+    const data=await r.json().catch(()=>({}));
+    if(r.ok&&data.accepted===true)window.PGIAnalytics?.track("generate_lead");
+    return {ok:r.ok,data};
+  }catch(_e){return null}
+  finally{if(timeout)clearTimeout(timeout)}
+}
 form.addEventListener("submit",async e=>{
   e.preventDefault();
   const type=selectedType();
   if(!["individual","business"].includes(type))return;
   const intent={...snapshot(),source:"public_marketing_site"};
   if(intent.processing_consent!==true)return;
-  try{sessionStorage.setItem(KEY,JSON.stringify(intent));sessionStorage.removeItem(DRAFT_KEY)}
-  catch(_e){const s=document.getElementById("order-status");if(s)s.hidden=false;return}
-  const b=form.querySelector('button[type="submit"]');if(b){b.disabled=true;b.setAttribute("aria-busy","true");b.innerHTML="Création de votre dossier…"}
-  const result=await Promise.race([captureLead(intent),new Promise(resolve=>setTimeout(()=>resolve(null),5000))]);
-  const sent=result&&result.ok&&result.data&&result.data.access_email_sent===true;
+  const status=document.getElementById("order-status");
+  if(status){status.hidden=true;status.textContent=""}
+  try{sessionStorage.setItem(KEY,JSON.stringify(intent))}
+  catch(_e){if(status){status.hidden=false;status.textContent="Impossible de conserver votre demande sur cet appareil. Autorisez le stockage de session puis réessayez."}return}
+  const b=form.querySelector('button[type="submit"]'),original=b?b.innerHTML:"";
+  if(b){b.disabled=true;b.setAttribute("aria-busy","true");b.textContent="Création de votre dossier…"}
+  const result=await captureLead(intent);
+  if(!result||!result.ok||result.data?.accepted!==true){
+    if(status){status.hidden=false;status.textContent="L’enregistrement de votre demande n’a pas pu être confirmé. Vos informations sont conservées dans ce formulaire. Vous pouvez réessayer sans tout ressaisir. Si vous avez déjà reçu un courriel d’accès, utilisez directement son lien sécurisé."}
+    if(b){b.disabled=false;b.removeAttribute("aria-busy");b.innerHTML=original}
+    return;
+  }
+  try{sessionStorage.removeItem(DRAFT_KEY)}catch(_e){}
+  const sent=result.data.access_email_sent===true;
   location.href="../client.html?opening="+(sent?"access-sent":"received");
 });
 syncType();
