@@ -361,3 +361,18 @@ body.home-page.ds-unified .ds-network-showcase-links a:hover,body.home-page.ds-u
 body.ds-unified .ds-language-section,
 body.ds-unified .ds-language-links,
 body.ds-unified section:has(> .wrap > nav.ds-language-links) { display:none!important; }
+
+/* Fiches editoriales du Pole : rythme mobile aligne sur le SVA.
+   Ne modifie ni l'accueil, ni la barre fixe, ni le parcours commercial. */
+@media(max-width:760px){
+ body.ds-unified:not(.home-page) main .hero{padding:26px 0 16px}
+ body.ds-unified:not(.home-page) main .hero .lead,
+ body.ds-unified:not(.home-page) main .hero .hero-lead{font-size:15px;line-height:1.55;margin:12px 0 0}
+ body.ds-unified:not(.home-page) main .hero>.wrap>.notice{max-width:none;margin:15px 0 0;padding:12px 14px;font-size:13px;line-height:1.55;border-radius:13px}
+ body.ds-unified:not(.home-page) main .section-space{padding:20px 0 28px}
+ body.ds-unified:not(.home-page) main .section-space>.wrap>h2{font-size:clamp(23px,5.8vw,27px);line-height:1.22;letter-spacing:-.025em;margin:0 0 13px}
+ body.ds-unified:not(.home-page) main .section-space .cards{margin:12px 0 16px;gap:11px}
+ body.ds-unified:not(.home-page) main .section-space .cards>.card{padding:15px 16px;border-radius:14px}
+ body.ds-unified:not(.home-page) main .section-space .cards>.card>h2{font-size:19px;line-height:1.3;letter-spacing:-.018em;margin:0 0 7px}
+ body.ds-unified:not(.home-page) main .section-space .cards>.card>p{font-size:13.5px;line-height:1.55;margin:0}
+}
