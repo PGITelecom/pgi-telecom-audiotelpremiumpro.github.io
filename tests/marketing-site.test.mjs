@@ -384,8 +384,9 @@ test("existing-operator marketing section preserves its layout and routes to rea
   assert.match(section,/class="wrap home-chapter-inner"/);
   assert.match(section,/class="operator-gains"/);
   assert.equal((section.match(/<li>/g)||[]).length,6);
-  assert.match(section,/Visez des reversements plus généreux sur vos appels/);
-  assert.match(switchOperator,/Des reversements plus généreux sur vos appels/);
+  assert.match(section,/Mêmes appels, beaucoup plus de revenus possibles chaque mois, sans travailler plus/);
+  assert.match(switchOperator,/Les mêmes appels pourraient vous rapporter beaucoup plus chaque mois/);
+  assert.match(switchOperator,/Si les conditions proposées par Audiotel Premium Pro sont plus avantageuses/);
   assert.match(section,/href="\/changer-operateur-audiotel\//);
   assert.match(css,/#changer-operateur \.operator-gains/);
   assert.match(css,/@media\(max-width:680px\)\{#changer-operateur \.operator-gains/);
