@@ -377,6 +377,24 @@ test("hero portability CTA uses the same primary style as the revenue CTA",()=>{
   assert.match(html,/class="btn hero-portability-cta" href="\/portabilite-numero-sva\/">Déjà un numéro surtaxé \? Demander ma portabilité<\/a>/);
 });
 
+test("existing-operator marketing section preserves its layout and routes to real journeys",()=>{
+  assert.match(html,/id="changer-operateur"/);
+  assert.match(html,/Votre numéro a déjà de la valeur\. Vos appels pourraient vous rapporter davantage en passant chez Audiotel Premium Pro\./);
+  const section=html.split('id="changer-operateur"')[1].split("</section>")[0];
+  assert.match(section,/class="wrap home-chapter-inner"/);
+  assert.match(section,/class="operator-gains"/);
+  assert.equal((section.match(/<li>/g)||[]).length,6);
+  assert.match(section,/href="\/changer-operateur-audiotel\//);
+  assert.match(css,/#changer-operateur \.operator-gains/);
+  assert.match(css,/@media\(max-width:680px\)\{#changer-operateur \.operator-gains/);
+  assert.match(switchOperator,/Portabilité sans frais PGI/);
+  assert.match(switchOperator,/Un tarif simple/);
+  assert.match(switchOperator,/Sans engagement de durée/);
+  assert.match(switchOperator,/href="\/comparateur-audiotel\//);
+  assert.match(switchOperator,/href="\/demande-ouverture\/\?type=portabilite"/);
+  assert.match(switchOperator,/sous réserve d’éligibilité/);
+});
+
 test("homepage modules are compact and each carries a clear marketing promise",()=>{
   assert.match(html,/class="home-page"/);
   assert.match(html,/CALCULATEUR DE REVENU POTENTIEL/);
