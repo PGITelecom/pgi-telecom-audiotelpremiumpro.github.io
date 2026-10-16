@@ -384,6 +384,8 @@ test("existing-operator marketing section preserves its layout and routes to rea
   assert.match(section,/class="wrap home-chapter-inner"/);
   assert.match(section,/class="operator-gains"/);
   assert.equal((section.match(/<li>/g)||[]).length,6);
+  assert.match(section,/Visez des reversements plus généreux sur vos appels/);
+  assert.match(switchOperator,/Des reversements plus généreux sur vos appels/);
   assert.match(section,/href="\/changer-operateur-audiotel\//);
   assert.match(css,/#changer-operateur \.operator-gains/);
   assert.match(css,/@media\(max-width:680px\)\{#changer-operateur \.operator-gains/);
