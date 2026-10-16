@@ -928,12 +928,13 @@ export function createBackend(options={}){
         const requestedRange=rangeParams(url);
         const metricRanges=await store.effectiveMetricRanges(requestedRange.from,requestedRange.to,context.tenant_id);
         const canFinance=hasCustomerPermission(context,"finance.read");
-        const [rawData,billing]=await Promise.all([
+        const [rawData,billing,withdrawalReady]=await Promise.all([
           store.customerPortalOverview(context.tenant_id,requestedRange.from,requestedRange.to,metricRanges),
-          canFinance?store.customerBillingPreparation(context.tenant_id):Promise.resolve(null)
+          canFinance?store.customerBillingPreparation(context.tenant_id):Promise.resolve(null),
+          canFinance&&config.onlineWithdrawalReady===true&&typeof store.customerWithdrawalFeatureReady==="function"?Promise.resolve().then(()=>store.customerWithdrawalFeatureReady()).catch(()=>false):Promise.resolve(false)
         ]);
         const data=scopeCustomerPortalData(context,rawData);
-        return done(res,metrics,started,"customer.portal",200,{user:publicCustomerActor(customerActor,context),...data,metric_resets:Object.fromEntries(Object.entries(metricRanges).map(([k,v])=>[k,v.baseline])),billing_offer:billing?.offer||null,billing_summary:billing?{subscription:billing.subscription,premium_call_access:billing.premium_call_access,premium_routing_access:billing.premium_routing_access,billing_currency:billing.billing_currency,pricing_state:billing.pricing_state,reference_offer:billing.reference_offer,checkout_prefill:billing.checkout_prefill,return_paths:billing.return_paths}:{restricted:true},billing_provider:billing?await billingProviderStatus(config):{connection_state:"restricted",checkout_available:false,customer_portal_available:false},server_time:new Date().toISOString()});
+        return done(res,metrics,started,"customer.portal",200,{user:publicCustomerActor(customerActor,context),...data,metric_resets:Object.fromEntries(Object.entries(metricRanges).map(([k,v])=>[k,v.baseline])),billing_offer:billing?.offer||null,commercial_legal_ready:config.legalOperatorConfigured===true,b2c_commercial_ready:config.b2cCommercialReady===true&&withdrawalReady===true,billing_summary:billing?{subscription:billing.subscription,premium_call_access:billing.premium_call_access,premium_routing_access:billing.premium_routing_access,billing_currency:billing.billing_currency,pricing_state:billing.pricing_state,reference_offer:billing.reference_offer,checkout_prefill:billing.checkout_prefill,return_paths:billing.return_paths}:{restricted:true},billing_provider:billing?await billingProviderStatus(config):{connection_state:"restricted",checkout_available:false,customer_portal_available:false},server_time:new Date().toISOString()});
       }
       if(method==="GET"&&pathname==="/api/v1/customer/team"){
         requireActor(customerActor);

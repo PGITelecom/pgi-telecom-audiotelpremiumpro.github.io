@@ -194,9 +194,17 @@ test("GA4 measurement model groups content, classifies AI referrals and tracks t
   assert.match(tracking,/ignore_referrer:true/);
   for(const event of ["select_content","order_form_start","order_form_submit","order_form_error","order_form_abandon","registration_view","email_verification_required","page_performance"])assert.ok(tracking.includes(event),event+" missing");
   for(const metric of ["lcp_ms","cls_milli","ttfb_ms","interaction_latency_p98_ms"])assert.ok(tracking.includes(metric),metric+" missing");
-  assert.match(js,/if\(r\.ok&&data\.accepted\)window\.PGIAnalytics\?\.track\("generate_lead"\)/);
+  assert.match(js,/if\(r\.ok&&data\.accepted===true\)window\.PGIAnalytics\?\.track\("generate_lead"\)/);
   assert.doesNotMatch(tracking,/traffic_origin\s*:\s*document\.referrer/);
   assert.doesNotMatch(tracking,/track\([^\n]*(first_name|last_name|company_name|phone)/i);
+});
+
+test("opening never claims success without a confirmed server response",()=>{
+  assert.match(js,/result\.data\?\.accepted!==true/);
+  assert.match(js,/const result=await captureLead\(intent\)/);
+  assert.doesNotMatch(js,/Promise\.race\(\[captureLead\(intent\)/);
+  assert.match(js,/b\.disabled=false/);
+  assert.match(js,/sessionStorage\.removeItem\(DRAFT_KEY\)/);
 });
 
 test("dedicated opening page preselects profiles and preserves an unfinished session draft",()=>{
