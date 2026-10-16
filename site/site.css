@@ -214,6 +214,14 @@ body:not(.home-page) .hero-marketing-badge{border-radius:0}
 .home-chapter-inner>div>p{max-width:760px;margin:12px 0 0;color:#bda99b;font-size:13px;line-height:1.62}
 .home-chapter-inner>a{display:inline-flex;align-items:center;gap:8px;padding:11px 15px;border:1px solid rgba(232,179,110,.2);border-radius:12px;color:#e7c79d;font-size:12px;font-weight:850}
 .home-chapter-inner>a:hover{background:rgba(232,179,110,.08);border-color:rgba(232,179,110,.36)}
+
+/* Arguments de changement d'opérateur : ajout local, charte et grille existantes préservées. */
+#changer-operateur .operator-gains{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 14px;list-style:none;padding:0;margin:17px 0 0}
+#changer-operateur .operator-gains li{position:relative;padding:9px 10px 9px 27px;background:rgba(255,255,255,.035);border:1px solid rgba(232,179,110,.14);border-radius:10px;color:#f3e2d5;font-size:12px;line-height:1.4}
+#changer-operateur .operator-gains li::before{content:"✓";position:absolute;left:10px;top:9px;color:var(--gold2);font-weight:850}
+@media(max-width:680px){#changer-operateur .operator-gains{grid-template-columns:1fr;gap:7px}}
+.operator-action-links{margin-top:25px;flex-wrap:wrap}
+
 .home-cb-fee{font-size:11px!important;color:#a78f7f!important}
 .home-cb-fee strong{color:#d8b486}
 .home-page .proof-strip{margin-top:0}
