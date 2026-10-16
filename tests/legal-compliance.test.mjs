@@ -57,6 +57,17 @@ test("registration requires current legal documents and keeps privacy acknowledg
   assert.match(server,/customer\/auth\/register/);
 });
 
+test("portal and billing UI share the same legal and consumer readiness gates",()=>{
+  const server=read("backend/server.mjs"),billing=read("assets/client-billing.js"),client=read("assets/client-portal.js");
+  assert.match(server,/commercial_legal_ready:config\.legalOperatorConfigured===true/);
+  assert.match(server,/b2c_commercial_ready:config\.b2cCommercialReady===true&&withdrawalReady===true/);
+  assert.match(billing,/start\.disabled=Boolean\(blocked\)/);
+  assert.match(billing,/legalBlocked\|\|b2cBlocked\|\|!provider\.checkout_available/);
+  assert.match(billing,/data\.b2c_commercial_ready!==true/);
+  assert.match(client,/Si vous ne recevez pas d’e-mail d’activation/);
+  assert.match(server,/B2C_COMMERCIAL_NOT_READY/);
+});
+
 test("checkout requires terms and explicit immediate performance request",()=>{
   const billing=read("assets/client-billing.js"),server=read("backend/server.mjs");
   assert.match(billing,/client-billing-immediate/);
