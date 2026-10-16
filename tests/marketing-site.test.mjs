@@ -384,11 +384,11 @@ test("existing-operator marketing section preserves its layout and routes to rea
   assert.match(section,/class="wrap home-chapter-inner"/);
   assert.match(section,/class="operator-gains"/);
   assert.equal((section.match(/<li>/g)||[]).length,6);
-  assert.match(section,/Changez d’opérateur, pas vos habitudes/);
-  assert.match(section,/les mêmes appels pourraient vous rapporter beaucoup plus chaque mois/);
-  assert.match(switchOperator,/Changez d’opérateur, pas vos habitudes/);
-  assert.match(switchOperator,/sans effectuer un seul appel supplémentaire/);
-  assert.match(switchOperator,/n’est pas garanti/);
+  assert.match(section,/1 000 € de plus par mois, voire davantage, sans un seul appel supplémentaire/);
+  assert.match(switchOperator,/1 000 € de plus par mois, voire davantage/);
+  assert.match(switchOperator,/10 000 minutes d’appels éligibles par mois/);
+  assert.match(switchOperator,/0,10 € de différence favorable par minute = 1 000 €/);
+  assert.match(switchOperator,/pas des gains ni des taux promis par PGI Telecom/);
   assert.match(section,/href="\/changer-operateur-audiotel\//);
   assert.match(css,/#changer-operateur \.operator-gains/);
   assert.match(css,/@media\(max-width:680px\)\{#changer-operateur \.operator-gains/);
