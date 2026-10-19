@@ -377,6 +377,34 @@ test("hero portability CTA uses the same primary style as the revenue CTA",()=>{
   assert.match(html,/class="btn hero-portability-cta" href="\/portabilite-numero-sva\/">Déjà un numéro surtaxé \? Demander ma portabilité<\/a>/);
 });
 
+test("existing-operator marketing section preserves six benefits and highlights only the example amount in green",()=>{
+  assert.match(html,/id="changer-operateur"/);
+  assert.match(html,/Votre numéro a déjà de la valeur\. Vos appels pourraient vous rapporter davantage en passant chez Audiotel Premium Pro\./);
+  const section=html.split('id="changer-operateur"')[1].split("</section>")[0];
+  assert.match(section,/class="wrap home-chapter-inner"/);
+  assert.match(section,/class="operator-gains"/);
+  assert.equal((section.match(/<li>/g)||[]).length,6);
+  assert.match(section,/Avec les mêmes appels chaque jour, sans travailler davantage !/);
+  assert.match(section,/En passant chez <b>Audiotel Premium Pro<\/b>/);
+  assert.match(section,/class="operator-gain-amount">\+ 1 000 €<\/b>/);
+  assert.match(section,/de revenus supplémentaires par mois, et davantage selon votre activité/);
+  assert.match(section,/Exemple de gain potentiel, non garanti/);
+  assert.match(section,/href="\/changer-operateur-audiotel\//);
+  assert.match(css,/#changer-operateur \.operator-gains/);
+  assert.match(css,/#36c878!important/);
+  assert.match(css,/\.operator-gain-focus p\{[^}]*color:#fff!important/);
+  assert.match(css,/@media\(max-width:680px\)\{#changer-operateur \.operator-gains/);
+  assert.match(switchOperator,/Avec les mêmes appels chaque jour, sans travailler davantage !/);
+  assert.match(switchOperator,/class="operator-gain-amount">\+ 1 000 €<\/b>/);
+  assert.doesNotMatch(switchOperator,/10 000 minutes d’appels/);
+  assert.match(switchOperator,/Portabilité sans frais PGI/);
+  assert.match(switchOperator,/Un tarif simple/);
+  assert.match(switchOperator,/Sans engagement de durée/);
+  assert.match(switchOperator,/href="\/comparateur-audiotel\//);
+  assert.match(switchOperator,/href="\/demande-ouverture\/\?type=portabilite"/);
+  assert.match(switchOperator,/sous réserve d’éligibilité/);
+});
+
 test("homepage modules are compact and each carries a clear marketing promise",()=>{
   assert.match(html,/class="home-page"/);
   assert.match(html,/CALCULATEUR DE REVENU POTENTIEL/);
@@ -780,7 +808,7 @@ test("high-intent landing pages answer distinct conversion questions",()=>{
 
 test("competitor customers get an explicit portability acquisition journey",()=>{
   assert.match(html,/JE SUIS DÉJÀ CHEZ UN AUTRE OPÉRATEUR/);
-  assert.match(html,/Gardez votre numéro\. Changez la solution autour\./);
+  assert.match(html,/Votre numéro a déjà de la valeur\. Vos appels pourraient vous rapporter davantage en passant chez Audiotel Premium Pro\./);
   assert.match(html,/Audiotel Premium Pro ne facture pas de frais de portabilité entrante au titre de la plateforme/);
   assert.match(switchOperator,/DÉJÀ CHEZ UN AUTRE OPÉRATEUR AUDIOTEL/);
   assert.match(switchOperator,/Portabilité entrante Audiotel Premium Pro : 0€ au titre de la plateforme/);

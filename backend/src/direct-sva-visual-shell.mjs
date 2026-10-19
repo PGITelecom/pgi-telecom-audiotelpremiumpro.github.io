@@ -112,6 +112,33 @@ function stretchExistingCardLinks(html){
   return '<article class="card'+classes+' ds-card-clickable">'+inner+'</article>';
  });
 }
+function ensureDistributionFooterCopyrightLast(html){
+ return html.replace(/<footer\b[^>]*>[\s\S]*?<\/footer>/i,footer=>{
+  // Place the existing legal notice AFTER both normal footer links and the legal nav.
+  const notice=/<span>\s*©\s*<span data-ds-year>[^<]*<\/span>[^<]*<\/span>/i.exec(footer);
+  if(!notice)return footer;
+  const withoutNotice=footer.replace(notice[0],"");
+  return withoutNotice.replace(/<\/footer>$/i,
+   '<div class="wrap ds-footer-rights"><p>'+notice[0]+'</p></div></footer>');
+ });
+}
+function ensureDistributionPeriodSpacing(html,lang,pathname){
+ // The homepage already has its own promotional period badge in the hero.
+ // Interior pages receive the same badge below the common search/header.
+ if(pathname==="/distribution-sva/"||html.includes("ds-period-strip"))return html;
+ const fallbacks={
+  fr:"EN OCTOBRE 2026 ... PÔLE TÉLÉCOM &amp; RÉSEAU EN PRÉPARATION",
+  en:"OCTOBER 2026 ... TELECOM &amp; NETWORK DIVISION IN PREPARATION",
+  es:"OCTUBRE 2026 ... ÁREA DE TELECOMUNICACIONES Y RED EN PREPARACIÓN",
+  pt:"OUTUBRO DE 2026 ... POLO DE TELECOMUNICAÇÕES E REDE EM PREPARAÇÃO",
+  de:"OKTOBER 2026 ... TELEKOMMUNIKATIONS- UND NETZBEREICH IN VORBEREITUNG",
+  it:"OTTOBRE 2026 ... POLO TELECOMUNICAZIONI E RETE IN PREPARAZIONE"
+ };
+ const strip='<div class="ds-period-strip"><div class="wrap">'+
+  '<p class="hero-marketing-badge" data-ds-current-period>'+fallbacks[lang]+'</p>'+
+  '</div></div>';
+ return html.replace("</header>","</header>\n"+strip);
+}
 export function renderDirectSvaVisualShell(source){
  if(typeof source!=="string"||!source.includes("</head>")||!source.includes("</main>"))return source;
  const lang=(/<html\s+lang="(fr|en|es|pt|de|it)"/i.exec(source)?.[1]||"fr").toLowerCase();
@@ -128,5 +155,7 @@ export function renderDirectSvaVisualShell(source){
  html=renderDistributionContextLinks(html,pathname,lang);
  html=stretchExistingCardLinks(html);
  html=html.replace("</main>",sharedBottomBar(lang,pathname)+"</main>");
+ html=ensureDistributionPeriodSpacing(html,lang,pathname);
+ html=ensureDistributionFooterCopyrightLast(html);
  return html;
 }
