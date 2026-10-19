@@ -52,7 +52,10 @@ export function createVercelLazyServer({staticDir,initializeBackend}){
     try{
       const app=await getBackend();
       app.server.emit("request",req,res);
-    }catch{
+    }catch(err){
+      // Record only the failure code, never connection strings or DB secrets.
+      process.stderr.write(JSON.stringify({level:"error",event:"deferred_backend_bootstrap_failed",
+        code:String(err?.code||err?.name||"ERROR").replace(/[^A-Za-z0-9_]/g,"").slice(0,40)})+"\n");
       if(res.headersSent){res.destroy();return;}
       securityHeaders(res,randomUUID());
       res.writeHead(503,{"Content-Type":"application/json; charset=utf-8",
