@@ -34,12 +34,18 @@ test("any missing file, altered checksum, duplicate or unrecognized version fail
  assert.equal(auditPgiReleaseSchema(manifest,manifest.map((x,i)=>i===3?{...x,checksum:"0".repeat(64)}:x)).ready,false);
  assert.equal(auditPgiReleaseSchema(manifest,[...manifest,{version:"086_unapproved",checksum:"0".repeat(64)}]).ready,false);
 });
-test("Vercel startup checks schema before starting web server, without running migration",()=>{
+test("Vercel verifies schema before opening DB-backed routes, without waking Neon for static files",()=>{
  const start=fs.readFileSync("scripts/start-vercel.sh","utf8");
+ const entry=fs.readFileSync("backend/vercel-entry.mjs","utf8");
+ const router=fs.readFileSync("backend/src/vercel-lazy-server.mjs","utf8");
  const docker=fs.readFileSync("Dockerfile.vercel","utf8");
- const before=start.indexOf("node scripts/verify-deployment-schema.mjs");
- const server=start.indexOf("exec node backend/server.mjs");
- assert.ok(before>=0&&server>before);
+ assert.match(start,/exec node backend\/vercel-entry\.mjs/);
+ assert.doesNotMatch(start,/^node scripts\/verify-deployment-schema\.mjs/m);
+ const before=entry.indexOf('execFileAsync(process.execPath,["scripts/verify-deployment-schema.mjs"]');
+ const backend=entry.indexOf('await import("./server.mjs")');
+ assert.ok(before>=0&&backend>before);
+ assert.match(entry,/return createDefaultBackend\(\)/);
+ assert.match(router,/requiresDatabaseBackedSiteState/);
  assert.doesNotMatch(start,/node backend\/migrate\.mjs/);
  assert.match(docker,/scripts\/verify-deployment-schema\.mjs/);
 });
