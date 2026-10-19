@@ -35,6 +35,7 @@ esac
 
 # Neon schema evolution is performed outside the generic cold-start migration runner.
 # Application-owned repair guards may self-heal narrowly scoped additive schema.
-node scripts/verify-deployment-schema.mjs
+# PostgreSQL release schema is still checked before the first DB-backed request.
+# Static pages and assets no longer open a Neon connection during cold start.
 node scripts/build-static.mjs
-exec node backend/server.mjs
+exec node backend/vercel-entry.mjs
