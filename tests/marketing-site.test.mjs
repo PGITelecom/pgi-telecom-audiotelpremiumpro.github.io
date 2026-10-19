@@ -808,7 +808,7 @@ test("high-intent landing pages answer distinct conversion questions",()=>{
 
 test("competitor customers get an explicit portability acquisition journey",()=>{
   assert.match(html,/JE SUIS DÉJÀ CHEZ UN AUTRE OPÉRATEUR/);
-  assert.match(html,/Gardez votre numéro\. Changez la solution autour\./);
+  assert.match(html,/Votre numéro a déjà de la valeur\. Vos appels pourraient vous rapporter davantage en passant chez Audiotel Premium Pro\./);
   assert.match(html,/Audiotel Premium Pro ne facture pas de frais de portabilité entrante au titre de la plateforme/);
   assert.match(switchOperator,/DÉJÀ CHEZ UN AUTRE OPÉRATEUR AUDIOTEL/);
   assert.match(switchOperator,/Portabilité entrante Audiotel Premium Pro : 0€ au titre de la plateforme/);
