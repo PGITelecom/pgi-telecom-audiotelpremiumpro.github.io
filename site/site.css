@@ -524,3 +524,13 @@ body{padding-bottom:112px}
   .home-page .steps-section .steps h3 {font-size:17px;}
   .home-page .steps-section .steps p {font-size:13.5px;}
 }
+
+/* Comparateur SVA : chiffres de gain verts et soulignés, libellé blanc. */
+.home-page .hero-savings-results .main span{color:#fff!important}
+.home-page .hero-savings-results .main strong{color:#36c878!important;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:5px}
+/* Visuel principal SVA mobile : légende contrastée et placée en bas, sans couvrir le centre. */
+@media(max-width:680px){
+ .home-page .hero-visual-caption{left:9px;right:9px;bottom:9px;padding:11px 12px;gap:5px;background:rgba(13,11,10,.9);border-color:rgba(255,255,255,.23)}
+ .home-page .hero-visual-caption span{font-size:9px;letter-spacing:.07em;line-height:1.35}
+ .home-page .hero-visual-caption strong{font-size:13px;line-height:1.45;font-weight:700;color:#fff!important;text-shadow:0 1px 2px rgba(0,0,0,.85)}
+}
