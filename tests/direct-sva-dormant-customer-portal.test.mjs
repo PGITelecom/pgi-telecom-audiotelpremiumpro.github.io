@@ -97,6 +97,6 @@ test("the Distribution client API keeps individual enrollment and commercial-rel
  assert.match(src,/enrollment\.dashboard_enabled!==true/);
  assert.match(src,/enrollment\.client_contract_accepted!==true/);
  assert.match(src,/business_unit='direct_sva'/);
- assert.match(server,/pathname==="/api\/v1\/customer\/direct-sva\/overview"/);
+  assert.ok(server.includes('pathname==="/api/v1/customer/direct-sva/overview"'));
  assert.match(server,/requireCustomerPermission\(context,"overview.read"\)/);
 });
