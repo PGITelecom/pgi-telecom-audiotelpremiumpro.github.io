@@ -1,6 +1,7 @@
 import http from "node:http";
 import {randomUUID} from "node:crypto";
 import {createStaticSiteHandler} from "./static-site.mjs";
+import {isDirectSvaPrivatePortalPath} from "./direct-sva-private-portal.mjs";
 import {securityHeaders} from "./http.mjs";
 
 // Ordinary public files can bypass Neon. All Distribution pages AND
@@ -33,6 +34,13 @@ export function createVercelLazyServer({staticDir,initializeBackend}){
     let pathname;
     try{pathname=new URL(req.url||"/","http://localhost").pathname;}
     catch{res.writeHead(400,{"Cache-Control":"no-store"});res.end();return;}
+    // Return 404 without opening Neon, regardless of Pôle informational SEO status.
+    if(isDirectSvaPrivatePortalPath(pathname)){
+      securityHeaders(res,randomUUID());
+      res.writeHead(404,{"Cache-Control":"no-store",
+        "X-Robots-Tag":"noindex, nofollow, noarchive"});
+      res.end();return;
+    }
     const publicRead=method==="GET"||method==="HEAD";
     if(publicRead&&!requiresDatabaseBackedSiteState(pathname)&&
       !pathname.startsWith("/api/")&&pathname!=="/metrics"){
