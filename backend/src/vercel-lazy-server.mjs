@@ -3,12 +3,14 @@ import {randomUUID} from "node:crypto";
 import {createStaticSiteHandler} from "./static-site.mjs";
 import {securityHeaders} from "./http.mjs";
 
-// Static requests have no reason to wake Neon. The homepage, robots and the
-// Distribution publication switch deliberately remain on the full DB-backed
-// backend so commercial/SEO visibility cannot become stale.
+// Ordinary public files can bypass Neon. All Distribution pages AND
+// /site/distribution-sva/* assets require the same DB-backed publication gate.
+// Otherwise the static-only handler has no visibility resolver and responds
+// 503 to the two homepage WebP photos, stylesheets, and scripts.
 export function requiresDatabaseBackedSiteState(pathname){
   return pathname==="/"||pathname==="/robots.txt"||
-    pathname==="/distribution-sva"||pathname.startsWith("/distribution-sva/");
+    pathname==="/distribution-sva"||pathname.startsWith("/distribution-sva/")||
+    pathname==="/site/distribution-sva"||pathname.startsWith("/site/distribution-sva/");
 }
 
 export function createVercelLazyServer({staticDir,initializeBackend}){
