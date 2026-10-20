@@ -43,8 +43,8 @@ test("Distribution descriptions across French and five localized editorial paths
 
 test("the flagship Distribution landing makes only verifiable, pre-launch claims",()=>{
  const home=read("site/distribution-sva/index.html");
- assert.match(home,/une organisation dédiée aux services téléphoniques à valeur ajoutée/);
- assert.match(home,/des responsabilités clairement définies/);
+ assert.match(home,/Pôle Telecom &amp; Réseau prépare un cadre de distribution SVA/);
+ assert.match(home,/Responsabilités identifiées/);
  assert.match(home,/distinguer les sommes estimées, confirmées et réellement exigibles/);
  assert.match(home,/Aucune attribution de numéro ni aucun reversement n'est présenté comme acquis/);
  assert.match(home,/Les deux offres ont des périmètres différents/);
@@ -61,9 +61,9 @@ test("the flagship Distribution landing makes only verifiable, pre-launch claims
 
 test("critical supporting pages explain rights, eligibility, traces and actual settlement conditions",()=>{
  const pages={
-  "solutions/":/mise en service restera conditionnée aux accords opérateurs/,
-  "business-live/":/les montants estimés et les relevés confirmés/,
-  "transition/":/Chaque migration réelle restera soumise aux accords nécessaires/,
+  "solutions/":/distribution directe n.est pas commercialisée à ce stade/,
+  "business-live/":/son éventuelle extension à la distribution directe dépend encore/,
+  "transition/":/Aucune migration Distribution n.est actuellement proposée/,
   "conformite/":/Aucun service ni versement direct ne sera activé avant les contrôles requis/,
   "numerotation/":/sans annoncer de disponibilité ni de transfert avant confirmation/,
   "architecture-reseau/":/des contrôles à valider avant toute mise en exploitation/,

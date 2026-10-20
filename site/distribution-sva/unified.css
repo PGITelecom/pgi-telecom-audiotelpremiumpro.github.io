@@ -512,3 +512,58 @@ body.ds-unified footer>.ds-footer-rights p{
  body.ds-unified:not(.home-page) main .section-space .cards>.card>h2{font-size:19px;line-height:1.3;letter-spacing:-.018em;margin:0 0 7px}
  body.ds-unified:not(.home-page) main .section-space .cards>.card>p{font-size:13.5px;line-height:1.55;margin:0}
 }
+
+/* Positionnement professionnel du Pôle : contenu réel, aucune promesse de service activé. */
+body.ds-unified .ds-customer-value,body.ds-unified .ds-trust-foundation{background:linear-gradient(160deg,rgba(47,32,24,.55),rgba(23,16,13,.9))}
+body.ds-unified .ds-customer-value,body.ds-unified .ds-customer-profiles,body.ds-unified .ds-trust-foundation,body.ds-unified .ds-project-preparation{padding:clamp(38px,5.5vw,68px) 0}
+body.ds-unified .ds-customer-value h2,body.ds-unified .ds-customer-profiles h2,body.ds-unified .ds-trust-foundation h2,body.ds-unified .ds-project-preparation h2{max-width:790px;margin:10px 0 16px;line-height:1.16;font-size:clamp(26px,3vw,38px);text-wrap:balance}
+body.ds-unified .ds-value-intro,body.ds-unified .ds-trust-layout>div>p,body.ds-unified .ds-project-layout>div>p{max-width:790px;color:#d9c7b7;font-size:clamp(14px,1.5vw,16px);line-height:1.7}
+body.ds-unified .ds-value-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-top:25px}
+body.ds-unified .ds-value-grid article{display:flex;flex-direction:column;min-width:0;padding:23px 19px;background:#2a1e18;border:1px solid rgba(232,179,110,.19);border-radius:17px}
+body.ds-unified .ds-value-number{font-size:11px;color:#f4cf95;font-weight:800;letter-spacing:.1em}
+body.ds-unified .ds-value-grid h3{font-size:18px;line-height:1.3;margin:12px 0 9px}
+body.ds-unified .ds-value-grid p{font-size:13px;line-height:1.63;color:#e2d0c2;margin:0 0 18px}
+body.ds-unified .ds-value-grid a{margin-top:auto;color:#f4cf95;font-size:12px;font-weight:650;text-decoration:underline;text-underline-offset:3px}
+body.ds-unified .ds-profiles-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin:23px 0 17px}
+body.ds-unified .ds-profiles-grid article{padding:23px;border-radius:17px;background:linear-gradient(145deg,#f8eee5,#eaddcc);color:#3d2a1c;border:1px solid rgba(232,179,110,.3)}
+body.ds-unified .ds-profiles-grid h3{color:#3d2a1c!important;margin:0 0 10px;font-size:18px;line-height:1.3}
+body.ds-unified .ds-profiles-grid p{font-size:13px;color:#604a3b;margin:0 0 14px;line-height:1.63}
+body.ds-unified .ds-profiles-grid a{color:#633b1f;text-decoration:underline;text-underline-offset:3px;font-size:13px;font-weight:750}
+body.ds-unified .ds-profiles-hint,body.ds-unified .ds-project-disclaimer,body.ds-unified .ds-section-note{font-size:12px;line-height:1.6;color:#dfcbbb}
+body.ds-unified .ds-profiles-hint a,body.ds-unified .ds-section-note a,body.ds-unified .ds-project-current a{color:#f4cf95;text-decoration:underline}
+body.ds-unified .ds-trust-layout,body.ds-unified .ds-project-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(18px,4vw,50px);align-items:start}
+body.ds-unified .ds-trust-status{display:grid;gap:12px}
+body.ds-unified .ds-trust-status>div{display:grid;gap:6px;padding:16px 20px;border-left:3px solid #e8b36e;border-radius:10px;background:rgba(255,255,255,.045)}
+body.ds-unified .ds-trust-status strong{color:#fff7f0;font-size:15px}
+body.ds-unified .ds-trust-status span{color:#dac7b7;font-size:13px;line-height:1.55}
+body.ds-unified .ds-trust-status a,body.ds-unified .ds-trust-link{color:#f4cf95;font-size:13px;text-decoration:underline;text-underline-offset:3px}
+body.ds-unified .ds-project-preparation{background:radial-gradient(ellipse at 85% 18%,rgba(232,179,110,.09),transparent 52%)}
+body.ds-unified .ds-project-main-link{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:11px 16px;border-radius:11px;margin:10px 0 14px;background:#ead6bb;color:#372316!important;font-size:14px;font-weight:800;text-decoration:none}
+body.ds-unified .ds-project-checklist{padding:23px 24px;background:rgba(255,255,255,.045);border:1px solid rgba(232,179,110,.24);border-radius:19px}
+body.ds-unified .ds-project-checklist h3{margin:0 0 15px;font-size:19px}
+body.ds-unified .ds-project-checklist ol{padding-left:21px;margin:0;display:grid;gap:13px}
+body.ds-unified .ds-project-checklist li{font-size:13px;line-height:1.48;padding-left:5px}
+body.ds-unified .ds-project-checklist li strong{color:#f4cf95;display:block}
+body.ds-unified .ds-project-checklist li span{display:block;color:#e1cfbf}
+body.ds-unified .ds-project-checklist a{display:inline-block;color:#f4cf95;font-size:13px;margin-top:16px;text-decoration:underline}
+body.ds-unified .ds-project-disclaimer{margin-top:15px;max-width:880px}
+body.ds-unified .ds-solutions-overview-grid,body.ds-unified .ds-transition-proof-grid,body.ds-unified .ds-live-flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:23px 0 17px}
+body.ds-unified .ds-solutions-overview-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+body.ds-unified .ds-solutions-overview-grid>div,body.ds-unified .ds-transition-proof-grid>p,body.ds-unified .ds-live-flow>div{display:grid;gap:8px;align-content:start;margin:0;background:rgba(255,255,255,.055);border:1px solid rgba(232,179,110,.18);border-radius:15px;padding:18px}
+body.ds-unified .ds-solutions-overview-grid strong,body.ds-unified .ds-transition-proof-grid strong,body.ds-unified .ds-live-flow strong{color:#f7e9db;font-size:15px}
+body.ds-unified .ds-solutions-overview-grid span,body.ds-unified .ds-transition-proof-grid span,body.ds-unified .ds-live-flow p{color:#decbbc;font-size:13px;line-height:1.6;margin:0}
+body.ds-unified .ds-live-flow>div>span{font-size:12px;color:#e8b36e;font-weight:750}
+body.ds-unified .ds-live-explanation a,body.ds-unified .ds-partner-transparency a{color:#f4cf95;text-decoration:underline;text-underline-offset:3px;font-weight:650}
+body.ds-unified .ds-partner-transparency p{max-width:84ch;font-size:14px;color:#dccbbf;line-height:1.7}
+@media(max-width:980px){
+body.ds-unified .ds-value-grid,body.ds-unified .ds-solutions-overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+body.ds-unified .ds-trust-layout,body.ds-unified .ds-project-layout{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:680px){
+body.ds-unified .ds-customer-value,body.ds-unified .ds-customer-profiles,body.ds-unified .ds-trust-foundation,body.ds-unified .ds-project-preparation{padding:31px 0}
+body.ds-unified .ds-value-grid,body.ds-unified .ds-profiles-grid,body.ds-unified .ds-solutions-overview-grid,body.ds-unified .ds-transition-proof-grid,body.ds-unified .ds-live-flow{grid-template-columns:minmax(0,1fr);gap:11px}
+body.ds-unified .ds-value-grid article,body.ds-unified .ds-profiles-grid article{padding:17px}
+body.ds-unified .ds-value-grid h3,body.ds-unified .ds-profiles-grid h3{font-size:17px}
+body.ds-unified .ds-customer-value h2,body.ds-unified .ds-customer-profiles h2,body.ds-unified .ds-trust-foundation h2,body.ds-unified .ds-project-preparation h2{font-size:clamp(24px,6.2vw,30px)}
+body.ds-unified .ds-project-checklist{padding:17px 20px}
+}

@@ -360,11 +360,17 @@ function show(){
  if(!host||!data)return;
  host.innerHTML='<div class="ds"><div class="ds-header"><div><p class="panel-kicker">ACTIVITÉ DISTINCTE | PGI TELECOM</p><h2>PGI Telecom Distribution</h2><p class="ds-desc">Pilotage opérateur et comptabilité isolés de la plateforme Audiotel actuelle.</p></div><label class="ds-desc">Mois comptable <input type="month" class="ds-input" data-ds-month value="'+esc(month)+'"></label></div>'+banner()+
  '<div class="ds-tabs" role="tablist" aria-label="Rubriques PGI Telecom Distribution">'+
- [["overview","Vue générale"],["numbers","Numérotation"],["accounting","Comptabilité directe"],["reconciliation","Rapprochement"],["financial_cycle","Cycle financier"],["integrations","Intégrations"],["automation","Automatisations"],["complaints","Réclamations"],["transitions","Changer de distributeur"],["access","Sécurité des accès"],["compliance","Conformité"]].map(([key,label])=>'<button type="button" role="tab" class="ds-tab" data-ds-tab="'+key+'" aria-selected="'+(key===tab)+'">'+label+'</button>').join("")+'</div>'+
+ [["overview","Vue générale"],["numbers","Numérotation"],["accounting","Comptabilité directe"],["reconciliation","Rapprochement"],["financial_cycle","Cycle financier"],["integrations","Intégrations"],["automation","Automatisations"],["complaints","Réclamations"],["transitions","Changer de distributeur"],["access","Sécurité des accès"],["client_preview","Espace client (aperçu privé)"],["compliance","Conformité"]].map(([key,label])=>'<button type="button" role="tab" class="ds-tab" data-ds-tab="'+key+'" aria-selected="'+(key===tab)+'">'+label+'</button>').join("")+'</div>'+
  '<div class="ds-status '+esc(severity)+'" aria-live="polite">'+esc(message)+'</div>'+
- (tab==="overview"?overview():tab==="numbers"?numbers():tab==="accounting"?journals():tab==="reconciliation"?reconciliation():tab==="financial_cycle"?financialCycleView():tab==="access"?accessReadinessView():tab==="integrations"?integrationView():tab==="automation"?automationView()+'<div data-ds-automation-lab-root></div>':tab==="complaints"?complaintView():tab==="transitions"?'<section class="ds-panel"><div data-ds-transitions-root></div></section>':compliance())+
+ (tab==="overview"?overview():tab==="numbers"?numbers():tab==="accounting"?journals():tab==="reconciliation"?reconciliation():tab==="financial_cycle"?financialCycleView():tab==="access"?accessReadinessView():tab==="client_preview"?'<section class="ds-panel"><div data-ds-private-client-preview></div></section>':tab==="integrations"?integrationView():tab==="automation"?automationView()+'<div data-ds-automation-lab-root></div>':tab==="complaints"?complaintView():tab==="transitions"?'<section class="ds-panel"><div data-ds-transitions-root></div></section>':compliance())+
  '</div>';
  attach();
+ if(tab==="client_preview"){
+  const root=host.querySelector("[data-ds-private-client-preview]");
+  if(root)import("./direct-sva-client-preview.js").then(module=>{
+    if(root.isConnected)module.mountDirectSvaClientPreview(root);
+  }).catch(()=>{if(root.isConnected)root.textContent="Aperçu privé indisponible.";});
+ }
  if(tab==="transitions")import("./direct-sva-transitions.js").then(m=>m.mountDirectSvaTransitions(host.querySelector("[data-ds-transitions-root]"))).catch(()=>{});
  if(tab==="automation"){const root=host.querySelector("[data-ds-automation-lab-root]");if(root)import("./direct-sva-automation-lab.js").then(m=>{if(root.isConnected)m.mountDirectSvaRehearsals(root)}).catch(()=>{if(root.isConnected)root.textContent="Laboratoire de test indisponible.";});}
 }

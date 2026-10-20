@@ -1,14 +1,17 @@
 import http from "node:http";
 import {randomUUID} from "node:crypto";
 import {createStaticSiteHandler} from "./static-site.mjs";
+import {isDirectSvaPrivatePortalPath} from "./direct-sva-private-portal.mjs";
 import {securityHeaders} from "./http.mjs";
 
-// Static requests have no reason to wake Neon. The homepage, robots and the
-// Distribution publication switch deliberately remain on the full DB-backed
-// backend so commercial/SEO visibility cannot become stale.
+// Ordinary public files can bypass Neon. All Distribution pages AND
+// /site/distribution-sva/* assets require the same DB-backed publication gate.
+// Otherwise the static-only handler has no visibility resolver and responds
+// 503 to the two homepage WebP photos, stylesheets, and scripts.
 export function requiresDatabaseBackedSiteState(pathname){
   return pathname==="/"||pathname==="/robots.txt"||
-    pathname==="/distribution-sva"||pathname.startsWith("/distribution-sva/");
+    pathname==="/distribution-sva"||pathname.startsWith("/distribution-sva/")||
+    pathname==="/site/distribution-sva"||pathname.startsWith("/site/distribution-sva/");
 }
 
 export function createVercelLazyServer({staticDir,initializeBackend}){
@@ -31,6 +34,13 @@ export function createVercelLazyServer({staticDir,initializeBackend}){
     let pathname;
     try{pathname=new URL(req.url||"/","http://localhost").pathname;}
     catch{res.writeHead(400,{"Cache-Control":"no-store"});res.end();return;}
+    // Return 404 without opening Neon, regardless of Pôle informational SEO status.
+    if(isDirectSvaPrivatePortalPath(pathname)){
+      securityHeaders(res,randomUUID());
+      res.writeHead(404,{"Cache-Control":"no-store",
+        "X-Robots-Tag":"noindex, nofollow, noarchive"});
+      res.end();return;
+    }
     const publicRead=method==="GET"||method==="HEAD";
     if(publicRead&&!requiresDatabaseBackedSiteState(pathname)&&
       !pathname.startsWith("/api/")&&pathname!=="/metrics"){
