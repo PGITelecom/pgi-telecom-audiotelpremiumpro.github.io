@@ -44,7 +44,7 @@ test("Distribution descriptions across French and five localized editorial paths
 test("the flagship Distribution landing makes only verifiable, pre-launch claims",()=>{
  const home=read("site/distribution-sva/index.html");
  assert.match(home,/Pôle Telecom &amp; Réseau prépare un cadre de distribution SVA/);
- assert.match(home,/responsabilités identifiées/);
+ assert.match(home,/Responsabilités identifiées/);
  assert.match(home,/distinguer les sommes estimées, confirmées et réellement exigibles/);
  assert.match(home,/Aucune attribution de numéro ni aucun reversement n'est présenté comme acquis/);
  assert.match(home,/Les deux offres ont des périmètres différents/);
