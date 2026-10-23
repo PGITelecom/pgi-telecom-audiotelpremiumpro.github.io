@@ -16,3 +16,15 @@ jobs:
           node-version: "22"
       - name: Run non-production SVA integrity checks
         run: node --test tests/sva-conversion-11-points.test.mjs
+
+      - name: Preserve existing marketing performance budgets
+        run: node scripts/check-size.mjs
+      - name: Enforce strictly SVA-only change scope
+        run: |
+          git fetch --no-tags --depth=1 origin main
+          changed="$(git diff --name-only origin/main HEAD)"
+          if printf '%s\n' "$changed" | grep -Eq '^(site/distribution-sva/|backend/|database/|assets/|client\.html$|vercel\.json$)'; then
+            echo "Out-of-scope file modified; refuse this preparation build."
+            printf '%s\n' "$changed"
+            exit 1
+          fi
