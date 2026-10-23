@@ -534,3 +534,32 @@ body{padding-bottom:112px}
  .home-page .hero-visual-caption span{font-size:9px;letter-spacing:.07em;line-height:1.35}
  .home-page .hero-visual-caption strong{font-size:13px;line-height:1.45;font-weight:700;color:#fff!important;text-shadow:0 1px 2px rgba(0,0,0,.85)}
 }
+
+/* Améliorations SVA 2026-10-23 : encapsulation, aucun sélecteur Distribution. */
+.home-page .sva-confidence{background:linear-gradient(180deg,#211814 0%,#1a1514 100%)}
+.home-page .sva-confidence-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:26px 0}
+.home-page .sva-confidence-grid article{min-width:0;border:1px solid rgba(234,200,145,.3);border-radius:16px;padding:22px;background:rgba(0,0,0,.22)}
+.home-page .sva-confidence-index{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid rgba(247,196,116,.55);border-radius:11px;font-size:13px;color:#f5cb8c;font-weight:800}
+.home-page .sva-confidence-grid h3{font-size:clamp(17px,1.6vw,21px);line-height:1.35;margin:13px 0 10px;color:#fff}
+.home-page .sva-confidence-grid p,.home-page .sva-confidence-bottom p{line-height:1.65;color:#f5ede7;margin:0}
+.home-page .sva-confidence-bottom{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:14px 0 20px}
+.home-page .sva-confidence-bottom>div{padding:18px 20px;border-left:3px solid #ddb57f;background:rgba(255,255,255,.055)}
+.home-page .sva-confidence-bottom strong{display:block;color:#fff;margin-bottom:7px}
+.home-page .sva-confidence-bottom a{color:#ffe0a4;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.home-page .sva-confidence-action{display:flex;flex-wrap:wrap;align-items:center;gap:18px;margin:24px 0 13px}
+.home-page .sva-confidence-disclaimer{font-size:13px;line-height:1.6;color:#eadacd}
+.conversion-page .sva-preview{border:1px solid rgba(201,160,111,.45);border-radius:20px;background:#211a16;padding:22px;max-width:100%;overflow:hidden}
+.conversion-page .sva-preview-top,.conversion-page .sva-preview-end{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.conversion-page .sva-preview-top strong{font-size:19px;color:#fff}
+.conversion-page .sva-preview-top span{font-size:11px;font-weight:800;letter-spacing:.05em;color:#ffdd9d}
+.conversion-page .sva-preview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:22px 0}
+.conversion-page .sva-preview-card{min-width:0;padding:20px;border-radius:13px;background:#332720;border:1px solid rgba(255,255,255,.16)}
+.conversion-page .sva-preview-card small{display:block;color:#ffdfa9;font-weight:700}
+.conversion-page .sva-preview-card strong{display:block;margin:10px 0;font-size:22px;color:#fff}
+.conversion-page .sva-preview-card p{margin:0;line-height:1.6;color:#f2ebe6}
+.conversion-page .sva-preview-end{font-size:13px;color:#e9d7ca}
+.conversion-page .sva-preview-end a{color:#ffe0a4;text-decoration:underline}
+.application-page .sva-order-automation-note,.conversion-page .sva-order-automation-note,.sva-order-automation-note{margin:14px 0 20px;padding:13px 15px;border-left:3px solid #c69c65;border-radius:4px;background:rgba(246,199,131,.1);font-size:13px;line-height:1.6;color:inherit}
+@media(max-width:1080px){.home-page .sva-confidence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.home-page .sva-confidence-grid,.home-page .sva-confidence-bottom,.conversion-page .sva-preview-grid{grid-template-columns:minmax(0,1fr)}.home-page .sva-confidence-grid article{padding:18px}.conversion-page .sva-preview{padding:15px}.conversion-page .sva-preview-card{padding:15px}.home-page .sva-confidence-action .btn{width:100%;text-align:center;white-space:normal}}
+@media(prefers-reduced-motion:reduce){.home-page .sva-confidence *, .conversion-page .sva-preview *{animation:none!important;transition:none!important}}
