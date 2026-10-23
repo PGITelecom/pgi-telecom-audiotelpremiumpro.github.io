@@ -26,3 +26,16 @@ Branche isolée `prep/sva-conversion-automation-2026-10-23`. Aucune fusion vers 
 
 ## Critères de sécurité
 Maintenir `main` inchangée, ne pas modifier `site/distribution-sva/`, ne pas altérer les API de paiements et préserver les offres publiques affichées. Recontrôler le périmètre avec GitHub Compare avant toute fusion future.
+
+## Condition préalable à l'ouverture commerciale : assurances et litiges
+
+**À vérifier avant tout lancement réel des clients SVA ; ne pas traiter comme une assurance déjà souscrite.**
+
+- Obtenir un devis et une **attestation de responsabilité civile professionnelle (RC Pro)** indiquant explicitement les activités « plateforme / distribution de numéros spéciaux et services à valeur ajoutée (SVA), télécommunications », les dommages immatériels non consécutifs, erreurs de tarification, incidents de service et erreurs de calcul de reversements dans la mesure où ils sont assurables.
+- Comparer une **protection juridique professionnelle** : défense lors de litiges clients, éditeurs, fournisseurs et opérateurs, frais d'avocat et d'expertise, médiation et plafonds.
+- Étudier une **assurance cyber** : incident informatique, fuite de données, indisponibilité, assistance de réponse à incident et responsabilité liée aux données, suivant conditions.
+- Contrôler les **exclusions spécifiques** (SVA/089, télécommunications, fraude et abus des éditeurs, montants contestés, amendes et pénalités non assurables), franchises, plafonds, territorialité, délais de carence et éventuelles périodes de rétroactivité.
+- Vérifier la répartition des responsabilités avec l'opérateur et les sous-traitants dans les contrats, plus les procédures de réclamation, données d'appels conservées légalement, conformité AF2M et information client.
+- **Critère GO/NO-GO** : avant d'ouvrir le service aux clients, faire confirmer par écrit l'adéquation des garanties au modèle PGI et récupérer l'attestation active. Une RC Pro générale sans mention des SVA n'est pas considérée comme validée.
+
+Cette tâche est une **préparation administrative et juridique** ; aucune assurance n'est souscrite ici et aucun déploiement Vercel/Neon n'est autorisé par cet ajout documentaire.
