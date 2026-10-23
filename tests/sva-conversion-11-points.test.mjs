@@ -3,36 +3,35 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 const file=p=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
 const home=file("site/index.html");
+const solutions=file("site/seo/solutions-audiotel.html");
 const biz=file("site/seo/business-live-audiotel.html");
 const lead=file("site/seo/demande-ouverture.html");
 const css=file("site/site.css");
 const deployment=JSON.parse(file("vercel.json"));
-test("SVA: 4 principes commerciaux vérifiables et parcours inchangés",()=>{
- assert.equal((home.match(/class="sva-confidence-index"/g)||[]).length,4);
- for(const term of ["Conditions transparentes","Continuité du numéro","Traçabilité financière","Demande centralisée","Pour qui ?","Qui est responsable ?"])assert.ok(home.includes(term),term);
- for(const url of ["/demande-ouverture/","/guide-audiotel-sva/","/mentions-legales/","/portabilite-numero-sva/"])assert.ok(home.includes('href="'+url+'"'),url);
- assert.ok(home.includes('id="simulateur"'));
- assert.ok(home.includes('id="tarif"'));
- assert.ok(home.includes('id="comparatif-offre"'));
- assert.ok(home.includes('class="header-distribution-link" href="/distribution-sva/" hidden'));
+test("SVA : identité, publics, transparence et 4 engagements",()=>{
+ assert.ok(home.includes('href="/solutions-audiotel/#pourquoi-pgi-sva"'));
+ for(const term of ["Conditions transparentes","Continuité du numéro","Traçabilité financière","Demande centralisée","Particuliers","mentions légales","sans paiement immédiat"])assert.ok(solutions.toLowerCase().includes(term.toLowerCase()),term);
+ assert.equal((solutions.match(/<article><span>0[1-4]<\/span><h3>/g)||[]).length>=4,true);
+ for(const target of ["/mentions-legales/","/guide-audiotel-sva/","/demande-ouverture/"])assert.ok(solutions.includes('href="'+target+'"'),target);
 });
-test("SVA: transparence sur les montants et sans activation prématurée",()=>{
- for(const term of ["montant estimé","conditions définitives","aucun paiement immédiat","Les validations d’éligibilité"])assert.ok((home+" "+lead).toLowerCase().includes(term.toLowerCase()),term);
+test("SVA : parcours existants, consentements et séparation des activités",()=>{
+ for(const id of ['id="simulateur"','id="tarif"','id="comparatif-offre"'])assert.ok(home.includes(id),id);
+ assert.ok(home.includes('class="header-distribution-link" href="/distribution-sva/" hidden'));
  assert.ok(lead.includes('id="order-form"'));
  assert.ok(lead.includes('name="processing_consent"'));
  assert.ok(lead.includes('name="marketing_consent"'));
+ assert.ok(lead.includes("demande transmise après confirmation du serveur"));
 });
-test("Business Live: illustration non contractuelle sans données privées",()=>{
- for(const term of ["APERÇU PÉDAGOGIQUE","ILLUSTRATION · AUCUNE DONNÉE CLIENT","Estimation","Confirmation","Validation","Pas de chiffres fictifs"])assert.ok(biz.includes(term),term);
+test("Business Live : aperçu explicatif sans fausses données client",()=>{
+ for(const term of ["APERÇU PÉDAGOGIQUE","AUCUNE DONNÉE CLIENT","Estimation","Confirmation","Validation","versement effectivement reçu"])assert.ok(biz.includes(term),term);
  assert.ok(!biz.includes("data-customer-id"));
 });
-test("Mobile: mise en page isolée sans changement de Distribution",()=>{
- assert.ok(css.includes(".home-page .sva-confidence-grid"));
- assert.ok(css.includes(".conversion-page .sva-preview"));
- assert.ok(css.includes("@media(max-width:700px)"));
- assert.ok(!css.slice(css.indexOf("/* Améliorations SVA 2026-10-23")).includes(".distribution-sva"));
+test("Performance : feuilles existantes et aucune nouvelle dépendance",()=>{
+ assert.ok(css.includes("benefit-grid"));
+ assert.ok(!home.includes("sva-confidence-grid"));
+ assert.ok(!biz.includes("sva-preview-grid"));
 });
-test("Vercel: aucune publication automatique hors main",()=>{
+test("Déploiement : seulement main et jamais cette branche",()=>{
  assert.equal(deployment.git.deploymentEnabled["**"],false);
  assert.equal(deployment.git.deploymentEnabled.main,true);
 });

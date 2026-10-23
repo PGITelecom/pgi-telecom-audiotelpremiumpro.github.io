@@ -4,16 +4,16 @@ Branche isolée `prep/sva-conversion-automation-2026-10-23`. Aucune fusion vers 
 
 ## Traçabilité des 11 objectifs
 
-1. **Accueil convaincant** : bloc de proposition de valeur « offre lisible / suivi précis », sans effacer les textes ni les offres existantes.
-2. **Pourquoi PGI Telecom ?** : quatre engagements lisibles portant sur les prix, la continuité, le suivi et le dépôt de demande.
+1. **Accueil convaincant** : lien de confiance discret sur l’accueil vers la page Solutions, sans agrandir excessivement le HTML critique.
+2. **Pourquoi PGI Telecom ?** : quatre engagements lisibles sur Solutions, avec les composants responsives déjà éprouvés.
 3. **Confiance vérifiable** : accès aux mentions légales et au contact sans fausses certifications, chiffres ou témoignages.
 4. **Publics** : particuliers, porteurs de projet, indépendants et entreprises, avec rappel des activités admissibles.
 5. **Clarté** : différencier en langage courant abonnement, coût de l'appel, reversement et frais tiers.
 6. **Parcours commercial** : bouton unique vers la demande existante, sans prélèvement ni activation revendiqués.
 7. **Business Live** : aperçu statique **pédagogique** sans données inventées, préservant la différence estimé/confirmé/validé.
-8. **Mobile et accessibilité** : grilles adaptatives, contrastes renforcés et styles isolés au contexte SVA.
+8. **Mobile et accessibilité** : réemploi des composants de grille responsives existants, sans CSS supplémentaire.
 9. **Statuts** : le formulaire enregistré n'équivaut pas à un numéro opérationnel ; contrôle des validations nécessaires.
-10. **SEO et moteurs de réponse** : contenu HTML indexable, liens internes contextualisés et énoncés factuellement prudents.
+10. **SEO et moteurs de réponse** : bloc HTML indexable sur Solutions, maillage depuis l’accueil et énoncés factuellement prudents.
 11. **Cohérence** : conservation de la marque, des CTA, des tarifs existants et des fonctions SVA.
 
 ## Automatisation et limites opérationnelles
