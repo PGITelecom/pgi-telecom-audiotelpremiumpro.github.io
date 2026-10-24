@@ -1,8 +1,10 @@
 name: Production Watch
 
 on:
+  # Align the hourly smoke test with Vercel's 00-minute crons, rather
+  # than waking Neon separately at minute 17. Do not reduce check coverage.
   schedule:
-    - cron: "17 * * * *"
+    - cron: "3 * * * *"
   workflow_dispatch:
 
 permissions:
