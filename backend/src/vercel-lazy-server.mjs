@@ -42,6 +42,16 @@ export function createVercelLazyServer({staticDir,initializeBackend}){
         res.writeHead(503,{"Cache-Control":"no-store","Retry-After":"60"});
         res.end();return;
       }
+      // Missing public assets and bot probes must not wake PostgreSQL.
+      // Only run this AFTER the static handler and OUTSIDE the DB-protected
+      // homepage, robots, distribution, API and private route handling.
+      if(/\.(?:css|js|mjs|map|png|jpe?g|gif|webp|svg|ico|woff2?|ttf|otf|webmanifest)$/i.test(pathname)||
+        /^\/(?:\.git|\.svn|\.hg)(?:\/|$)/i.test(pathname)||
+        /^\/\.env(?:\.|\/|$)/i.test(pathname)){
+        res.writeHead(404,{"Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow, noarchive"});
+        res.end();
+        return;
+      }
       // Known WordPress/PHP probes are not part of this Node application.
       // Reject these without creating a database connection on every scan.
       if(/\.php(?:$|\/)/i.test(pathname)||/^\/wp-(?:admin|content|includes)(?:\/|$)/i.test(pathname)){
