@@ -90,6 +90,22 @@ test("common PHP probes do not waste a Neon wake-up",async t=>{
   assert.equal(initializes,0);
 });
 
+test("missing assets and scanner probes never initialize Neon",async t=>{
+  let initializes=0;
+  const base=await serve(t,async()=>{initializes++;throw Error("Neon unavailable");});
+  for(const route of ["/assets/missing.css","/assets/missing.js","/assets/missing.webp",
+    "/assets/missing.woff2","/assets/missing.webmanifest","/.git/config","/.env.production"]){
+    const response=await fetch(base+route);
+    assert.equal(response.status,404,route);
+    assert.equal(response.headers.get("x-content-type-options"),"nosniff",route);
+    assert.match(response.headers.get("x-robots-tag")||"",/noindex/,route);
+  }
+  assert.equal(initializes,0);
+  const dynamic=await fetch(base+"/unrecognized-dynamic-path");
+  assert.equal(dynamic.status,503);
+  assert.equal(initializes,1,"Dynamic fallback must still initialize backend");
+});
+
 test("homepage, robots and every distribution page cannot bypass publication state",()=>{
   for(const route of ["/","/robots.txt","/distribution-sva","/distribution-sva/","/distribution-sva/solutions/","/distribution-sva/sitemap.xml"]){
     assert.equal(requiresDatabaseBackedSiteState(route),true,route);
