@@ -758,6 +758,72 @@ body.ds-unified .revenue-quick-tab span:not(.ds-tab-icon){display:none!important
 }
 
 
+/* Ajustement harmonieux : typographie plus légère et cinq onglets légèrement plus compacts. */
+body.home-page.ds-unified .hero-lead-simple{
+ font-size:clamp(17px,1.95vw,24px)!important;
+ font-weight:500!important;
+ line-height:1.48!important;
+}
+body.home-page.ds-unified .ds-hero-photographic h1{
+ font-size:clamp(46px,6.8vw,94px)!important;
+}
+body.ds-unified .revenue-quick-tab{
+ min-height:clamp(76px,8.6vw,126px)!important;
+ padding:10px clamp(5px,.85vw,13px)!important;
+ gap:5px!important;
+}
+body.ds-unified .revenue-quick-tab .ds-tab-icon{
+ width:clamp(20px,2.4vw,31px)!important;
+ height:clamp(20px,2.4vw,31px)!important;
+}
+body.ds-unified .revenue-quick-tab small{font-size:clamp(8px,1.08vw,12px)!important}
+body.ds-unified .revenue-quick-tab strong,
+body.ds-unified .revenue-quick-tab-primary strong{font-size:clamp(10px,1.5vw,17px)!important}
+@media(max-width:760px){
+ body.home-page.ds-unified .hero-lead-simple{
+  font-size:clamp(15px,3.9vw,17px)!important;
+  font-weight:450!important;
+  line-height:1.49!important;
+  padding:15px 13px!important;
+ }
+ body.home-page.ds-unified .ds-hero-photographic h1{
+  font-size:clamp(32px,8.8vw,58px)!important;
+ }
+ body.home-page.ds-unified .ds-hero-photo-description{
+  font-size:clamp(13px,3.4vw,17px)!important;
+ }
+ body.ds-unified .revenue-quick-nav{
+  padding:5px 4px calc(6px + env(safe-area-inset-bottom))!important;
+ }
+ body.ds-unified .revenue-quick-tab{
+  min-height:70px!important;
+  padding:5px 2px!important;
+  gap:3px!important;
+  border-radius:10px!important;
+ }
+ body.ds-unified .revenue-quick-tab .ds-tab-icon{
+  width:19px!important;height:19px!important;margin-bottom:0!important;
+ }
+ body.ds-unified .revenue-quick-tab small{
+  font-size:clamp(7px,1.8vw,9px)!important;
+ }
+ body.ds-unified .revenue-quick-tab strong,
+ body.ds-unified .revenue-quick-tab-primary strong{
+  font-size:clamp(8.3px,2.2vw,10.5px)!important;
+  line-height:1.14!important;
+ }
+ body.ds-unified,body.ds-unified main{
+  padding-bottom:calc(98px + env(safe-area-inset-bottom))!important;
+ }
+}
+@media(max-width:360px){
+ body.ds-unified .revenue-quick-tab{min-height:68px!important;padding:4px 2px!important}
+ body.ds-unified .revenue-quick-tab .ds-tab-icon{width:18px!important;height:18px!important}
+ body.ds-unified .revenue-quick-tab small{font-size:6.7px!important}
+ body.ds-unified .revenue-quick-tab strong,
+ body.ds-unified .revenue-quick-tab-primary strong{font-size:8px!important}
+}
+
 /* Fiches editoriales du Pole : rythme mobile aligne sur le SVA.
    Ne modifie ni l'accueil, ni la barre fixe, ni le parcours commercial. */
 @media(max-width:760px){
@@ -863,70 +929,4 @@ body.home-page.ds-unified .ds-hero-photographic-copy{z-index:3!important}
   background:linear-gradient(90deg,rgba(20,10,8,.9),rgba(22,11,8,.66) 46%,rgba(20,10,7,.13) 91%),
   linear-gradient(to top,rgba(16,8,7,.12),transparent 25%)!important;
  }
-}
-
-/* Ajustement harmonieux : typographie plus légère et cinq onglets légèrement plus compacts. */
-body.home-page.ds-unified .hero-lead-simple{
- font-size:clamp(17px,1.95vw,24px)!important;
- font-weight:500!important;
- line-height:1.48!important;
-}
-body.home-page.ds-unified .ds-hero-photographic h1{
- font-size:clamp(46px,6.8vw,94px)!important;
-}
-body.ds-unified .revenue-quick-tab{
- min-height:clamp(76px,8.6vw,126px)!important;
- padding:10px clamp(5px,.85vw,13px)!important;
- gap:5px!important;
-}
-body.ds-unified .revenue-quick-tab .ds-tab-icon{
- width:clamp(20px,2.4vw,31px)!important;
- height:clamp(20px,2.4vw,31px)!important;
-}
-body.ds-unified .revenue-quick-tab small{font-size:clamp(8px,1.08vw,12px)!important}
-body.ds-unified .revenue-quick-tab strong,
-body.ds-unified .revenue-quick-tab-primary strong{font-size:clamp(10px,1.5vw,17px)!important}
-@media(max-width:760px){
- body.home-page.ds-unified .hero-lead-simple{
-  font-size:clamp(15px,3.9vw,17px)!important;
-  font-weight:450!important;
-  line-height:1.49!important;
-  padding:15px 13px!important;
- }
- body.home-page.ds-unified .ds-hero-photographic h1{
-  font-size:clamp(32px,8.8vw,58px)!important;
- }
- body.home-page.ds-unified .ds-hero-photo-description{
-  font-size:clamp(13px,3.4vw,17px)!important;
- }
- body.ds-unified .revenue-quick-nav{
-  padding:5px 4px calc(6px + env(safe-area-inset-bottom))!important;
- }
- body.ds-unified .revenue-quick-tab{
-  min-height:70px!important;
-  padding:5px 2px!important;
-  gap:3px!important;
-  border-radius:10px!important;
- }
- body.ds-unified .revenue-quick-tab .ds-tab-icon{
-  width:19px!important;height:19px!important;margin-bottom:0!important;
- }
- body.ds-unified .revenue-quick-tab small{
-  font-size:clamp(7px,1.8vw,9px)!important;
- }
- body.ds-unified .revenue-quick-tab strong,
- body.ds-unified .revenue-quick-tab-primary strong{
-  font-size:clamp(8.3px,2.2vw,10.5px)!important;
-  line-height:1.14!important;
- }
- body.ds-unified,body.ds-unified main{
-  padding-bottom:calc(98px + env(safe-area-inset-bottom))!important;
- }
-}
-@media(max-width:360px){
- body.ds-unified .revenue-quick-tab{min-height:68px!important;padding:4px 2px!important}
- body.ds-unified .revenue-quick-tab .ds-tab-icon{width:18px!important;height:18px!important}
- body.ds-unified .revenue-quick-tab small{font-size:6.7px!important}
- body.ds-unified .revenue-quick-tab strong,
- body.ds-unified .revenue-quick-tab-primary strong{font-size:8px!important}
 }
