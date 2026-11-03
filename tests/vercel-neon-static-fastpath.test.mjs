@@ -91,7 +91,7 @@ test("common PHP probes do not waste a Neon wake-up",async t=>{
 });
 
 test("homepage, robots and every distribution page cannot bypass publication state",()=>{
-  for(const route of ["/","/robots.txt","/distribution-sva","/distribution-sva/","/distribution-sva/solutions/","/distribution-sva/sitemap.xml"]){
+  for(const route of ["/","/robots.txt","/distribution-sva","/distribution-sva/","/distribution-sva/solutions/","/distribution-sva/sitemap.xml","/site/distribution-sva/telecom-hero.webp","/site/distribution-sva/pgi-telecom-supervision-infrastructure-reseau.webp","/site/distribution-sva/unified.css","/site/distribution-sva/style.css","/site/distribution-sva/site.js","/site/distribution-sva/measurement.js","/site/distribution-sva/not-allowed.webp"]){
     assert.equal(requiresDatabaseBackedSiteState(route),true,route);
   }
   for(const route of ["/assets/site.css","/site/site.js","/guide/","/client.html"]){

@@ -62,7 +62,7 @@ function installHeroPhoto(html){
  const art='<div class="ds-hero-photographic" role="group" aria-label="Pôle Télécom et Réseau">'+
  '<img class="ds-network-tower" src="/site/distribution-sva/telecom-hero.webp" alt="Antenne de télécommunications, ville au soleil couchant et connexions lumineuses" width="960" height="1358" decoding="async" fetchpriority="high">'+
  '<div class="ds-hero-photographic-copy">'+
- '<p class="ds-hero-photo-kicker">PGI TELECOM DISTRIBUTION <span>EN PRÉPARATION</span></p>'+
+ '<p class="ds-hero-photo-kicker">PÔLE TELECOM &amp; RÉSEAU <span>EN PRÉPARATION</span></p>'+
  heading+
  '<p class="ds-hero-photo-description">Une organisation télécom pensée pour la continuité de vos numéros, la traçabilité des appels et la transparence des reversements.</p>'+
  '</div></div>';

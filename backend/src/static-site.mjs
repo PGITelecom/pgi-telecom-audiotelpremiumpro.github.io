@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {createHash} from "node:crypto";
 import {isDirectSvaPath,isDirectSvaPublicAsset,directSvaPublicPagePath,visibleDistributionMarketingHome,publishedDistributionHtml,publishedDistributionSitemap,publishedDistributionRobots} from "./direct-sva-public-site.mjs";
+import {isDirectSvaPrivatePortalPath} from "./direct-sva-private-portal.mjs";
 
 const PRIVATE_CSP="default-src 'self'; script-src 'self' https://accounts.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com; connect-src 'self' https://accounts.google.com https://www.googleapis.com; frame-src https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests";
 const COCKPIT_CSP="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests";
@@ -46,6 +47,12 @@ export function createStaticSiteHandler(rootDir,{getDirectSvaWebsiteState}={}){
     let directSvaPath=String(pathname||"");
     try{directSvaPath=decodeURIComponent(directSvaPath).replace(/\/+/g,"/");}catch{
       res.writeHead(400,{"Cache-Control":"no-store","X-Robots-Tag":"noindex, nofollow, noarchive"});
+      res.end();return true;
+    }
+    // The future customer portal is never part of the public editorial release.
+    if(isDirectSvaPrivatePortalPath(directSvaPath)){
+      res.writeHead(404,{"Cache-Control":"no-store",
+        "X-Robots-Tag":"noindex, nofollow, noarchive"});
       res.end();return true;
     }
     if(isDirectSvaPath(directSvaPath)){

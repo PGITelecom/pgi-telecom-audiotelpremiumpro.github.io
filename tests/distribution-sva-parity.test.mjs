@@ -16,8 +16,8 @@ test("Distribution home adopts the actual SVA logo, searchable header, two golde
  assert.match(html,/data-site-search-input/);
  assert.match(html,/data-site-search-results/);
  assert.match(html,/aria-label="Rechercher sur le site PGI Telecom"/);
- assert.match(html,/class="btn" href="\/distribution-sva\/solutions\/"/);
- assert.match(html,/class="btn hero-portability-cta" href="\/distribution-sva\/transition\/"/);
+ assert.match(html,/class="btn" href="#pourquoi-pgi-telecom"/);
+ assert.match(html,/class="btn hero-portability-cta" href="#preparer-mon-projet"/);
  assert.equal((html.match(/class="revenue-quick-tab(?: [^"]*)?"/g)||[]).length,5);
  assert.match(css,/\.ds-parity \.hero h1/);
  assert.match(css,/\.ds-parity \.hero-actions \.btn/);
