@@ -27,7 +27,7 @@ test("Pôle period label remains dynamically dated with a gold light flare",()=>
 test("Pôle fixed navigation has five accessible destinations and decorative icons",()=>{
  const nav=html.match(/<section class="revenue-quick-nav"[\s\S]*?<\/section>/)?.[0];
  assert.ok(nav);
- assert.equal((nav.match(/class="revenue-quick-tab/g)||[]).length,5);
+ assert.equal((nav.match(/class="revenue-quick-tab(?:\\s|")/g)||[]).length,5);
  assert.equal((nav.match(/class="ds-tab-icon" aria-hidden="true"/g)||[]).length,5);
  assert.equal((nav.match(/<svg viewBox=/g)||[]).length,5);
  for(const dest of ["/distribution-sva/","/distribution-sva/solutions/","/distribution-sva/business-live/","/distribution-sva/transition/","/"]){
