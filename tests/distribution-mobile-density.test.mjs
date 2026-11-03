@@ -6,7 +6,10 @@ const read=path=>fs.readFileSync(new URL("../"+path,import.meta.url),"utf8");
 const css=read("site/distribution-sva/unified.css");
 const page=read("site/distribution-sva/interconnexion-routage/index.html");
 const home=read("site/distribution-sva/index.html");
-const responsive=css.slice(css.indexOf("/* Fiches editoriales du Pole : rythme mobile"));
+const marker="/* Fiches editoriales du Pole : rythme mobile";
+const mobileStart=css.indexOf(marker);
+const mobileEnd=mobileStart>=0?css.indexOf("\n}\n",mobileStart):-1;
+const responsive=mobileStart>=0&&mobileEnd>mobileStart?css.slice(mobileStart,mobileEnd+2):"";
 
 test("mobile editorial spacing is scoped to non-home Distribution pages",()=>{
   assert.ok(responsive.startsWith("/* Fiches editoriales du Pole"));

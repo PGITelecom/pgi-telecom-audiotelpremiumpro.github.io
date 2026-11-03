@@ -13,7 +13,7 @@ const p95Limit=Math.max(10,Number(process.env.PGI_PERF_P95_MS||500)),errorLimit=
 const maxRps=Math.max(0,Math.min(50000,Number(process.env.PGI_PERF_MAX_RPS||0))),minWorkerGap=maxRps?1000*concurrency/maxRps:0;
 const paths=String(process.env.PGI_PERF_PATHS||"/api/v1/health,/api/v1/ready").split(",").map(x=>x.trim()).filter(x=>x.startsWith("/")&&!/[?#]/.test(x));
 if(!paths.length)throw new Error("PGI_PERF_PATHS must contain safe GET paths");
-const samples=[],startedAt=new Date(),deadline=Date.now()+duration*1000;let requests=0,errors=0;
+const samples=[],pathSamples=new Map(paths.map(path=>[path,[]])),startedAt=new Date(),deadline=Date.now()+duration*1000;let requests=0,errors=0;
 async function worker(index){
   let n=index;
   while(Date.now()<deadline){
@@ -21,17 +21,25 @@ async function worker(index){
     try{
       const r=await fetch(base+path,{method:"GET",headers:{Accept:"application/json","User-Agent":"PGI-Performance-Lab/1"},redirect:"manual",signal:AbortSignal.timeout(10000)});
       const ms=performance.now()-start;samples.push(ms);requests++;
+      pathSamples.get(path).push({ms,status:r.status,ok:r.ok});
       if(!r.ok)errors++;
       await r.arrayBuffer();
-    }catch{samples.push(performance.now()-start);requests++;errors++;}
+    }catch(e){const ms=performance.now()-start;samples.push(ms);requests++;errors++;
+      pathSamples.get(path).push({ms,status:null,ok:false,error:e?.name||"FETCH_FAILED"});}
     if(minWorkerGap>0){const rest=minWorkerGap-(performance.now()-start);if(rest>0)await new Promise(resolve=>setTimeout(resolve,rest));}
   }
 }
 await Promise.all(Array.from({length:concurrency},(_,i)=>worker(i)));
 samples.sort((a,b)=>a-b);
 const percentile=p=>samples.length?samples[Math.min(samples.length-1,Math.max(0,Math.ceil(samples.length*p)-1))]:0;
+const perPath=Object.fromEntries([...pathSamples].map(([path,rows])=>{
+  const timings=rows.map(row=>row.ms).sort((a,b)=>a-b);
+  const at=p=>timings.length?timings[Math.min(timings.length-1,Math.max(0,Math.ceil(timings.length*p)-1))]:0;
+  return [path,{requests_total:rows.length,errors_total:rows.filter(row=>!row.ok).length,p50_ms:at(.5),p95_ms:at(.95),max_ms:timings.at(-1)||0}];
+}));
+const slowest=[...pathSamples].flatMap(([path,rows])=>rows.map(row=>({path,latency_ms:row.ms,http_status:row.status,...(row.error?{error:row.error}:{})}))).sort((a,b)=>b.latency_ms-a.latency_ms).slice(0,5);
 const completedAt=new Date(),elapsed=(completedAt-startedAt)/1000,errorRate=requests?errors/requests:1;
-const result={run_type:scenario,scenario:"safe_get_mix",target:base,status:errorRate<=errorLimit&&percentile(.95)<=p95Limit?"passed":"failed",started_at:startedAt.toISOString(),completed_at:completedAt.toISOString(),requests_total:requests,errors_total:errors,error_rate:errorRate,p50_ms:percentile(.5),p95_ms:percentile(.95),p99_ms:percentile(.99),requests_per_second:requests/Math.max(.001,elapsed),virtual_users:concurrency,thresholds:{p95_ms:p95Limit,error_rate:errorLimit},details:{paths,duration_seconds:duration,remote,max_rps:maxRps||null}};
+const result={run_type:scenario,scenario:"safe_get_mix",target:base,status:errorRate<=errorLimit&&percentile(.95)<=p95Limit?"passed":"failed",started_at:startedAt.toISOString(),completed_at:completedAt.toISOString(),requests_total:requests,errors_total:errors,error_rate:errorRate,p50_ms:percentile(.5),p95_ms:percentile(.95),p99_ms:percentile(.99),requests_per_second:requests/Math.max(.001,elapsed),virtual_users:concurrency,thresholds:{p95_ms:p95Limit,error_rate:errorLimit},details:{paths,duration_seconds:duration,remote,max_rps:maxRps||null,per_path:perPath,slowest_requests:slowest}};
 console.log(JSON.stringify(result,null,2));
 const cookie=process.env.PGI_PERF_ADMIN_COOKIE||"",csrf=process.env.PGI_PERF_CSRF||"";
 if(cookie&&csrf){
