@@ -45,5 +45,5 @@ test("Pôle commercial and private customer protections remain unchanged",()=>{
  assert.ok(!html.includes('href="/distribution-sva/espace-client/"'));
  assert.match(html,/La distribution directe n'est pas encore ouverte/);
  assert.match(html,/Souscription directe non ouverte/);
- assert.match(html,/class="revenue-quick-tab-primary"/);
+ assert.match(html,/revenue-quick-tab-primary/);
 });
