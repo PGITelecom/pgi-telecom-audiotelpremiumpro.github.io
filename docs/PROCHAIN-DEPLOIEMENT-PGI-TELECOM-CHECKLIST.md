@@ -1,6 +1,6 @@
 # PGI Telecom / Audiotel Premium Pro : checklist du prochain déploiement Vercel
 
-**Préparée le 25 octobre 2026 — À EXÉCUTER UNIQUEMENT APRÈS AUTORISATION EXPLICITE DU PROPRIÉTAIRE.**
+**Préparée le 25 octobre 2026 : À EXÉCUTER UNIQUEMENT APRÈS AUTORISATION EXPLICITE DU PROPRIÉTAIRE.**
 
 Ce document est un pense-bête de livraison, **pas** une autorisation de déployer, fusionner, migrer, supprimer, payer ou modifier des secrets. Recontrôler l'état réel des comptes, les branches, les exigences et les dépendances à la date du futur déploiement. Ne pas interpréter une tâche non cochée comme déjà réalisée.
 
@@ -27,7 +27,7 @@ Ce document est un pense-bête de livraison, **pas** une autorisation de déploy
 - [ ] Conserver les tâches indispensables : Business Live, remises à zéro, parrainage, paiements, intégration opérateur, comptabilité, emails, réconciliation, support et rapport quotidien.
 - [ ] Ne supprimer aucune branche/sauvegarde Neon ; vérifier les sauvegardes/restauration, les migrations et la branche de production avant opération. L'activité des branches secondaires est négligeable (~0,97 CU-h cumulées au relevé).
 - [ ] Si le forfait Free reste insuffisant pour la disponibilité commerciale, présenter une estimation documentée du coût Launch et demander une autorisation spécifique avant souscription.
-- [ ] Mesurer CU-heures/jour, heures actives, réveils et temps de réponse après déploiement ; la cible 60–70 CU-h/mois est **non garantie**.
+- [ ] Mesurer CU-heures/jour, heures actives, réveils et temps de réponse après déploiement ; la cible 60:70 CU-h/mois est **non garantie**.
 
 ## 3. Vercel : identité, domaines et nettoyage prudent
 - [ ] Revalider l'adresse principale `contact.audiotel.premium.pro@gmail.com`, le nom PGI Telecom, l'utilisateur `pgi-telecom-admin`, l'équipe `pgi-telecom`, son propriétaire et les IDs stables du compte/équipe/projet.
@@ -43,10 +43,10 @@ Ce document est un pense-bête de livraison, **pas** une autorisation de déploy
 - [ ] Les échecs à 503 du 25/10 concernaient les routes dépendantes de Neon (accueil, API health), alors que plusieurs pages statiques répondaient 200. Faire cesser les incidents après rétablissement de la base et valider une exécution verte.
 
 ## 5. Autres comptes et intégrations
-- [x] **Neon : membre administrateur** — le 25/10, le seul membre visible utilise désormais l'adresse PGI Telecom, possède le rôle admin organisation et projet et conserve les droits d'origine. La bonne adresse est donc déjà enregistrée dans les **accès effectifs**.
-- [ ] **Neon : métadonnée `owner.email` obsolète** — l'API descriptive du projet renvoie encore l'ancienne adresse alors que la liste des membres renvoie bien PGI. Demander à Neon la correction du champ ou la confirmation de son statut historique ; ne pas retirer l'administrateur et ne pas transférer le projet pour contourner une métadonnée.
-- [ ] **Neon : handle technique de l'organisation** — `clairvoyancemedium-org-dawn-butterfly-93181497` reste présent malgré le nom visible Audiotel Premium Pro. Vérifier auprès de Neon si ce handle est modifiable et s'il existe un impact sur API/URLs/permissions. Ne pas créer une nouvelle organisation ou déplacer PostgreSQL pour le seul nettoyage visuel.
-- [ ] **Neon : paramètres affichés dans Work / console** — l'app Neon connectée à ChatGPT ne dispose pas d'actions pour changer l'email d'un compte ou le handle d'une organisation. Les opérations UI restantes nécessitent Work et, si non modifiables, une demande au fournisseur. Sur le forfait Free, le support technique officiel n'est pas inclus : privilégier d'abord Neon Console > Help > Get help > Ask the AI assistant. Aucune dépense ni migration automatique.
+- [x] **Neon : membre administrateur** : le 25/10, le seul membre visible utilise désormais l'adresse PGI Telecom, possède le rôle admin organisation et projet et conserve les droits d'origine. La bonne adresse est donc déjà enregistrée dans les **accès effectifs**.
+- [ ] **Neon : métadonnée `owner.email` obsolète** : l'API descriptive du projet renvoie encore l'ancienne adresse alors que la liste des membres renvoie bien PGI. Demander à Neon la correction du champ ou la confirmation de son statut historique ; ne pas retirer l'administrateur et ne pas transférer le projet pour contourner une métadonnée.
+- [ ] **Neon : handle technique de l'organisation** : `clairvoyancemedium-org-dawn-butterfly-93181497` reste présent malgré le nom visible Audiotel Premium Pro. Vérifier auprès de Neon si ce handle est modifiable et s'il existe un impact sur API/URLs/permissions. Ne pas créer une nouvelle organisation ou déplacer PostgreSQL pour le seul nettoyage visuel.
+- [ ] **Neon : paramètres affichés dans Work / console** : l'app Neon connectée à ChatGPT ne dispose pas d'actions pour changer l'email d'un compte ou le handle d'une organisation. Les opérations UI restantes nécessitent Work et, si non modifiables, une demande au fournisseur. Sur le forfait Free, le support technique officiel n'est pas inclus : privilégier d'abord Neon Console > Help > Get help > Ask the AI assistant. Aucune dépense ni migration automatique.
 - [ ] Vérifier séparément Stripe **en mode réel** : abonnements 4,90 € TTC/mois, option prioritaire 9,90 € TTC, paiements uniques/récurrents, webhooks Connect et abonnements, réconciliation et aucune facturation de test réelle.
 - [ ] Vérifier Resend (domaine `audiotel-premium-pro.com` vérifié, envoi/réception activés au 25/10, webhook email actif), expéditeurs, réponses et destinataires PGI.
 - [ ] Vérifier HubSpot (compte relié à l'adresse PGI), création de contacts/deals/tickets et formulaires, sans créer de données clients réelles lors des tests.
