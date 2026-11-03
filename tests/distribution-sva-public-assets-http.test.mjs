@@ -7,7 +7,7 @@ import http from "node:http";
 import {createStaticSiteHandler} from "../backend/src/static-site.mjs";
 import {isDirectSvaPublicAsset} from "../backend/src/direct-sva-public-site.mjs";
 
-const approved=["style.css","brand.css","parity.css","unified.css","telecom-hero.webp","pgi-telecom-supervision-infrastructure-reseau.webp","site.js","measurement.js"];
+const approved=["style.css","brand.css","parity.css","unified.css","telecom-hero.webp","pole-telecom-skyline-reference.webp","pgi-telecom-supervision-infrastructure-reseau.webp","site.js","measurement.js"];
 const forbidden=["index.html","admin.js","billing.js","secret.env","../index.html","private.png","preview.zip"];
 
 test("public Distribution asset policy allows all actually linked CSS and photo files, but no arbitrary files",()=>{
