@@ -567,3 +567,263 @@ body.ds-unified .ds-value-grid h3,body.ds-unified .ds-profiles-grid h3{font-size
 body.ds-unified .ds-customer-value h2,body.ds-unified .ds-customer-profiles h2,body.ds-unified .ds-trust-foundation h2,body.ds-unified .ds-project-preparation h2{font-size:clamp(24px,6.2vw,30px)}
 body.ds-unified .ds-project-checklist{padding:17px 20px}
 }
+
+
+/* REFERENCE VISUELLE POLE TELECOM 2026.
+   Adapte la photographie ORIGINALE telecom-hero.webp (aucune image regeneree),
+   le bandeau calendaire et les cinq cartes de navigation de la capture approuvee.
+   Ces regles ne concernent que le Pole Telecom et Reseau. */
+body.home-page.ds-unified{
+ --ds-photo-gold:#f4bf6c;
+ --ds-photo-cream:#f9eee5;
+ font-family:Inter,"Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+body.home-page.ds-unified .site-header+main>.hero:first-child{
+ padding:8px 0 34px!important;
+ background:linear-gradient(180deg,#19110e 0%,#241814 52%,#17100d 100%)!important;
+ overflow:visible!important;
+}
+body.home-page.ds-unified .hero>.wrap,
+body.home-page.ds-unified .hero>.wrap.hero-grid{
+ width:100%!important;max-width:none!important;padding:0!important;margin:0!important;
+}
+body.home-page.ds-unified .hero-grid{display:block!important;gap:0!important}
+body.home-page.ds-unified .hero-copy{width:100%;max-width:none!important;min-width:0}
+body.home-page.ds-unified .hero-marketing-badge{
+ position:relative!important;isolation:isolate;display:block!important;
+ box-sizing:border-box!important;width:max-content!important;
+ max-width:calc(100% - 30px)!important;
+ margin:8px auto 6px!important;padding:12px clamp(16px,3.5vw,35px)!important;
+ border:1px solid rgba(255,197,103,.94)!important;border-radius:999px!important;
+ color:#f7c980!important;background:linear-gradient(180deg,rgba(111,72,45,.54),rgba(34,23,20,.86))!important;
+ box-shadow:inset 0 1px 0 rgba(255,225,168,.28),0 0 24px rgba(247,156,63,.15),0 7px 28px rgba(0,0,0,.2)!important;
+ font-family:Inter,"Segoe UI Variable","Segoe UI",system-ui,sans-serif!important;
+ font-size:clamp(11px,1.75vw,20px)!important;font-weight:750!important;
+ line-height:1.35!important;letter-spacing:.065em!important;
+ text-align:center!important;text-shadow:0 1px 12px rgba(249,170,70,.22);
+ text-wrap:balance;
+}
+body.home-page.ds-unified .hero-marketing-badge::before{
+ content:"";position:absolute;z-index:-1;inset:0;border-radius:inherit;
+ background:linear-gradient(100deg,transparent 7%,rgba(255,210,142,.085) 48%,transparent 82%);
+ pointer-events:none;
+}
+body.home-page.ds-unified .hero-marketing-badge::after{
+ content:"";position:absolute;pointer-events:none;left:50%;bottom:-3px;
+ width:clamp(35px,7vw,85px);height:5px;transform:translateX(-50%);
+ border-radius:50%;
+ background:radial-gradient(ellipse,rgba(255,255,238,1) 0%,rgba(255,183,65,.98) 33%,rgba(254,134,33,.44) 66%,transparent 100%);
+ box-shadow:0 0 11px 4px rgba(255,162,53,.58),0 0 30px 6px rgba(246,127,33,.25);
+}
+body.home-page.ds-unified .ds-hero-photographic{
+ position:relative!important;
+ display:flex!important;align-items:center!important;isolation:isolate;
+ box-sizing:border-box!important;
+ width:100%!important;max-width:none!important;
+ min-height:clamp(560px,80vw,980px)!important;
+ height:auto!important;overflow:hidden!important;
+ margin:0!important;padding:0!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+ background:#24130e!important;
+}
+body.home-page.ds-unified .ds-hero-photographic .ds-network-tower{
+ display:block!important;position:absolute!important;inset:0!important;
+ width:100%!important;height:100%!important;max-width:none!important;
+ object-fit:cover!important;object-position:69% 50%!important;
+ filter:saturate(1.1) contrast(1.035) brightness(1.03)!important;
+ -webkit-mask-image:none!important;mask-image:none!important;transform:none!important;
+}
+body.home-page.ds-unified .ds-hero-photographic::after{
+ content:"";pointer-events:none;position:absolute;inset:0;z-index:1;
+ background:linear-gradient(90deg,rgba(20,10,8,.83) 0%,rgba(25,12,10,.67) 28%,rgba(29,14,10,.36) 47%,rgba(24,11,8,.03) 73%),
+ linear-gradient(0deg,rgba(12,8,7,.27) 0%,transparent 23%,transparent 75%,rgba(12,8,7,.16) 100%)!important;
+}
+body.home-page.ds-unified .ds-hero-photographic-copy{
+ position:relative!important;z-index:2!important;
+ display:flex!important;flex-direction:column!important;align-items:flex-start!important;
+ justify-content:center!important;
+ width:min(68%,810px)!important;max-width:810px!important;
+ margin:0!important;padding:clamp(26px,6.8vw,88px)!important;
+ gap:clamp(16px,2.6vw,32px)!important;
+ font-family:Inter,"Segoe UI Variable","Segoe UI",system-ui,sans-serif!important;
+}
+body.home-page.ds-unified .ds-hero-photo-kicker{
+ position:relative;font-size:clamp(13px,1.75vw,23px)!important;
+ font-weight:750!important;letter-spacing:.17em!important;
+ line-height:1.7!important;text-transform:uppercase;color:#f7bf69!important;
+ max-width:35ch!important;margin:0 0 23px!important;
+ text-shadow:0 2px 18px rgba(0,0,0,.45);
+}
+body.home-page.ds-unified .ds-hero-photo-kicker span{
+ display:block!important;font-size:.9em!important;font-weight:750!important;
+ letter-spacing:.17em!important;margin-top:0!important;
+}
+body.home-page.ds-unified .ds-hero-photo-kicker::after{
+ content:"";display:block;width:75px;max-width:30%;height:2px;
+ background:#f7c46b;margin-top:21px;
+ box-shadow:0 0 9px rgba(244,164,71,.3);
+}
+body.home-page.ds-unified .ds-hero-photographic h1{
+ width:max-content!important;max-width:100%!important;
+ margin:0!important;font-family:Inter,"Segoe UI Variable","Segoe UI",system-ui,sans-serif!important;
+ font-size:clamp(49px,7.3vw,105px)!important;font-weight:850!important;
+ line-height:1.01!important;letter-spacing:-.055em!important;
+ text-wrap:balance;color:#fffaf7!important;
+ text-shadow:0 4px 25px rgba(0,0,0,.28);
+}
+body.home-page.ds-unified .ds-hero-photographic h1 span{
+ display:block!important;color:#f6bf69!important;
+}
+body.home-page.ds-unified .ds-hero-photo-description{
+ max-width:35ch!important;margin:0!important;
+ font-family:Inter,"Segoe UI Variable","Segoe UI",system-ui,sans-serif!important;
+ font-size:clamp(17px,2.32vw,29px)!important;line-height:1.34!important;
+ font-weight:400!important;letter-spacing:-.015em!important;color:#fff7f0!important;
+ text-shadow:0 2px 14px rgba(0,0,0,.45);
+}
+body.home-page.ds-unified .hero-lead-simple{
+ box-sizing:border-box!important;width:min(100%,1260px)!important;max-width:1260px!important;
+ margin:0 auto!important;padding:clamp(23px,3vw,35px) clamp(20px,3.4vw,45px)!important;
+ font-family:Inter,"Segoe UI Variable","Segoe UI",system-ui,sans-serif!important;
+ color:#fffaf8!important;font-size:clamp(20px,2.42vw,30px)!important;
+ line-height:1.45!important;font-weight:600!important;letter-spacing:-.018em;
+}
+body.home-page.ds-unified .hero-actions,
+body.home-page.ds-unified .trust-line,
+body.home-page.ds-unified .hero-note{
+ box-sizing:border-box!important;width:min(100% - 42px,1160px)!important;
+ max-width:1160px!important;margin-left:auto!important;margin-right:auto!important;
+}
+body.home-page.ds-unified .hero-actions{margin-top:8px!important}
+
+/* Navigation fixe, cinq cartes brunes, bord dore, icones or et titres blancs. */
+body.ds-unified main{padding-bottom:clamp(106px,12vw,168px)}
+body.ds-unified .revenue-quick-nav{
+ position:fixed!important;inset:auto 0 0!important;
+ display:block!important;width:100%!important;max-width:100%!important;
+ box-sizing:border-box!important;z-index:1800!important;margin:0!important;
+ padding:12px clamp(6px,1.3vw,18px) calc(13px + env(safe-area-inset-bottom))!important;
+ background:linear-gradient(180deg,rgba(29,18,13,.94),rgba(19,12,10,.995))!important;
+ border:0!important;border-top:1px solid rgba(248,192,113,.25)!important;
+ box-shadow:0 -15px 45px rgba(0,0,0,.5)!important;
+ backdrop-filter:blur(18px);
+}
+body.ds-unified .revenue-quick-nav>.wrap{
+ width:100%!important;max-width:1320px!important;padding:0!important;margin:0 auto!important;
+}
+body.ds-unified .revenue-quick-tabs{
+ display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+ align-items:stretch!important;gap:clamp(5px,.9vw,12px)!important;
+ width:100%!important;min-width:0!important;margin:0!important;
+}
+body.ds-unified .revenue-quick-tab{
+ display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+ gap:clamp(5px,.65vw,10px)!important;
+ position:relative!important;min-width:0!important;min-height:clamp(85px,10vw,145px)!important;
+ padding:12px clamp(5px,1vw,16px)!important;margin:0!important;
+ border:1px solid rgba(235,175,100,.52)!important;
+ border-radius:clamp(12px,1.5vw,21px)!important;
+ background:linear-gradient(155deg,rgba(48,33,26,.97),rgba(31,21,18,.995))!important;
+ box-shadow:inset 0 1px 0 rgba(255,208,143,.075),0 5px 21px rgba(0,0,0,.17)!important;
+ transform:none!important;text-decoration:none!important;text-align:center!important;
+ touch-action:manipulation;
+}
+body.ds-unified .revenue-quick-tab:first-child{border-left:1px solid rgba(235,175,100,.52)!important}
+body.ds-unified .revenue-quick-tab:hover,
+body.ds-unified .revenue-quick-tab:focus-visible{
+ border-color:#f6c579!important;
+ background:linear-gradient(155deg,#453123,#291a14)!important;
+ box-shadow:0 0 0 1px rgba(255,195,100,.2),0 10px 25px rgba(0,0,0,.22)!important;
+}
+body.ds-unified .revenue-quick-tab-primary{border-color:#f6c579!important}
+body.ds-unified .revenue-quick-tab .ds-tab-icon{
+ display:flex!important;justify-content:center!important;align-items:center!important;
+ flex:0 0 auto!important;width:clamp(21px,2.7vw,36px)!important;
+ height:clamp(21px,2.7vw,36px)!important;margin:0 0 2px!important;
+ color:#f6c579!important;
+}
+body.ds-unified .revenue-quick-tab .ds-tab-icon svg{
+ display:block!important;width:100%!important;height:100%!important;
+ fill:none!important;stroke:currentColor!important;stroke-width:1.8;
+ stroke-linecap:round;stroke-linejoin:round;
+}
+body.ds-unified .revenue-quick-tab small{
+ display:block!important;margin:0!important;
+ font-family:Inter,"Segoe UI Variable","Segoe UI",system-ui,sans-serif!important;
+ font-size:clamp(8px,1.18vw,14px)!important;font-weight:750!important;
+ line-height:1.2!important;letter-spacing:.025em!important;
+ color:#f5c474!important;overflow-wrap:anywhere!important;
+}
+body.ds-unified .revenue-quick-tab strong,
+body.ds-unified .revenue-quick-tab-primary strong{
+ display:block!important;margin:0!important;
+ font-family:Inter,"Segoe UI Variable","Segoe UI",system-ui,sans-serif!important;
+ font-size:clamp(11px,1.7vw,20px)!important;font-weight:750!important;
+ line-height:1.15!important;letter-spacing:-.02em!important;
+ color:#fffaf8!important;overflow-wrap:anywhere!important;
+}
+body.ds-unified .revenue-quick-tab span:not(.ds-tab-icon){display:none!important}
+
+@media(max-width:760px){
+ body.home-page.ds-unified .hero-marketing-badge{
+  max-width:calc(100% - 18px)!important;margin:5px auto 5px!important;
+  padding:8px 9px!important;font-size:clamp(9px,2.55vw,13px)!important;
+  letter-spacing:.02em!important;
+ }
+ body.home-page.ds-unified .ds-hero-photographic{
+  min-height:clamp(340px,98vw,560px)!important;
+ }
+ body.home-page.ds-unified .ds-hero-photographic .ds-network-tower{
+  object-position:66% 50%!important;
+ }
+ body.home-page.ds-unified .ds-hero-photographic::after{
+  background:linear-gradient(90deg,rgba(17,9,7,.87),rgba(20,11,8,.68) 43%,rgba(16,8,7,.1) 86%),
+  linear-gradient(0deg,rgba(14,8,6,.15),transparent 36%)!important;
+ }
+ body.home-page.ds-unified .ds-hero-photographic-copy{
+  width:78%!important;max-width:500px!important;
+  padding:clamp(16px,6.7vw,36px)!important;
+  gap:clamp(13px,3.6vw,20px)!important;
+ }
+ body.home-page.ds-unified .ds-hero-photo-kicker{
+  font-size:clamp(10px,2.7vw,15px)!important;margin-bottom:8px!important;
+  letter-spacing:.14em!important;
+ }
+ body.home-page.ds-unified .ds-hero-photo-kicker::after{margin-top:11px;width:45px}
+ body.home-page.ds-unified .ds-hero-photographic h1{
+  font-size:clamp(34px,9.4vw,64px)!important;letter-spacing:-.06em!important;
+ }
+ body.home-page.ds-unified .ds-hero-photo-description{
+  max-width:30ch!important;font-size:clamp(13px,3.7vw,18px)!important;
+  line-height:1.4!important;
+ }
+ body.home-page.ds-unified .hero-lead-simple{
+  font-size:clamp(15px,4.1vw,20px)!important;
+  padding:17px 13px!important;line-height:1.35!important;
+ }
+ body.ds-unified main{padding-bottom:calc(106px + env(safe-area-inset-bottom))}
+ body.ds-unified .revenue-quick-nav{
+  padding:6px 4px calc(7px + env(safe-area-inset-bottom))!important;
+ }
+ body.ds-unified .revenue-quick-tabs{gap:4px!important}
+ body.ds-unified .revenue-quick-tab{
+  min-height:79px!important;padding:7px 2px!important;
+  border-radius:11px!important;gap:5px!important;
+ }
+ body.ds-unified .revenue-quick-tab .ds-tab-icon{width:21px!important;height:21px!important;margin-bottom:0!important}
+ body.ds-unified .revenue-quick-tab small{font-size:clamp(6.7px,1.85vw,10px)!important;letter-spacing:0!important}
+ body.ds-unified .revenue-quick-tab strong,
+ body.ds-unified .revenue-quick-tab-primary strong{font-size:clamp(8.5px,2.35vw,12px)!important;line-height:1.12!important}
+}
+@media(max-width:360px){
+ body.home-page.ds-unified .ds-hero-photographic-copy{width:80%!important;padding:15px!important}
+ body.home-page.ds-unified .ds-hero-photographic h1{font-size:clamp(31px,9vw,38px)!important}
+ body.ds-unified .revenue-quick-tab{min-height:76px!important}
+ body.ds-unified .revenue-quick-tab .ds-tab-icon{width:19px!important;height:19px!important}
+ body.ds-unified .revenue-quick-tab small{font-size:6.5px!important}
+ body.ds-unified .revenue-quick-tab strong,
+ body.ds-unified .revenue-quick-tab-primary strong{font-size:8px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ body.ds-unified .revenue-quick-tab{transition:none!important}
+}
