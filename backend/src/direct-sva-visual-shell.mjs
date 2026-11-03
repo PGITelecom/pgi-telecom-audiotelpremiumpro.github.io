@@ -39,9 +39,17 @@ function sharedHeader(lang,path){
 function sharedBottomBar(lang,path){
  const t=LABELS[lang]||LABELS.fr,r=routes(lang);
  const names=[t.overview,t.solutions,t.third,t.fourth,t.fifth];
+ const iconPaths=[
+  '<path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 17l9 5 9-5"/>',
+  '<path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="20" r="1"/>',
+  '<path d="M4 21v-5M9 21V11M14 21V7M19 21V3"/>',
+  '<path d="M21.5 16.3v3a2.1 2.1 0 0 1-2.3 2 19 19 0 0 1-17-17 2.1 2.1 0 0 1 2-2.3h3a2 2 0 0 1 2 1.7l.6 3.3a2 2 0 0 1-.6 1.8L7 10.8a15 15 0 0 0 6.2 6.2l2-2.2a2 2 0 0 1 1.8-.6l3.3.6a2 2 0 0 1 1.2 1.5Z"/>',
+  '<path d="M3 14v-3a9 9 0 0 1 18 0v3M3 14h3a2 2 0 0 1 2 2v3H6a3 3 0 0 1-3-3v-2ZM21 14h-3a2 2 0 0 0-2 2v3h2a3 3 0 0 0 3-3v-2ZM18 19c0 2-2 3-6 3"/>'
+ ];
+ const svg=i=>'<svg class="ds-bottom-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+iconPaths[i]+'</svg>';
  const cards=names.map((label,i)=>
  '<a class="revenue-quick-tab'+(path===r[i]?' revenue-quick-tab-primary':'')+'" href="'+r[i]+'"'+(path===r[i]?' aria-current="page"':'')+'>'+
- '<small>'+htmlEscape(t.small[i])+'</small><strong>'+htmlEscape(label)+'</strong>'+
+ svg(i)+'<small>'+htmlEscape(t.small[i])+'</small><strong>'+htmlEscape(label)+'</strong>'+
  '<span>'+htmlEscape(t.sub[i])+'</span></a>').join("");
  return '<section class="revenue-quick-nav" aria-label="'+htmlEscape(t.aria)+'"><div class="wrap"><nav class="revenue-quick-tabs" aria-label="'+htmlEscape(t.aria)+'">'+cards+'</nav></div></section>';
 }
@@ -60,7 +68,7 @@ function installHeroPhoto(html){
  // Reuse the originally selected tower-at-sunset image. Unlike the old card,
  // the title and a short statement live inside the photographic composition.
  const art='<div class="ds-hero-photographic" role="group" aria-label="Pôle Télécom et Réseau">'+
- '<img class="ds-network-tower" src="/site/distribution-sva/telecom-hero.webp" alt="Antenne de télécommunications, ville au soleil couchant et connexions lumineuses" width="960" height="1358" decoding="async" fetchpriority="high">'+
+ '<img class="ds-network-tower" src="/site/distribution-sva/pole-telecom-coucher-soleil-reference.webp" alt="Antenne de télécommunications, ville au soleil couchant et connexions lumineuses" width="430" height="937" decoding="async" fetchpriority="high">'+
  '<div class="ds-hero-photographic-copy">'+
  '<p class="ds-hero-photo-kicker">PÔLE TELECOM &amp; RÉSEAU <span>EN PRÉPARATION</span></p>'+
  heading+
