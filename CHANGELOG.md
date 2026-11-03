@@ -86,7 +86,7 @@
 
 ## 1.30.3 : Identité publique PGI & SEO canonique : 2026-09-24
 
-- suppression de l’ancien domaine GitHub ClairVoyanceMedium des métadonnées publiques ;
+- suppression de l’ancien domaine GitHub externe des métadonnées publiques lors de la séparation des activités ;
 - URL Vercel PGI utilisée par défaut pour canonical, Open Graph et schema.org ;
 - robots.txt aligné sur la racine publique et cockpit/client maintenus hors index ;
 - sitemap public complet : accueil, pages métiers, comparateur, guides, demande d’ouverture et pages légales ;
