@@ -22,7 +22,7 @@ test("Pôle marketing benefits, relevant audiences and transparency stay truthfu
 });
 
 test("approved photos and editorial order remain intact",()=>{
-  const hero=home.indexOf("telecom-hero.webp");
+  const hero=home.indexOf("pole-telecom-coucher-soleil-reference.webp");
   const second=home.indexOf("pgi-telecom-supervision-infrastructure-reseau.webp");
   const faq=home.indexOf('id="questions-pole-telecom"');
   const light=home.indexOf('class="ds-two-univers"');
