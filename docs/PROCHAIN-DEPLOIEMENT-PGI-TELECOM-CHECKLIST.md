@@ -1,4 +1,4 @@
-# PGI Telecom / Audiotel Premium Pro — checklist du prochain déploiement Vercel
+# PGI Telecom / Audiotel Premium Pro : checklist du prochain déploiement Vercel
 
 **Préparée le 25 octobre 2026 — À EXÉCUTER UNIQUEMENT APRÈS AUTORISATION EXPLICITE DU PROPRIÉTAIRE.**
 
