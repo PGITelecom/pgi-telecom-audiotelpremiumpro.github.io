@@ -829,3 +829,38 @@ body.ds-unified .ds-project-checklist{padding:17px 20px}
 }
 
 
+
+
+/* Correction de la photo du Pôle : photographie fournie par le propriétaire, recadrée sans génération */
+body.home-page.ds-unified .ds-hero-photographic::before{
+ content:"";position:absolute;z-index:0;inset:auto 0 0;height:39%;
+ background-image:linear-gradient(180deg,rgba(22,12,10,.28),rgba(22,12,10,0) 42%,rgba(17,8,6,.35)),
+ url("/site/distribution-sva/pole-telecom-skyline-reference.webp");
+ background-size:cover;background-position:center bottom;background-repeat:no-repeat;
+ pointer-events:none;
+ -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 26%,#000 100%);
+ mask-image:linear-gradient(to bottom,transparent 0%,#000 26%,#000 100%);
+}
+body.home-page.ds-unified .ds-hero-photographic .ds-network-tower{
+ inset:0 0 0 auto!important;right:0!important;left:auto!important;
+ width:48%!important;height:100%!important;
+ object-fit:cover!important;object-position:50% 10%!important;z-index:1!important;
+ -webkit-mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.65) 21%,#000 41%)!important;
+ mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.65) 21%,#000 41%)!important;
+ filter:contrast(1.04) saturate(1.07) brightness(1.035)!important;
+}
+body.home-page.ds-unified .ds-hero-photographic::after{
+ z-index:2!important;
+ background:linear-gradient(90deg,rgba(23,11,9,.91) 0%,rgba(25,12,9,.77) 26%,rgba(31,14,10,.21) 55%,transparent 75%),
+ linear-gradient(to top,rgba(19,9,7,.17),transparent 24%)!important;
+}
+body.home-page.ds-unified .ds-hero-photographic-copy{z-index:3!important}
+@media(max-width:760px){
+ body.home-page.ds-unified .ds-hero-photographic .ds-network-tower{
+  width:64%!important;right:-2%!important;object-position:50% 10%!important;
+ }
+ body.home-page.ds-unified .ds-hero-photographic::after{
+  background:linear-gradient(90deg,rgba(20,10,8,.9),rgba(22,11,8,.66) 46%,rgba(20,10,7,.13) 91%),
+  linear-gradient(to top,rgba(16,8,7,.12),transparent 25%)!important;
+ }
+}
