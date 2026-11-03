@@ -36,12 +36,20 @@ function sharedHeader(lang,path){
  '<span class="public-search-hint" aria-hidden="true">/</span></div>'+
  '<div class="public-search-results" id="site-search-results" data-site-search-results role="listbox" hidden></div></form></div></header>';
 }
+// Icons are vector markup only. The existing approved telecom photo remains unchanged.
+const QUICK_TAB_ICONS=[
+ '<svg viewBox="0 0 24 24" focusable="false"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 17l9 5 9-5"/></svg>',
+ '<svg viewBox="0 0 24 24" focusable="false"><path d="M2 9a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0m-11 3a5 5 0 0 1 8 0"/><path d="M12 19h.01"/></svg>',
+ '<svg viewBox="0 0 24 24" focusable="false"><path d="M5 20v-5M10 20V9M15 20V5M20 20V2"/></svg>',
+ '<svg viewBox="0 0 24 24" focusable="false"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.6 19.6 0 0 1-8.5-3A19.3 19.3 0 0 1 5.2 13a19.6 19.6 0 0 1-3-8.5A2 2 0 0 1 4.2 2h3a2 2 0 0 1 2 1.7c.1.95.33 1.9.67 2.8a2 2 0 0 1-.45 2.1L8.2 9.8a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.45c.9.34 1.85.56 2.8.67a2 2 0 0 1 1.7 2.08Z"/></svg>',
+ '<svg viewBox="0 0 24 24" focusable="false"><path d="M3 14v-3a9 9 0 0 1 18 0v3"/><rect x="2" y="13" width="4" height="7" rx="2"/><rect x="18" y="13" width="4" height="7" rx="2"/><path d="M20 20a5 5 0 0 1-5 3h-3"/></svg>'
+];
 function sharedBottomBar(lang,path){
  const t=LABELS[lang]||LABELS.fr,r=routes(lang);
  const names=[t.overview,t.solutions,t.third,t.fourth,t.fifth];
  const cards=names.map((label,i)=>
  '<a class="revenue-quick-tab'+(path===r[i]?' revenue-quick-tab-primary':'')+'" href="'+r[i]+'"'+(path===r[i]?' aria-current="page"':'')+'>'+
- '<small>'+htmlEscape(t.small[i])+'</small><strong>'+htmlEscape(label)+'</strong>'+
+ '<span class="ds-tab-icon" aria-hidden="true">'+QUICK_TAB_ICONS[i]+'</span><small>'+htmlEscape(t.small[i])+'</small><strong>'+htmlEscape(label)+'</strong>'+
  '<span>'+htmlEscape(t.sub[i])+'</span></a>').join("");
  return '<section class="revenue-quick-nav" aria-label="'+htmlEscape(t.aria)+'"><div class="wrap"><nav class="revenue-quick-tabs" aria-label="'+htmlEscape(t.aria)+'">'+cards+'</nav></div></section>';
 }
