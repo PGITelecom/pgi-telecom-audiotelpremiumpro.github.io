@@ -567,3 +567,212 @@ body.ds-unified .ds-value-grid h3,body.ds-unified .ds-profiles-grid h3{font-size
 body.ds-unified .ds-customer-value h2,body.ds-unified .ds-customer-profiles h2,body.ds-unified .ds-trust-foundation h2,body.ds-unified .ds-project-preparation h2{font-size:clamp(24px,6.2vw,30px)}
 body.ds-unified .ds-project-checklist{padding:17px 20px}
 }
+
+
+/* Owner reference: sunset tower photograph, luminous month badge and gold navigation */
+body.home-page.ds-unified{
+ font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+}
+body.home-page.ds-unified .site-header+main>.hero:first-child{
+ padding-top:12px!important;
+}
+body.home-page.ds-unified .hero{
+ background:linear-gradient(180deg,#251710,#170e0c 90%)!important;
+ padding:12px 0 40px!important;
+}
+body.home-page.ds-unified .hero>.wrap{
+ width:min(1180px,calc(100% - 20px));
+}
+body.home-page.ds-unified .hero-marketing-badge{
+ position:relative;isolation:isolate;display:block!important;width:max-content!important;
+ max-width:min(98%,1010px)!important;margin:0 auto 10px!important;
+ padding:14px clamp(17px,3vw,42px)!important;
+ border-radius:999px!important;border:1px solid #f4c47f!important;
+ background:linear-gradient(105deg,rgba(56,31,20,.97),rgba(83,52,34,.94),rgba(35,24,20,.97))!important;
+ color:#ffd083!important;font-size:clamp(11px,1.55vw,20px)!important;
+ font-weight:800!important;letter-spacing:.075em!important;line-height:1.35!important;
+ text-transform:uppercase;text-align:center;
+ box-shadow:0 0 0 1px rgba(102,51,19,.33),0 0 25px rgba(246,149,57,.19),inset 0 0 20px rgba(242,174,93,.065)!important;
+}
+body.home-page.ds-unified .hero-marketing-badge::after{
+ content:"";position:absolute;bottom:-2px;left:44%;right:44%;height:3px;
+ background:radial-gradient(ellipse,#fff8df 0%,#ffbc53 39%,transparent 76%);
+ filter:drop-shadow(0 0 5px #ffa82c) drop-shadow(0 0 13px #ed812e);
+ pointer-events:none;
+}
+body.home-page.ds-unified .ds-hero-photographic{
+ position:relative;isolation:isolate;display:flex;align-items:center;
+ min-height:clamp(610px,70vw,850px)!important;max-width:1180px;
+ margin:0!important;border:0!important;border-radius:2px!important;
+ background:linear-gradient(90deg,#1b100d 0%,#352016 48%,#412419 100%)!important;
+ box-shadow:none!important;overflow:hidden;
+}
+body.home-page.ds-unified .ds-hero-photographic::before{
+ content:"";position:absolute;inset:auto 0 0;z-index:0;height:39%;
+ background-image:linear-gradient(180deg,rgba(26,15,13,.4),rgba(23,11,8,.12) 35%,rgba(8,5,5,.38)),url("/site/distribution-sva/pole-telecom-skyline-reference.webp");
+ background-position:center bottom;background-size:cover;
+ -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 28%,#000 100%);
+ mask-image:linear-gradient(to bottom,transparent 0%,#000 28%,#000 100%);
+}
+body.home-page.ds-unified .ds-hero-photographic .ds-network-tower{
+ position:absolute!important;left:auto!important;right:0!important;top:0!important;
+ width:57%!important;height:100%!important;object-fit:cover!important;
+ object-position:50% 9%!important;z-index:1;
+ filter:contrast(1.06) saturate(1.08) brightness(1.03)!important;transform:none!important;
+ -webkit-mask-image:linear-gradient(to right,transparent 0%,rgba(0,0,0,.7) 22%,#000 43%)!important;
+ mask-image:linear-gradient(to right,transparent 0%,rgba(0,0,0,.7) 22%,#000 43%)!important;
+}
+body.home-page.ds-unified .ds-hero-photographic::after{
+ content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+ background:linear-gradient(90deg,rgba(24,13,11,.84) 0%,rgba(27,15,12,.72) 30%,rgba(31,15,11,.18) 63%,transparent 100%),
+ linear-gradient(0deg,rgba(10,7,7,.18),transparent 27%)!important;
+}
+body.home-page.ds-unified .ds-hero-photographic-copy{
+ position:relative;z-index:3;display:grid;align-content:center;justify-items:start;
+ width:min(65%,770px)!important;max-width:770px!important;
+ padding:clamp(27px,5.5vw,78px)!important;gap:clamp(17px,2.5vw,31px)!important;
+ text-shadow:0 3px 17px rgba(0,0,0,.28);
+}
+body.home-page.ds-unified .ds-hero-photo-kicker{
+ color:#ffd087!important;font-weight:750!important;
+ font-size:clamp(13px,1.8vw,23px)!important;letter-spacing:.16em!important;
+ text-transform:uppercase;line-height:1.55!important;max-width:34ch!important;
+}
+body.home-page.ds-unified .ds-hero-photo-kicker::after{
+ content:"";display:block;width:78px;height:2px;
+ background:#f5bb6a;box-shadow:0 0 9px rgba(249,178,84,.3);
+ margin-top:clamp(14px,2vw,23px);
+}
+body.home-page.ds-unified .ds-hero-photo-kicker span{
+ display:block;letter-spacing:.15em;margin-top:1px;font-size:.92em;
+}
+body.home-page.ds-unified .ds-hero-photographic h1{
+ color:#fff!important;font-size:clamp(52px,6.7vw,94px)!important;
+ line-height:.985!important;letter-spacing:-.053em!important;
+ font-weight:850!important;max-width:700px!important;margin:0!important;
+}
+body.home-page.ds-unified .ds-hero-photographic h1 span{
+ display:block;color:#ffcc76!important;
+}
+body.home-page.ds-unified .ds-hero-photo-description{
+ font-size:clamp(16px,1.85vw,23px)!important;
+ line-height:1.42!important;color:#fff7f1!important;
+ font-weight:450!important;max-width:39ch!important;
+}
+body.home-page.ds-unified .hero-lead-simple{
+ max-width:1120px!important;color:#e3d2c4!important;
+ margin:17px 0 12px!important;font-size:clamp(13px,1.3vw,16px)!important;
+ line-height:1.72!important;
+}
+body.home-page.ds-unified .hero-lead-simple strong{
+ display:block;color:#fff9f5!important;font-size:clamp(20px,2.5vw,32px)!important;
+ font-weight:730!important;line-height:1.3!important;
+ letter-spacing:-.02em;margin:2px 0 13px;
+}
+body.ds-unified{
+ padding-bottom:calc(162px + env(safe-area-inset-bottom))!important;
+}
+body.ds-unified .revenue-quick-nav{
+ position:fixed!important;inset:auto 0 0!important;z-index:1800!important;
+ background:linear-gradient(180deg,rgba(32,20,16,.985),rgba(22,14,11,.985))!important;
+ border-top:1px solid rgba(250,194,116,.52)!important;
+ padding:10px 9px calc(11px + env(safe-area-inset-bottom))!important;
+ box-shadow:0 -13px 36px rgba(0,0,0,.48)!important;backdrop-filter:blur(16px);
+}
+body.ds-unified .revenue-quick-nav>.wrap{
+ width:100%!important;max-width:1160px!important;padding:0!important;
+}
+body.ds-unified .revenue-quick-tabs{
+ display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+ gap:9px!important;align-items:stretch!important;
+}
+body.ds-unified .revenue-quick-tab,body.ds-unified .revenue-quick-tab:first-child{
+ position:relative;display:grid!important;align-content:center!important;justify-items:center!important;
+ gap:4px!important;min-width:0!important;min-height:122px!important;
+ margin:0!important;padding:10px 7px!important;
+ background:linear-gradient(145deg,rgba(54,34,25,.72),rgba(27,19,16,.98))!important;
+ border:1px solid rgba(242,184,106,.62)!important;
+ border-radius:16px!important;box-shadow:inset 0 0 22px rgba(225,155,75,.045)!important;
+ text-align:center!important;color:#fff4e8!important;
+ text-decoration:none!important;transition:border-color .18s ease,background .18s ease,box-shadow .18s ease!important;
+}
+body.ds-unified .revenue-quick-tab:hover,body.ds-unified .revenue-quick-tab:focus-visible{
+ background:linear-gradient(145deg,#483023,#2a1a14)!important;
+ border-color:#ffd38a!important;box-shadow:0 0 22px rgba(255,191,99,.17)!important;
+ outline:2px solid rgba(255,216,153,.45);outline-offset:1px;
+}
+body.ds-unified .revenue-quick-tab svg.ds-bottom-icon{
+ display:block!important;width:28px!important;height:28px!important;
+ margin:0 auto 3px!important;color:#fbd08a!important;stroke:#fbd08a!important;
+}
+body.ds-unified .revenue-quick-tab small{
+ display:block!important;color:#ffca72!important;
+ font-size:clamp(9px,1.03vw,13px)!important;font-weight:780!important;
+ letter-spacing:.05em!important;line-height:1.2!important;
+ margin:0 0 2px!important;
+}
+body.ds-unified .revenue-quick-tab strong,
+body.ds-unified .revenue-quick-tab-primary strong{
+ display:block!important;color:#fff9f4!important;
+ font-size:clamp(11px,1.28vw,17px)!important;
+ line-height:1.17!important;font-weight:780!important;
+ letter-spacing:-.025em!important;
+}
+body.ds-unified .revenue-quick-tab span{display:none!important}
+@media(max-width:760px){
+ body.home-page.ds-unified .hero>.wrap{width:calc(100% - 12px)!important}
+ body.home-page.ds-unified .hero-marketing-badge{
+  max-width:100%!important;padding:10px 12px!important;
+  font-size:clamp(10px,2.8vw,13px)!important;letter-spacing:.055em!important;
+ }
+ body.home-page.ds-unified .ds-hero-photographic{
+  min-height:clamp(575px,160vw,760px)!important;border-radius:0!important;
+ }
+ body.home-page.ds-unified .ds-hero-photographic .ds-network-tower{
+  width:73%!important;right:-6%!important;object-position:50% 15%!important;
+  -webkit-mask-image:linear-gradient(to right,transparent 0%,rgba(0,0,0,.52) 22%,#000 55%)!important;
+  mask-image:linear-gradient(to right,transparent 0%,rgba(0,0,0,.52) 22%,#000 55%)!important;
+ }
+ body.home-page.ds-unified .ds-hero-photographic::after{
+  background:linear-gradient(90deg,rgba(22,11,9,.9) 0%,rgba(24,12,10,.66) 59%,rgba(24,12,10,.13) 100%),
+  linear-gradient(to top,rgba(21,11,9,.28),transparent 28%)!important;
+ }
+ body.home-page.ds-unified .ds-hero-photographic-copy{
+  width:94%!important;padding:clamp(17px,5.5vw,30px)!important;
+  gap:clamp(17px,4vw,23px)!important;
+ }
+ body.home-page.ds-unified .ds-hero-photo-kicker{
+  font-size:clamp(12px,3.7vw,18px)!important;max-width:27ch!important;
+ }
+ body.home-page.ds-unified .ds-hero-photographic h1{
+  font-size:clamp(43px,10.2vw,66px)!important;max-width:94%!important;
+ }
+ body.home-page.ds-unified .ds-hero-photo-description{
+  font-size:clamp(15px,3.8vw,19px)!important;max-width:27ch!important;
+ }
+ body.ds-unified{padding-bottom:calc(131px + env(safe-area-inset-bottom))!important}
+ body.ds-unified .revenue-quick-nav{
+  padding:7px 0 calc(8px + env(safe-area-inset-bottom))!important;
+ }
+ body.ds-unified .revenue-quick-tabs{
+  display:flex!important;overflow-x:auto!important;overflow-y:hidden!important;
+  scroll-snap-type:x mandatory;overscroll-behavior-x:contain;
+  gap:8px!important;padding:2px 12px 5px!important;scrollbar-width:none;
+ }
+ body.ds-unified .revenue-quick-tabs::-webkit-scrollbar{display:none}
+ body.ds-unified .revenue-quick-tab,body.ds-unified .revenue-quick-tab:first-child{
+  flex:0 0 132px!important;min-height:104px!important;
+  padding:8px 6px!important;border-radius:14px!important;
+  scroll-snap-align:start;
+ }
+ body.ds-unified .revenue-quick-tab svg.ds-bottom-icon{
+  width:23px!important;height:23px!important;margin-bottom:2px!important;
+ }
+ body.ds-unified .revenue-quick-tab small{font-size:9px!important}
+ body.ds-unified .revenue-quick-tab strong,body.ds-unified .revenue-quick-tab-primary strong{
+  font-size:12px!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ body.ds-unified .revenue-quick-tab{transition:none!important}
+}
