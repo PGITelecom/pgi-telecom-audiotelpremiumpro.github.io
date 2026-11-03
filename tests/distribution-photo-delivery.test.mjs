@@ -11,6 +11,7 @@ import {isDirectSvaPublicAsset} from "../backend/src/direct-sva-public-site.mjs"
 const PUBLIC_PATHS=[
  "/site/distribution-sva/telecom-hero.webp",
  "/site/distribution-sva/pole-telecom-coucher-soleil-reference.webp",
+ "/site/distribution-sva/pole-telecom-skyline-reference.webp",
  "/site/distribution-sva/pgi-telecom-supervision-infrastructure-reseau.webp",
  "/site/distribution-sva/style.css",
  "/site/distribution-sva/brand.css",
