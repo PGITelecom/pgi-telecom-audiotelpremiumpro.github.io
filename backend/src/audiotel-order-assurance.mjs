@@ -1,6 +1,7 @@
 // Audiotel Premium Pro (APP): read-only production evidence dashboard.
 // This does not authorize order fulfillment, numbering, payment or publication.
 // Keep this independent from the future direct_sva business unit.
+import {APP_ORDER_STEPS,APP_ORDER_EXECUTION_PLAN} from "./audiotel-platform-order.mjs";
 const UNIT="audiotel_platform";
 function count(value){
   if(typeof value!=="number"&&typeof value!=="string")throw Error("APP_READINESS_INVALID_COUNT");
@@ -16,6 +17,8 @@ function report(state,checks=[],counts={}){
     automatic_number_assignment_authorized:false,payments_authorized:false,
     customer_number_delivery_authorized:false,external_legal_review_completed:false,
     external_carrier_acceptance_completed:false,real_payment_verified:false,
+    required_order_evidence:Object.freeze(APP_ORDER_STEPS.map(x=>x.key)),
+    provisioning_protocol:Object.freeze(APP_ORDER_EXECUTION_PLAN.map(x=>x.key)),
     checks:Object.freeze(checks),counts:Object.freeze(counts)
   });
 }
