@@ -33,6 +33,28 @@
 
 ## Portée des validations
 
-Le test unitaire de l'observateur ne remplace pas la recette réelle d'une commande ni les mesures réseau. Les 21 modules dans le kit local précédent ne sont pas automatiquement installés par ce commit. Toute intégration ultérieure des modules doit être revue indépendamment, afin de ne pas mélanger Audiotel et Distribution directe.
+Le test unitaire de l'observateur ne remplace pas la recette réelle d'une commande ni les mesures réseau. Cette branche ajoute désormais des modules préparatoires **APP et DSVA séparés**, et des tests unitaires dédiés, sans activer de route publique. Les modules restant dans le kit local ne sont pas automatiquement intégrés. Leur compatibilité doit être vérifiée séparément, notamment pour éviter de mélanger Audiotel et la distribution directe.
+
+### Intégration effectuée sur la branche isolée au 6 novembre 2026
+
+- Vérification de la disponibilité de numéros, des connexions opérateurs, du prix actif, des paramètres légaux et de l'état comptable via l'API de diagnostic staff en lecture seule.
+- Ajout de `audiotel-platform-intake.mjs` : intention de commande transactionnelle et idempotente, sous autorisation serveur, sans attribution ni paiement et sans route publique active.
+- Ajout de `audiotel-billing-calendar.mjs` : préparation de la période gratuite jusqu'à la fin du mois civil en heure de Paris ; ce module ne crée pas d'abonnement Stripe.
+- Ajout de `audiotel-stripe-accounting-preview.mjs` : brouillons équilibrés, distinction facture/TVA/commission Stripe/compte de passage/virement bancaire, sans comptabilisation réelle.
+- Ajout de `customer-portal-adaptability.mjs` : politique d'affichage par service et habilitation, distincte de l'autorisation des actions côté API.
+- Ajout de modules préparatoires DSVA (suivi administratif, rapprochement, politique d'ouverture des blocs, lecture client cloisonnée, livre analytique), sans mise en service ni migration.
+- Tests supplémentaires sur la commande répétée, les états de suspension, la TVA, les frais de paiement, les changements horaires Paris et l'isolation entre activités.
+- Validation GitHub Actions du commit `b3d15e086052ccafd841bb06392aa37059281687` : succès du workflow Quality & Security, exécution `42306768146` (tests du dépôt, migrations sur PostgreSQL jetable, intégrations et contrôles).
+- Pas de table `app_number_order_intents` installée dans Neon de production ; aucun numéro SVA enregistré ni attribué lors de la vérification.
+
+### Non terminé, et donc non présentable comme une commande entièrement automatique
+
+- Aucun parcours public de commande APP n'est activé avec les nouvelles intentions. Le moteur ne traite pas de manière autonome un paiement ou un numéro en production.
+- L'opérateur attributaire, le KYB/KYC, la signature, l'acceptation SIP/CDR et l'acheminement doivent fournir des preuves réelles et des adaptateurs autorisés.
+- Stripe sur le bon compte, le régime fiscal approuvé, les mentions de factures, l'export FEC et le rapprochement bancaire ne sont pas opérationnels.
+- L'isolation PostgreSQL RLS du portail Distribution doit être configurée et contrôlée avant ouverture.
+- Les scripts de préparation SQL restent confinés hors des migrations applicables automatiquement.
+
+**Aucune fusion ni déploiement n'est autorisé par cette livraison.**
 
 Interdictions actuelles : pas de déploiement, pas de modification de production Neon, pas de Stripe, pas de numérotation réelle, pas de reversements, pas de changement d'interface et pas de fusion vers main.
