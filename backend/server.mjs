@@ -24,6 +24,7 @@ import {verifyResendWebhook} from "./src/resend-webhook.mjs";
 import {applyResendWebhookEvent,acknowledgeResendInboundForward,drainTransactionalEmails,drainDunningTransactionalEmails} from "./src/email-dispatcher.mjs";
 import {submitHubSpotLead,syncHubSpotCommercialLead,syncHubSpotCommercialTenant,syncHubSpotSupportMessage,syncHubSpotInboundEmail,syncHubSpotCustomerIncident,syncHubSpotCardPaymentState} from "./src/hubspot-crm.mjs";
 import {evaluateLaunchReadiness} from "./src/launch-readiness.mjs";
+import {inspectAudiotelReadiness} from "./src/audiotel-order-assurance.mjs";
 import {directSvaBusinessSnapshot,directSvaAccountingExport,createDirectSvaDraft,approveDirectSvaDraft} from "./src/direct-sva-business.mjs";
 import {analyzeDirectSvaSettlement} from "./src/direct-sva-reconciliation.mjs";
 import {prepareDirectSvaCollectionAccounting} from "./src/direct-sva-collection-planner.mjs";
@@ -1843,9 +1844,14 @@ export function createBackend(options={}){
           billingProviderStatus(config)
         ]);
         const withdrawalReady=config.onlineWithdrawalReady===true&&schemaReady===true;
-        return done(res,metrics,started,"platform.launch_readiness",200,evaluateLaunchReadiness({
+        const launchReadiness=evaluateLaunchReadiness({
           config,system,performance,platform,carrier,billingProvider:billing,withdrawalReady
-        }));
+        });
+        // Staff-only evidence; never a command to provision, charge or publish a number.
+        const audiotelOrderAssurance=await inspectAudiotelReadiness(store);
+        return done(res,metrics,started,"platform.launch_readiness",200,{
+          ...launchReadiness,audiotel_order_assurance:audiotelOrderAssurance
+        });
       }
 
       if(method==="POST"&&pathname==="/api/v1/platform/performance-lab/runs"){
