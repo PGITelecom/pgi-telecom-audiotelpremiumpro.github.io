@@ -25,6 +25,7 @@ import {applyResendWebhookEvent,acknowledgeResendInboundForward,drainTransaction
 import {submitHubSpotLead,syncHubSpotCommercialLead,syncHubSpotCommercialTenant,syncHubSpotSupportMessage,syncHubSpotInboundEmail,syncHubSpotCustomerIncident,syncHubSpotCardPaymentState} from "./src/hubspot-crm.mjs";
 import {evaluateLaunchReadiness} from "./src/launch-readiness.mjs";
 import {inspectAudiotelReadiness} from "./src/audiotel-order-assurance.mjs";
+import {prioritizeAudiotelOperations} from "./src/audiotel-operational-priorities.mjs";
 import {directSvaBusinessSnapshot,directSvaAccountingExport,createDirectSvaDraft,approveDirectSvaDraft} from "./src/direct-sva-business.mjs";
 import {analyzeDirectSvaSettlement} from "./src/direct-sva-reconciliation.mjs";
 import {prepareDirectSvaCollectionAccounting} from "./src/direct-sva-collection-planner.mjs";
@@ -1849,8 +1850,12 @@ export function createBackend(options={}){
         });
         // Staff-only evidence; never a command to provision, charge or publish a number.
         const audiotelOrderAssurance=await inspectAudiotelReadiness(store);
+        const audiotelPriorities=prioritizeAudiotelOperations({
+          launch:launchReadiness,assurance:audiotelOrderAssurance
+        });
         return done(res,metrics,started,"platform.launch_readiness",200,{
-          ...launchReadiness,audiotel_order_assurance:audiotelOrderAssurance
+          ...launchReadiness,audiotel_order_assurance:audiotelOrderAssurance,
+          audiotel_operational_priorities:audiotelPriorities
         });
       }
 
