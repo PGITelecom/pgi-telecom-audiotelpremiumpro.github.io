@@ -88,6 +88,17 @@ jobs:
           node backend/migrate.mjs
           node backend/migrate.mjs
 
+      - name: Validate dormant APP order migration on CI PostgreSQL only
+        env:
+          PGPASSWORD: pgi_test
+        run: |
+          docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" -v "$PWD/database:/sql:ro" postgres:16-alpine \
+            psql -h 127.0.0.1 -U pgi_test -d pgi_test -v ON_ERROR_STOP=1 \
+            -f /sql/prelaunch-not-applied/090_audiotel_platform_number_order_preparation.sql
+          docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" postgres:16-alpine \
+            psql -h 127.0.0.1 -U pgi_test -d pgi_test -Atc \
+            "SELECT (to_regclass('public.app_number_order_intents') IS NOT NULL AND to_regclass('public.app_number_order_evidence_drafts') IS NOT NULL AND to_regclass('public.app_number_order_action_drafts') IS NOT NULL AND to_regclass('public.app_number_order_audit') IS NOT NULL AND to_regclass('public.app_accounting_reconciliation_drafts') IS NOT NULL)::text;" | grep -Eq '^(t|true)$'
+
       - name: Backup and restore drill
         env:
           PGPASSWORD: pgi_test

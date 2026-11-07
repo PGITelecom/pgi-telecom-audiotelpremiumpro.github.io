@@ -1048,6 +1048,8 @@ export class MemoryStore{
     return {data:[],next_cursor:null};
   }
 
+  async tenantPayoutHistory(publicId,params={}){void publicId;void params;throw problem(404,"TENANT_NOT_FOUND");}
+
   async tenantControlDetail(publicId){
     void publicId;
     throw problem(404,"TENANT_NOT_FOUND");

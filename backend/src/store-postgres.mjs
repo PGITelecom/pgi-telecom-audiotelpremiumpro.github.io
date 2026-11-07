@@ -2823,6 +2823,7 @@ export class PostgresStore{
       " FROM tenants t WHERE t.tenant_type<>'internal'"+
       " AND ($10::bigint IS NULL OR (t.id=$10 AND EXTRACT(YEAR FROM t.created_at)::int=$11))"+
       " AND ($10::bigint IS NOT NULL OR $1::text IS NULL OR t.slug_search LIKE $1||'%' OR t.display_name_search LIKE $1||'%' OR t.legal_name_search LIKE $1||'%' OR lower(t.country_code)=$1"+
+      " OR lower(btrim(COALESCE(t.billing_email,''))) LIKE $1||'%'"+
       " OR EXISTS (SELECT 1 FROM customer_tenant_memberships cm JOIN customer_principals cp ON cp.id=cm.customer_principal_id WHERE cm.tenant_id=t.id AND ("+
       " cp.email_normalized LIKE $1||'%' OR lower(cp.display_name) LIKE $1||'%' OR lower(COALESCE(cp.metadata->>'first_name','')) LIKE $1||'%' OR lower(COALESCE(cp.metadata->>'last_name','')) LIKE $1||'%'"+
       " OR lower(btrim(COALESCE(cp.metadata->>'first_name','')||' '||COALESCE(cp.metadata->>'last_name',''))) LIKE $1||'%'"+
@@ -7728,6 +7729,34 @@ export class PostgresStore{
     return result;
   }
 
+  // Administrative SVA payout history; no public/customer-level lookup.
+  // Rows are scoped to ONE tenant in SQL, paginated by a stable server-side cursor.
+  async tenantPayoutHistory(publicId,params={}){
+    publicId=String(publicId||"").trim();
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(publicId))throw problem(400,"INVALID_TENANT_PUBLIC_ID");
+    const limit=clampInt(params.limit,50,1,100);
+    const cursor=decodeNumericCursor(params.cursor);
+    const tenant=(await this.readSql.unsafe(
+      "SELECT id,tenant_type FROM tenants WHERE public_id=$1::uuid",[publicId]
+    ))[0];
+    if(!tenant)throw problem(404,"TENANT_NOT_FOUND");
+    if(tenant.tenant_type==="internal")throw problem(409,"INTERNAL_TENANT_PROTECTED");
+    const rows=await this.readSql.unsafe(
+      "SELECT d.id AS _cursor_id,m.country_code AS market,d.currency,d.period_start,d.period_end,"+
+      " d.upstream_payout_ht::float8,d.platform_fee_ht::float8,d.net_payout_ht::float8,"+
+      " d.unallocated_amount_ht::float8,d.held_amount_ht::float8,d.status,d.payment_due_date,"+
+      " d.paid_at,d.payment_reference,d.statement_reference"+
+      " FROM tenant_revenue_distributions d LEFT JOIN operating_markets m ON m.id=d.market_id"+
+      " WHERE d.tenant_id=$1 AND ($2::bigint IS NULL OR d.id<$2) ORDER BY d.id DESC LIMIT $3",
+      [tenant.id,cursor,limit+1]
+    );
+    const hasMore=rows.length>limit,page=hasMore?rows.slice(0,limit):rows;
+    return {
+      data:page.map(row=>{const {_cursor_id,...publicRow}=row;return publicRow;}),
+      next_cursor:hasMore&&page.length?encodeNumericCursor(Number(page.at(-1)._cursor_id)):null
+    };
+  }
+
   async tenantControlDetail(publicId){
     publicId=String(publicId||"").trim();
     if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(publicId))throw problem(400,"INVALID_TENANT_PUBLIC_ID");
@@ -7777,7 +7806,7 @@ export class PostgresStore{
       ),
       this.readSql.unsafe(
         "SELECT s.id,m.country_code AS market,s.currency,s.period_start,s.period_end,s.upstream_payout_ht::float8,s.platform_fee_ht::float8,s.net_payout_ht::float8,"+
-        " s.unallocated_amount_ht::float8,s.held_amount_ht::float8,s.collection_model,s.status,s.payment_due_date,s.paid_at,s.statement_reference"+
+        " s.unallocated_amount_ht::float8,s.held_amount_ht::float8,s.collection_model,s.status,s.payment_due_date,s.paid_at,s.payment_reference,s.statement_reference"+
         " FROM tenant_revenue_distributions s LEFT JOIN operating_markets m ON m.id=s.market_id"+
         " WHERE s.tenant_id=$1 ORDER BY s.period_end DESC,s.id DESC LIMIT 24",[id]
       ),

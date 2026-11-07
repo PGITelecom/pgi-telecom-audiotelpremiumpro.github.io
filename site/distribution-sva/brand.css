@@ -161,3 +161,41 @@ footer{border-top-color:rgba(237,193,133,.18);background:#17100d}
   }
   .ds-two-columns > div:has(> .ds-unit-icon + strong) > p {margin-top:12px;}
 }
+
+/* Pôle Télécom : repères éditoriaux sans numérotation décorative. */
+.ds-customer-value .ds-value-grid .ds-value-emblem,
+.ds-features .card > .ds-feature-symbol,
+.ds-two-columns .ds-unit-icon{
+  display:grid;
+  place-items:center;
+  flex:0 0 44px;
+  width:44px;
+  height:44px;
+  margin-bottom:14px;
+  border:1px solid rgba(232,179,110,.3);
+  border-radius:13px;
+  background:linear-gradient(145deg,rgba(232,179,110,.14),rgba(232,179,110,.035));
+  color:#f4cf95;
+  box-shadow:inset 0 1px 0 rgba(255,247,240,.055);
+}
+.ds-customer-value .ds-value-grid .ds-value-emblem .ds-pictogram,
+.ds-features .card > .ds-feature-symbol .ds-pictogram,
+.ds-two-columns .ds-unit-icon .ds-pictogram{
+  display:block;
+  width:22px;
+  height:22px;
+  flex:none;
+}
+.ds-customer-value .ds-value-grid h3{margin-top:11px}
+.ds-features .card > .ds-feature-symbol,
+.ds-two-columns .ds-unit-icon{margin-bottom:0}
+@media(max-width:560px){
+  .ds-customer-value .ds-value-grid .ds-value-emblem{width:42px;height:42px}
+}
+
+/* Les deux activites utilisent des cartes creme : contraste renforce. */
+.ds-two-univers .ds-two-columns .ds-unit-icon{
+  color:#56351c;
+  background:linear-gradient(145deg,#e9c99f,#d9b184);
+  border-color:rgba(103,63,31,.28);
+}
