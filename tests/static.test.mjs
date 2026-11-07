@@ -402,7 +402,7 @@ test("le contrôle clients permet recherche pays impayés et suspension depuis l
   assert.match(customerAdmin,/Alertes impayés/);
   assert.match(api,/setTenantStatus:function/);
   assert.match(api,/setTenantAssignmentStatus:function/);
-  assert.match(api,/billingAlerts:function/);
+  assert.match(api,/billingAlerts:(?:function|p=>)/);
   assert.match(subscriptionBillingUi,/Abonnement client impayé/);
   assert.match(css,/\.product-name\{display:block/);
   assert.match(css,/\.nav-item\[data-view="settings"\]/);
@@ -425,7 +425,8 @@ test("le dossier client 1.22 centralise les opérations sans alourdir le shell",
   assert.match(api,/setCallDestinationStatus:function/);
   assert.match(tenantControlDetail,/data-destination-create/);
   assert.match(tenantControlDetail,/data-destination-status/);
-  for(const label of ["DOSSIER CLIENT CENTRALISÉ","Lignes SVA","Destinations d’appel de la société","Intervenants / services / postes","Reversements récents","Historique & audit"])assert.ok(tenantControlDetail.includes(label));
+  for(const label of ["DOSSIER CLIENT CENTRALISÉ","Lignes SVA","Destinations d’appel de la société","Intervenants / services / postes","id=\"td-payout-history\"","Historique & audit"])assert.ok(tenantControlDetail.includes(label));
+   assert.match(read("assets/customer-360-detail.js"),/Reversements SVA du client/);
   assert.match(tenantControlDetail,/data-tenant-status/);
   assert.match(tenantControlDetail,/data-line-status/);
   assert.match(tenantControlDetail,/data-expert-apply/);
