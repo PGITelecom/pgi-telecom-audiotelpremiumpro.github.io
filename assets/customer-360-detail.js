@@ -20,3 +20,60 @@ export function downloadCustomerExport(data){
   const csv="\ufeff"+rows.map(r=>r.map(csvCell).join(";")).join("\r\n"),blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a"),safe=String(data.tenant?.display_name||"client").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/gi,"-").replace(/^-|-$/g,"").toLowerCase()||"client";
   a.href=url;a.download="dossier-client-"+String(data.tenant?.dossier_ref||safe).replace(/[^a-z0-9-]+/gi,"-")+"-"+new Date().toISOString().slice(0,10)+".csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+
+// Each payout stays linked to the selected customer, never to the global payout overview.
+// Real receipt timestamp/reference are displayed only when the provider-backed state is paid.
+const payoutNumber=(v,c)=>{try{return new Intl.NumberFormat("fr-FR",{style:"currency",currency:c||"EUR"}).format(Number(v)||0);}catch{return esc(v)+" "+esc(c||"");}};
+function customerPayoutRows(rows){
+  return (rows||[]).map(x=>{
+    const paid=x.status==="paid"&&x.paid_at&&x.payment_reference;
+    const datePaid=paid?date(x.paid_at):"Non versé";
+    const paymentRef=paid?x.payment_reference:"-";
+    return '<tr><td>'+esc(x.period_start||"-")+" au "+esc(x.period_end||"-")+
+      '</td><td>'+esc(x.market||"-")+'</td><td>'+payoutNumber(x.net_payout_ht,x.currency)+'</td>'+
+      '<td>'+payoutNumber(x.held_amount_ht,x.currency)+'</td>'+
+      '<td>'+esc(x.payment_due_date||"-")+'</td>'+
+      '<td>'+esc(datePaid)+'</td><td>'+esc(paymentRef)+'</td><td>'+esc(lab(x.status))+'</td></tr>';
+  }).join("");
+}
+export function mountCustomerPayoutHistory(tenantId,root,initialRows=[]){
+  if(!root)return;
+  const safeRows=Array.isArray(initialRows)?initialRows:[];
+  root.innerHTML='<div class="td-section-head"><h3>Reversements SVA du client</h3>'+
+    '<span>Historique individualisé</span></div>'+
+    '<p class="td-empty">La date et la référence bancaire ne sont indiquées que pour un reversement confirmé comme versé. Les lignes en attente ne sont pas des paiements reçus.</p>'+
+    '<div class="td-table-wrap"><table class="td-table"><thead><tr>'+
+    '<th>Période</th><th>Pays</th><th>Net client</th><th>Retenue</th>'+
+    '<th>Échéance</th><th>Date de versement</th><th>Référence</th><th>Statut</th>'+
+    '</tr></thead><tbody data-payout-rows>'+
+    (customerPayoutRows(safeRows)||'<tr><td colspan="8">Aucun reversement enregistré.</td></tr>')+
+    '</tbody></table></div><div class="td-actions"><button class="td-btn" type="button" data-payout-more>'+
+    'Consulter tout l’historique</button><span data-payout-count aria-live="polite">'+
+    esc(safeRows.length)+' dernier(s) reversement(s)</span></div>'+
+    '<p data-payout-error class="td-feedback" role="status"></p>';
+  const button=root.querySelector("[data-payout-more]"),body=root.querySelector("[data-payout-rows]");
+  const count=root.querySelector("[data-payout-count]"),err=root.querySelector("[data-payout-error]");
+  let cursor=null,loaded=false,busy=false,total=0;
+  button?.addEventListener("click",async()=>{
+    if(busy||!window.PGIApi?.tenantPayoutHistory)return;
+    busy=true;button.disabled=true;err.textContent="";
+    try{
+      const payload=await window.PGIApi.tenantPayoutHistory(tenantId,{limit:"50",...(cursor?{cursor}:{})});
+      if(!root.isConnected)return;
+      const rows=Array.isArray(payload?.data)?payload.data:[];
+      if(!loaded){body.innerHTML="";loaded=true;total=0;}
+      const html=customerPayoutRows(rows);
+      if(html)body.insertAdjacentHTML("beforeend",html);
+      total+=rows.length;
+      if(total===0)body.innerHTML='<tr><td colspan="8">Aucun reversement enregistré.</td></tr>';
+      cursor=payload.next_cursor||null;
+      count.textContent=total+" reversement(s) chargé(s)";
+      button.hidden=!cursor;
+      if(cursor)button.textContent="Charger les reversements précédents";
+    }catch(_error){
+      if(root.isConnected)err.textContent="Historique indisponible. Réessayer sans modifier les écritures.";
+    }finally{
+      busy=false;if(root.isConnected)button.disabled=false;
+    }
+  });
+}
