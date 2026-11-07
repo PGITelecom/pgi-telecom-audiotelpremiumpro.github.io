@@ -80,3 +80,18 @@ test("staff route and cockpit consume the decision without money or operator com
   assert.match(ui,/esc\(x\.action\)/);
   assert.doesNotMatch(ui,/transfer_authorized|charge\(|payout\.create|carrier\.assign/);
 });
+
+test("real payment backlog and exceptions become immediately actionable staff items",()=>{
+ const p=prioritizeAudiotelOperations({
+  launch:launch([]),
+  assurance:assurance([
+   checked("overdue_payouts_clear"),checked("payout_exceptions_clear"),
+   checked("payout_proof_complete"),checked("payout_complaints_clear")])
+ });
+ assert.equal(p.action_count,4);
+ assert.equal(p.dependencies.internal,4);
+ assert.ok(p.actions.find(x=>x.key==="overdue_payouts_clear"));
+ assert.ok(p.actions.find(x=>x.key==="payout_proof_complete"));
+ assert.equal(p.authorizes_real_payment,false);
+ assert.equal(p.actions.some(x=>x.action.includes("automatiquement")),true);
+});
