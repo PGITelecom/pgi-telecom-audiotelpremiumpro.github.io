@@ -930,3 +930,26 @@ body.home-page.ds-unified .ds-hero-photographic-copy{z-index:3!important}
   linear-gradient(to top,rgba(16,8,7,.12),transparent 25%)!important;
  }
 }
+
+/* Pictogrammes des cartes : conserver le contraste dans les variantes claires. */
+body.ds-unified .ds-value-grid .ds-value-emblem{
+  display:grid;
+  place-items:center;
+  width:44px;
+  height:44px;
+  flex:0 0 44px;
+  border-radius:13px;
+  color:#f4cf95;
+  border:1px solid rgba(232,179,110,.3);
+  background:linear-gradient(145deg,rgba(232,179,110,.14),rgba(232,179,110,.035));
+}
+body.ds-unified .ds-value-grid .ds-value-emblem svg,
+body.ds-unified .ds-features .ds-feature-symbol svg,
+body.ds-unified .ds-two-columns .ds-unit-icon svg{
+  display:block;width:22px;height:22px
+}
+body.home-page.ds-unified .ds-value-grid .ds-value-emblem{
+  color:#8b592d;
+  background:rgba(158,103,55,.075);
+  border-color:rgba(158,103,55,.24);
+}
