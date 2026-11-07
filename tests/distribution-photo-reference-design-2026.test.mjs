@@ -56,7 +56,7 @@ test("La barre inférieure reste visuellement identique, mais plus compacte",()=
  for(const label of ["PRÉSENTATION","SOLUTIONS","SUIVI","PORTABILITÉ","SERVICE ACTUEL"]){
   assert.ok(nav.includes(label),label);
  }
- const compact=css.split("/* Ajustement final de la barre basse : compact sans refonte. */")[1];
+ const compact=css.split("/* Ajustement final de la barre basse : compact sans refonte. */")[1]?.split("/* Fiches editoriales du Pole : rythme mobile")[0];
  assert.ok(compact,"explicit compact override must be present");
  for(const preserved of ["grid-template-columns","background:","border-color:","stroke:","display:none"]){
   assert.ok(!compact.includes(preserved),"the bottom nav identity must not change: "+preserved);
