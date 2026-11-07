@@ -8,11 +8,11 @@ const svaCss=fs.readFileSync("site/site.css","utf8");
 const distHome=fs.readFileSync("site/distribution-sva/index.html","utf8");
 const published=publishedDistributionHtml(distHome,{publication_authorized:true,navigation_visible:true,commercial_requests_enabled:false});
 
-test("capture mobile: les deux cartes deviennent des liens et conservent leur repère + titre",()=>{
+test("capture mobile: les deux cartes deviennent des liens et conservent leur pictogramme + titre",()=>{
   const cards=[...published.matchAll(/<a class="ds-universe-link"[^>]*>([\s\S]*?)<\/a>/g)];
   assert.equal(cards.length,2);
-  assert.match(cards[0][1],/<span class="ds-unit-icon"[^>]*>01<\/span><strong>Audiotel Premium Pro<\/strong>/);
-  assert.match(cards[1][1],/<span class="ds-unit-icon"[^>]*>02<\/span><strong>PGI Telecom Distribution<\/strong>/);
+  assert.match(cards[0][1],/<span class="ds-unit-icon"[^>]*><svg class="ds-pictogram"[\s\S]*?<\/svg><\/span><strong>Audiotel Premium Pro<\/strong>/);
+  assert.match(cards[1][1],/<span class="ds-unit-icon"[^>]*><svg class="ds-pictogram"[\s\S]*?<\/svg><\/span><strong>PGI Telecom Distribution<\/strong>/);
   assert.match(cards[0][1],/class="ds-universe-arrow"/);
   assert.match(cards[1][1],/class="ds-universe-arrow"/);
 });
@@ -24,8 +24,8 @@ test("CSS du rendu réel aligne numéro et intitulé sur une seule rangée",()=>
   const headingRule=distCss.split("body.ds-unified .ds-two-columns > :is(div, a.ds-universe-link) > strong {")[1]?.split("}")[0]||"";
   assert.doesNotMatch(headingRule,/white-space:nowrap/);
 });
-test("toutes les cartes fonctionnelles numérotées du Pôle sont couvertes",()=>{
-  const badges=[...published.matchAll(/<span class="ds-feature-symbol"[^>]*>0[1-9]<\/span><h3>[^<]+<\/h3>/g)];
+test("toutes les cartes fonctionnelles illustrées du Pôle sont couvertes",()=>{
+  const badges=[...published.matchAll(/<span class="ds-feature-symbol"[^>]*><svg class="ds-pictogram"[\s\S]*?<\/svg><\/span><h3>[^<]+<\/h3>/g)];
   assert.equal(badges.length,5);
   assert.match(distCss,/body\.ds-unified \.ds-features > article\.card:has\(> \.ds-feature-symbol \+ h3\)/);
   assert.match(distCss,/\.ds-feature-symbol\s*\{\s*grid-column:1;\s*grid-row:1;/);
