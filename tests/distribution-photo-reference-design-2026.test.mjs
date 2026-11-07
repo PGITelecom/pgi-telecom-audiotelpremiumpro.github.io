@@ -47,3 +47,21 @@ test("Pôle commercial and private customer protections remain unchanged",()=>{
  assert.match(html,/Souscription directe non ouverte/);
  assert.match(html,/revenue-quick-tab-primary/);
 });
+
+test("La barre inférieure reste visuellement identique, mais plus compacte",()=>{
+ const nav=html.match(/<section class="revenue-quick-nav"[\s\S]*?<\/section>/)?.[0];
+ assert.ok(nav);
+ assert.equal((nav.match(/class="revenue-quick-tab(?:\s|")/g)||[]).length,5);
+ assert.equal((nav.match(/class="ds-tab-icon" aria-hidden="true"/g)||[]).length,5);
+ for(const label of ["PRÉSENTATION","SOLUTIONS","SUIVI","PORTABILITÉ","SERVICE ACTUEL"]){
+  assert.ok(nav.includes(label),label);
+ }
+ const compact=css.split("/* Ajustement final de la barre basse : compact sans refonte. */")[1];
+ assert.ok(compact,"explicit compact override must be present");
+ assert.doesNotMatch(compact,/grid-template-columns|background:|border-color:|stroke:|display:\\s*none/);
+ assert.match(compact,/min-height:clamp\\(72px,7\\.9vw,114px\\)!important/);
+ assert.match(compact,/min-height:64px!important/);
+ assert.match(compact,/min-height:62px!important/);
+ assert.match(compact,/calc\\(5px \\+ env\\(safe-area-inset-bottom\\)\\)/);
+ assert.match(css,/grid-template-columns:repeat\\(5,minmax\\(0,1fr\\)\\)!important/);
+});
