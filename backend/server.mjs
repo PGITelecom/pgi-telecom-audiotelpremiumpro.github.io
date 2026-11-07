@@ -2223,6 +2223,14 @@ export function createBackend(options={}){
         return done(res,metrics,started,"platform.tenant_control_center",200,await store.tenantControlDetail(match.id));
       }
 
+      // One-customer history only, for authorized PGI staff.
+      match=routeMatch(pathname,"/api/v1/platform/tenants/:id/payout-history");
+      if(method==="GET"&&match){
+        requireRole(actor,["admin","finance","readonly"]);
+        return done(res,metrics,started,"platform.tenant_payout_history",200,
+          await store.tenantPayoutHistory(match.id,Object.fromEntries(url.searchParams.entries())));
+      }
+
       match=routeMatch(pathname,"/api/v1/platform/tenants/:id/consumption-today");
       if(method==="GET"&&match){
         requireRole(actor,["admin","finance","readonly"]);
