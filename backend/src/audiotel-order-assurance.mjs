@@ -42,6 +42,10 @@ export function evaluateAudiotelReadiness(observed={}){
       check("vat_configuration",a.vat_regime_configured===true&&a.vat_inclusive_known===true,"Tax treatment requires professional approval"),
       check("account_mapping",a.account_map_configured===true,"Chart of accounts needs expert approval"),
       check("fec_export_configuration",a.fec_enabled===true,"Export configuration is not proof of a compliant FEC"),
+      check("overdue_payouts_clear",i.has_overdue_payable===false,"An overdue payable requires ledger/bank reconciliation; never automatically mark as paid"),
+      check("payout_exceptions_clear",i.has_payout_hold===false,"Disputed or compliance-blocked publisher funds require case-level review"),
+      check("payout_proof_complete",i.has_paid_without_proof===false,"A paid status without an authoritative reference must be investigated"),
+      check("payout_complaints_clear",i.has_open_payout_complaint===false,"Open payout complaints require staff action and auditable response"),
       check("external_operator_acceptance",false,"Carrier contract, assignment API, SIP/CDR and numbering proof required"),
       check("payment_provider_live",false,"Stripe live connectivity deliberately not verified here"),
       check("statutory_accounting_review",false,"Principal/agent treatment and tax review required")
@@ -50,7 +54,11 @@ export function evaluateAudiotelReadiness(observed={}){
       registered_numbers:numbers,ready_or_active_carrier_connection_records:carrierConnections,
       recorded_upstream_assignments:upstreamAssignments,
       customer_number_assignments:customerAssignments,
-      current_subscription_price_versions:planVersions,subscription_provider_events:subscriptionEvents
+      current_subscription_price_versions:planVersions,subscription_provider_events:subscriptionEvents,
+      overdue_payouts_detected:i.has_overdue_payable===true,
+      payout_holds_detected:i.has_payout_hold===true,
+      payout_proof_gaps_detected:i.has_paid_without_proof===true,
+      open_payout_complaints_detected:i.has_open_payout_complaint===true
     });
   }catch{
     return report("unavailable",[check("database_snapshot",false,"Database values invalid")]);
@@ -68,7 +76,11 @@ export async function inspectAudiotelReadiness(store){
         " (SELECT count(*)::int FROM service_plan_price_versions v JOIN service_plans p ON p.id=v.service_plan_id"+
         " WHERE p.plan_key='external-sva-access' AND p.status='active'"+
         " AND v.effective_from<=now() AND (v.effective_to IS NULL OR v.effective_to>now())) AS plan_versions,"+
-        " (SELECT count(*)::int FROM subscription_billing_events) AS subscription_events"
+        " (SELECT count(*)::int FROM subscription_billing_events) AS subscription_events,"+
+        " EXISTS (SELECT 1 FROM tenant_revenue_distributions WHERE status='payable' AND payment_due_date<CURRENT_DATE) AS has_overdue_payable,"+
+        " EXISTS (SELECT 1 FROM tenant_revenue_distributions WHERE status IN ('disputed','blocked_compliance','blocked_terms')) AS has_payout_hold,"+
+        " EXISTS (SELECT 1 FROM tenant_revenue_distributions WHERE status='paid' AND (paid_at IS NULL OR NULLIF(btrim(payment_reference),'') IS NULL)) AS has_paid_without_proof,"+
+        " EXISTS (SELECT 1 FROM tenant_service_incidents WHERE category='payout' AND status NOT IN ('resolved','closed')) AS has_open_payout_complaint"
       ),
       store.readSql.unsafe(
         "SELECT (siren ~ '^[0-9]{9}$') AS legal_identity_configured,"+
