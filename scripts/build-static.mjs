@@ -157,6 +157,20 @@ for(const file of files){
 fs.cpSync(path.join(root,"site","distribution-sva"),path.join(dist,"site","distribution-sva"),{recursive:true});
 fs.copyFileSync(path.join(root,"site","direct-sva-tracking.js"),path.join(dist,"site","direct-sva-tracking.js"));
 
+// Preserve the exact CSS cascade while reducing five render-blocking requests to one.
+// Every referenced CSS url() in these files is absolute: no path rebase is required.
+const distributionCssOrder=[
+  "site/distribution-sva/style.css",
+  "site/site.css",
+  "site/distribution-sva/brand.css",
+  "site/distribution-sva/parity.css",
+  "site/distribution-sva/unified.css"
+];
+const distributionCssBundle=distributionCssOrder.map(file=>
+  "/* "+file+" */\n"+fs.readFileSync(path.join(root,file),"utf8")+"\n"
+).join("\n");
+fs.writeFileSync(path.join(dist,"site","distribution-sva","public-bundle.css"),distributionCssBundle,"utf8");
+
 // Compatibility alias for AI crawlers and answer engines that probe /ai.txt.
 // Keep a single source of truth by publishing the exact llms.txt content.
 fs.copyFileSync(path.join(dist,"llms.txt"),path.join(dist,"ai.txt"));

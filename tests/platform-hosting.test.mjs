@@ -89,6 +89,22 @@ test("same-origin static handler serves marketing at root and keeps private UI n
     const canonicalLegacyHtml=await fetch(base+"/parrainage-audiotel.html",{redirect:"manual"});
     assert.equal(canonicalLegacyHtml.status,308);
     assert.equal(canonicalLegacyHtml.headers.get("location"),"/parrainage-audiotel/");
+    const publicEditorial=await fetch(base+"/parrainage-audiotel/");
+    assert.equal(publicEditorial.status,200);
+    assert.equal(await publicEditorial.text(),"referral");
+    assert.equal(publicEditorial.headers.get("cache-control"),
+      "public, max-age=0, s-maxage=120, stale-while-revalidate=30");
+    const editorialEtag=publicEditorial.headers.get("etag");
+    assert.match(editorialEtag||"",/^"sha256-/);
+    const notChanged=await fetch(base+"/parrainage-audiotel/",
+      {headers:{"If-None-Match":editorialEtag}});
+    assert.equal(notChanged.status,304);
+    // An arbitrary future route must never become cacheable by directory shape alone.
+    fs.mkdirSync(path.join(root,"future-private"),{recursive:true});
+    fs.writeFileSync(path.join(root,"future-private","index.html"),"private future UI");
+    const future=await fetch(base+"/future-private/");
+    assert.equal(future.headers.get("cache-control"),"no-store, must-revalidate");
+    assert.equal(future.headers.get("etag"),null);
     fs.mkdirSync(path.join(root,"site"),{recursive:true});
     fs.writeFileSync(path.join(root,"site","app.css"),"body{}");
     fs.writeFileSync(path.join(root,"service-worker.js"),"self.addEventListener('fetch',()=>{});");

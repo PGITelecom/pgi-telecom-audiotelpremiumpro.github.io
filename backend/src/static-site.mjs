@@ -8,6 +8,21 @@ const PRIVATE_CSP="default-src 'self'; script-src 'self' https://accounts.google
 const COCKPIT_CSP="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests";
 const VALIDATOR_CACHE=new Map();
 
+// CDN cache is deliberately limited to build-time, identical-for-everyone
+// editorial landing pages. Homepage, Distribution, forms, account and payment
+// routes remain uncached because their visibility/state may change at runtime.
+const PUBLIC_EDITORIAL_CACHE_SLUGS=new Set([
+  "solutions-audiotel","business-live-audiotel","audiotel-sans-siret",
+  "changer-operateur-audiotel","monetiser-ses-appels",
+  "combien-rapporte-numero-surtaxe","audiotel-voyance",
+  "audiotel-independants","audiotel-coaching","audiotel-professionnels",
+  "reversement-audiotel","numero-sva","portabilite-numero-sva",
+  "portabilite-prioritaire","parrainage-audiotel","numero-surtaxe-08",
+  "tarif-numero-sva","comparateur-audiotel","paiement-cb-audiotel",
+  "guide-audiotel-sva"
+]);
+const PUBLIC_EDITORIAL_CACHE="public, max-age=0, s-maxage=120, stale-while-revalidate=30";
+
 const PUBLIC_CSP="default-src 'self'; script-src 'self' 'unsafe-inline' https://*.hs-scripts.com https://*.hs-analytics.net https://*.hubspot.com https://*.usemessages.com https://js-eu1.hs-banner.com https://js-eu1.hscollectedforms.net https://www.googletagmanager.com; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.hubspot.com https://forms-eu1.hsforms.com https://www.google-analytics.com; connect-src 'self' https://*.hubspot.com https://*.hubapi.com https://*.hsforms.com https://forms-eu1.hscollectedforms.net https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com; frame-src https://*.hubspot.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests";
 
 const MIME=Object.freeze({
@@ -170,11 +185,14 @@ export function createStaticSiteHandler(rootDir,{getDirectSvaWebsiteState}={}){
     const clientUi=requestPath==="/client.html"||/^\/distribution-sva\/espace-client(?:\/|$)/i.test(requestPath);
     const cockpitUi=["/cockpit","/cockpit/","/cockpit.html"].includes(requestPath);
     const privateUi=clientUi||cockpitUi;
+    const editorialHtml=html&&/^\/[a-z0-9-]+\/$/.test(requestPath)&&
+      PUBLIC_EDITORIAL_CACHE_SLUGS.has(requestPath.slice(1,-1));
     const versionedAsset=!runtimeConfig&&!html&&/\.(?:css|js|png|webp|svg|ico)$/i.test(requestPath)&&/[?&]v=[A-Za-z0-9._-]{1,32}(?:&|$)/.test(String(req?.url||""));
     res.setHeader("Content-Type",MIME[ext]||"application/octet-stream");
     const serviceWorker=requestPath==="/service-worker.js";
     if(runtimeConfig||privateUi)res.setHeader("Cache-Control","no-store");
     else if(serviceWorker)res.setHeader("Cache-Control","no-store, must-revalidate");
+    else if(editorialHtml)res.setHeader("Cache-Control",PUBLIC_EDITORIAL_CACHE);
     else if(html)res.setHeader("Cache-Control","no-store, must-revalidate");
     else if(versionedAsset)res.setHeader("Cache-Control","public, max-age=31536000, immutable");
     else res.setHeader("Cache-Control","public, max-age=300, stale-while-revalidate=60");
@@ -183,7 +201,7 @@ export function createStaticSiteHandler(rootDir,{getDirectSvaWebsiteState}={}){
     else if(html)res.setHeader("Content-Security-Policy",PUBLIC_CSP);
     if(privateUi)res.setHeader("X-Robots-Tag","noindex, nofollow, noarchive");
 
-    if(!runtimeConfig&&!privateUi&&!html&&!serviceWorker){
+    if(!runtimeConfig&&!privateUi&&!serviceWorker&&(!html||editorialHtml)){
       const {etag,lastModified}=await publicValidators(file,stat);
       res.setHeader("ETag",etag);
       res.setHeader("Last-Modified",lastModified);

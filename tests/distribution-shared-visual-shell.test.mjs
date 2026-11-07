@@ -20,7 +20,7 @@ test("all 35 publicly eligible Distribution editorial pages share the actual SVA
   assert.equal((html.match(/id="site-search-input"/g)||[]).length,1,name+": one search box");
   assert.match(html,/class="brand brand-full"/,name+": Audiotel brand logo");
   assert.match(html,/site-search\.js" defer/,name+": functional shared search script");
-  assert.match(html,/\/site\/distribution-sva\/unified\.css"/,name+": unified stylesheet");
+  assert.match(html,/\/site\/distribution-sva\/public-bundle\.css(?:\?v=[0-9a-f]{12})?"/,name+": versioned bundled stylesheet");
   assert.match(html,/<body[^>]*class="[^"]*ds-unified/,name+": scoped unified CSS");
   assert.match(html,/class="revenue-quick-tabs"/,name+": real SVA bottom-bar component");
   for(const match of html.matchAll(/<article class="card([^"]*)">([\s\S]*?)<\/article>/g)){
@@ -32,7 +32,8 @@ test("all 35 publicly eligible Distribution editorial pages share the actual SVA
   assert.ok(html.includes('href="/client.html"'),name+": existing Audiotel login");
   assert.ok(!html.includes('class="header-login" href="/distribution-sva/espace-client/"'),name+": no private Distribution login");
   assert.ok(html.indexOf("</main>")<html.indexOf("<footer"),name+": semantic footer");
-  assert.equal((html.match(/<link rel="stylesheet" href="\/site\/distribution-sva\/unified\.css">/g)||[]).length,1,name+": no CSS duplication");
+  assert.equal((html.match(/<link rel="stylesheet" href="\/site\/distribution-sva\/public-bundle\.css(?:\?v=[0-9a-f]{12})?">/g)||[]).length,1,name+": one bundle, no CSS duplication");
+  assert.equal((html.match(/<link rel="stylesheet"/g)||[]).length,1,name+": only one render-blocking stylesheet");
   if(page.lang!=="fr"){
    assert.match(html,new RegExp('href="/distribution-sva/'+page.lang+'/solutions/"'),name+": language-specific navigation");
   }
@@ -80,6 +81,7 @@ test("all locales render correctly without leaking French navigation labels",()=
 });
 test("only explicitly approved stylesheet served, commercial and private restrictions remain intact",()=>{
  assert.equal(isDirectSvaPublicAsset("/site/distribution-sva/unified.css"),true);
+ assert.equal(isDirectSvaPublicAsset("/site/distribution-sva/public-bundle.css"),true);
  assert.equal(isDirectSvaPublicAsset("/site/distribution-sva/secret.css"),false);
  assert.equal(isDirectSvaPublicAsset("/site/distribution-sva/index.html"),false);
  assert.equal(publishedDistributionHtml("<html></html>",{publication_authorized:false}),null);

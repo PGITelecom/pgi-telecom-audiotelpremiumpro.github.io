@@ -30,7 +30,10 @@ test("future direct SVA public pages and customer area are entirely staged and n
  ];
  for(const file of staged){
   assert.equal(fs.existsSync(path.join(root,file)),true,file);
-  assert.ok(!builder.includes('"'+file+'"'),"Unexpected public bundle inclusion: "+file);
+  // This CSS is intentionally read as an input to a safe compile-time bundle;
+  // private HTML and customer scripts remain forbidden public entry points.
+  if(file!=="site/distribution-sva/style.css")
+   assert.ok(!builder.includes('"'+file+'"'),"Unexpected public bundle inclusion: "+file);
  }
 });
 
