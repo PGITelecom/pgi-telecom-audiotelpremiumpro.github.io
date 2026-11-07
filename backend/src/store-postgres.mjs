@@ -2823,6 +2823,7 @@ export class PostgresStore{
       " FROM tenants t WHERE t.tenant_type<>'internal'"+
       " AND ($10::bigint IS NULL OR (t.id=$10 AND EXTRACT(YEAR FROM t.created_at)::int=$11))"+
       " AND ($10::bigint IS NOT NULL OR $1::text IS NULL OR t.slug_search LIKE $1||'%' OR t.display_name_search LIKE $1||'%' OR t.legal_name_search LIKE $1||'%' OR lower(t.country_code)=$1"+
+      " OR lower(btrim(COALESCE(t.billing_email,''))) LIKE $1||'%'"+
       " OR EXISTS (SELECT 1 FROM customer_tenant_memberships cm JOIN customer_principals cp ON cp.id=cm.customer_principal_id WHERE cm.tenant_id=t.id AND ("+
       " cp.email_normalized LIKE $1||'%' OR lower(cp.display_name) LIKE $1||'%' OR lower(COALESCE(cp.metadata->>'first_name','')) LIKE $1||'%' OR lower(COALESCE(cp.metadata->>'last_name','')) LIKE $1||'%'"+
       " OR lower(btrim(COALESCE(cp.metadata->>'first_name','')||' '||COALESCE(cp.metadata->>'last_name',''))) LIKE $1||'%'"+
