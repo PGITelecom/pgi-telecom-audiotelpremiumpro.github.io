@@ -1,4 +1,4 @@
-# Audiotel Premium Pro — reversements SVA automatisés (architecture préparatoire)
+# Audiotel Premium Pro  :  reversements SVA automatisés (architecture préparatoire)
 
 État 07/11/2026 : **architecture et décisions préparatoires uniquement**. Le nouveau module
 `backend/src/audiotel-sva-payout-preview.mjs` ne peut pas contacter Stripe, une banque,
