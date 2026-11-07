@@ -53,13 +53,11 @@ function sharedBottomBar(lang,path){
  '<span>'+htmlEscape(t.sub[i])+'</span></a>').join("");
  return '<section class="revenue-quick-nav" aria-label="'+htmlEscape(t.aria)+'"><div class="wrap"><nav class="revenue-quick-tabs" aria-label="'+htmlEscape(t.aria)+'">'+cards+'</nav></div></section>';
 }
-const cssLinks=[
- '<link rel="stylesheet" href="/site/distribution-sva/style.css">',
- '<link rel="stylesheet" href="/site/site.css">',
- '<link rel="stylesheet" href="/site/distribution-sva/brand.css">',
- '<link rel="stylesheet" href="/site/distribution-sva/parity.css">',
- '<link rel="stylesheet" href="/site/distribution-sva/unified.css">'
-].join("\n");
+// Immutable only when a real release SHA exists. Development builds never
+// share a constant immutable CSS URL across separate deployments.
+const releaseSha=String(process.env.PGI_RELEASE_ID||"").trim();
+const bundleVersion=/^[0-9a-f]{40}$/.test(releaseSha)?"?v="+releaseSha.slice(0,12):"";
+const cssLinks='<link rel="stylesheet" href="/site/distribution-sva/public-bundle.css'+bundleVersion+'">';
 const sourceStyles=/<link\s+rel="stylesheet"\s+href="\/site\/(?:site\.css|distribution-sva\/(?:style|brand|parity|unified)\.css)"\s*\/?>\s*/g;
 const sourceSearch=/<script\s+src="\/site\/site-search\.js"\s+defer><\/script>\s*/g;
 function installHeroPhoto(html){
