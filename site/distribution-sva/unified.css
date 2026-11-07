@@ -953,3 +953,9 @@ body.home-page.ds-unified .ds-value-grid .ds-value-emblem{
   background:rgba(158,103,55,.075);
   border-color:rgba(158,103,55,.24);
 }
+
+body.home-page.ds-unified .ds-two-univers .ds-unit-icon{
+  color:#56351c;
+  background:linear-gradient(145deg,#e9c99f,#d9b184);
+  border-color:rgba(103,63,31,.28);
+}
