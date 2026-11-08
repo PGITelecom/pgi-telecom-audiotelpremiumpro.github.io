@@ -787,11 +787,17 @@ export function createBackend(options={}){
         requireActor(customerActor);
         const current=await store.customerSessionContext(customerActor);
         requireCustomerPermission(current,"overview.read");
-        const data=await readCustomerPreclientCases(store,{
-          context:{authenticated:true,business_unit:"audiotel_platform",
-            tenant_id:Number(current.tenant_id),customer_case_access_verified:true}
-        });
-        return done(res,metrics,started,"customer.prelaunch_cases_preview",200,data);
+        const context={authenticated:true,business_unit:"audiotel_platform",
+          tenant_id:Number(current.tenant_id),customer_case_access_verified:true,
+          tenant_membership_verified:true,customer_finance_read_authorized:true};
+        const data=await readCustomerPreclientCases(store,{context});
+        // One tenant-scoped read for the client view: never expose provisional
+        // amounts as verified revenue. Older disposable schemas may lack 092.
+        let finance=null;
+        try{finance=await readAudiotelFinanceCustomerPreview(store,context);}
+        catch(error){if(error?.code!=="42P01")throw error;}
+        return done(res,metrics,started,"customer.prelaunch_cases_preview",200,
+          {...data,finance});
       }
       let draftCaseMatch=routeMatch(pathname,"/api/v1/customer/prelaunch/cases/:id/number");
       if(prelaunchCaseworkPreview&&method==="POST"&&draftCaseMatch){
