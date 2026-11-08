@@ -252,6 +252,7 @@ function hideAuthPanels(){
   ["login-panel","forgot-panel","reset-panel","register-panel","activation-panel"].forEach(function(id){var el=$(id);if(el)el.hidden=true;});
 }
 function showLogin(){
+  if(window.PGI_CONFIG?.mode==="simulator")import("./client-prelaunch-preview.js").then(m=>m.clearPrelaunchClientPreview()).catch(()=>{});
   $("customer-app").hidden=true;$("customer-auth").hidden=false;hideAuthPanels();$("login-panel").hidden=false;releaseInitialTopLock();
 }
 function showForgot(){
