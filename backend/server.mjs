@@ -25,6 +25,7 @@ import {applyResendWebhookEvent,acknowledgeResendInboundForward,drainTransaction
 import {submitHubSpotLead,syncHubSpotCommercialLead,syncHubSpotCommercialTenant,syncHubSpotSupportMessage,syncHubSpotInboundEmail,syncHubSpotCustomerIncident,syncHubSpotCardPaymentState} from "./src/hubspot-crm.mjs";
 import {evaluateLaunchReadiness} from "./src/launch-readiness.mjs";
 import {inspectAudiotelReadiness} from "./src/audiotel-order-assurance.mjs";
+import {readAudiotelFinanceStaffPreview,readAudiotelFinanceCustomerPreview} from "./src/audiotel-finance-prelaunch-read.mjs";
 import {isPrelaunchCaseworkPreview,prepareOpeningLeadCase} from "./src/audiotel-opening-lead-bridge.mjs";
 import {readPreclientStaffQueue,readCustomerPreclientCases,completePreclientTechnicalDetails} from "./src/audiotel-onboarding-casework.mjs";
 import {prioritizeAudiotelOperations} from "./src/audiotel-operational-priorities.mjs";
@@ -816,6 +817,30 @@ export function createBackend(options={}){
           event_reference:"customer-technical-"+key
         });
         return done(res,metrics,started,"customer.prelaunch_number_preview",200,result);
+      }
+
+      // Financial preview uses only read-only SQL on disposable PostgreSQL,
+      // never a bank/Stripe endpoint. Production cannot enter this branch.
+      if(prelaunchCaseworkPreview&&method==="GET"&&
+         pathname==="/api/v1/platform/prelaunch/finance"){
+        requireRole(actor,["admin"]);
+        const view=await readAudiotelFinanceStaffPreview(store,{
+          authenticated:true,business_unit:"audiotel_platform",
+          role:"administrator",staff_finance_read_authorized:true
+        });
+        return done(res,metrics,started,"platform.prelaunch_finance_preview",200,view);
+      }
+      if(prelaunchCaseworkPreview&&method==="GET"&&
+         pathname==="/api/v1/customer/prelaunch/finance"){
+        requireActor(customerActor);
+        const current=await store.customerSessionContext(customerActor);
+        requireCustomerPermission(current,"finance.read");
+        const view=await readAudiotelFinanceCustomerPreview(store,{
+          authenticated:true,business_unit:"audiotel_platform",
+          tenant_id:Number(current.tenant_id),
+          tenant_membership_verified:true,customer_finance_read_authorized:true
+        });
+        return done(res,metrics,started,"customer.prelaunch_finance_preview",200,view);
       }
 
       // A read-only release dossier is available even before the preparatory migrations.
