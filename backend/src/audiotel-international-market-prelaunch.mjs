@@ -63,7 +63,7 @@ export const APP_MARKET_PROFILES=deep({
   national_portability:"900_pay_per_call_number_portability_not_confirmed",
   eligible_services:"federal_and_state_900_pay_per_call_disclosure_and_billing_rules",
   source_urls:deep(["https://www.ecfr.gov/current/title-47/chapter-I/subchapter-B/part-64/subpart-O",
-   "https://www.fcc.gov/general/900-pay-call-and-other-information-services"])
+   "https://www.ftc.gov/business-guidance/resources/complying-900-number-rule"])
  })
 });
 export const APP_INTERNATIONAL_MARKET_ORDER=deep(["FR","ES","IT","GB","US"]);
