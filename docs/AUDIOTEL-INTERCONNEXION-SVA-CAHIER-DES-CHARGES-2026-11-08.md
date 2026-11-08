@@ -4,6 +4,10 @@ Statut : **BROUILLON INTERNE NON ENVOYÉ**. Pas de commande ni de dépense.
 
 ## LIGNE PERMANENTE DE NÉGOCIATION : VOLUME MUTUALISÉ, ACCÈS UNIVERSEL AUX PROFESSIONNELS ÉLIGIBLES
 
+**Objectif budgétaire indicatif pour les blocs de numérotation :** l'entrepreneur envisage **1 000 numéros SVA pour 20 EUR de location mensuelle TOTALE du bloc**, sous réserve de faisabilité Arcep et de prix contractuels démontrés. Ce chiffre est une **cible de négociation à confirmer**, pas un devis. Demander aux opérateurs : taille et type réel du bloc, qui est attributaire, faculté de sous-allouer, paiement mensuel fixe et frais additionnels (activation, réservation, conservation, portabilité, changement de palier et restitution), accès à un inventaire et modalités d'extension. Distinguer coût théorique **0,02 EUR/numéro/mois si 1 000 numéros affectés** et coût effectif par numéro actif si l'occupation est inférieure à 100 %. Ne pas prétendre à une propriété des numéros sur la seule base d'une location.
+
+
+
 **Notre objectif** : accueillir sans seuil minimal d'activité tous les professionnels légalement éligibles, de tous secteurs autorisés. Conserver la marque et la relation commerciale Audiotel Premium Pro. Automatiser les ouvertures, les portabilités, le suivi CDR, la facturation des prestations propres et le rapprochement des reversements. Réduire au strict nécessaire les coûts fixes de gestion, sans modifier les fonctionnalités actuelles du site.
 
 **Conditions à faire inscrire dans toute consultation et comparer dans chaque offre :**
