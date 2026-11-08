@@ -117,6 +117,14 @@ jobs:
           docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" -v "$PWD/database:/sql:ro" postgres:16-alpine psql -h 127.0.0.1 -U pgi_test -d pgi_test -v ON_ERROR_STOP=1 -f /sql/prelaunch-not-applied/092_audiotel_financial_cycle_drafts.sql
           docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" postgres:16-alpine psql -h 127.0.0.1 -U pgi_test -d pgi_test -Atc "SELECT (to_regclass('public.app_fin_contract_terms_drafts') IS NOT NULL AND to_regclass('public.app_fin_operator_statement_drafts') IS NOT NULL AND to_regclass('public.app_fin_call_allocation_drafts') IS NOT NULL AND to_regclass('public.app_fin_payout_instruction_drafts') IS NOT NULL AND to_regclass('public.app_fin_reconciliation_drafts') IS NOT NULL AND to_regclass('public.app_fin_audit_events') IS NOT NULL)::text;" | grep -Eq '^(t|true)$'
 
+      - name: Validate Audiotel legal and foreign market drafts on disposable CI PostgreSQL only
+        env:
+          PGPASSWORD: pgi_test
+        run: |
+          docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" -v "$PWD/database:/sql:ro" postgres:16-alpine psql -h 127.0.0.1 -U pgi_test -d pgi_test -v ON_ERROR_STOP=1 -f /sql/prelaunch-not-applied/093_audiotel_legal_international_prelaunch.sql
+          docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" postgres:16-alpine psql -h 127.0.0.1 -U pgi_test -d pgi_test -Atc "SELECT (to_regclass('public.app_legal_monthly_monitor_drafts') IS NOT NULL AND to_regclass('public.app_legal_form_scenario_drafts') IS NOT NULL AND to_regclass('public.app_legal_entity_transition_drafts') IS NOT NULL AND to_regclass('public.app_international_market_entry_drafts') IS NOT NULL AND to_regclass('public.app_international_portability_drafts') IS NOT NULL AND to_regclass('public.app_international_quote_drafts') IS NOT NULL AND to_regclass('public.app_strategy_monthly_runner_config_drafts') IS NOT NULL AND to_regclass('public.app_strategy_audit_events') IS NOT NULL)::text;" | grep -Eq '^(t|true)$'
+          docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" postgres:16-alpine psql -h 127.0.0.1 -U pgi_test -d pgi_test -Atc "SELECT count(*) FROM app_strategy_monthly_runner_config_drafts WHERE enabled OR notification_enabled OR legal_auto_change_enabled OR external_api_enabled;" | grep -Fx 0
+
       - name: Backup and restore drill
         env:
           PGPASSWORD: pgi_test
