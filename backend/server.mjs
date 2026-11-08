@@ -26,6 +26,7 @@ import {submitHubSpotLead,syncHubSpotCommercialLead,syncHubSpotCommercialTenant,
 import {evaluateLaunchReadiness} from "./src/launch-readiness.mjs";
 import {inspectAudiotelReadiness} from "./src/audiotel-order-assurance.mjs";
 import {readAudiotelFinanceStaffPreview,readAudiotelFinanceCustomerPreview} from "./src/audiotel-finance-prelaunch-read.mjs";
+import {readAudiotelStrategyPreview} from "./src/audiotel-strategy-prelaunch-read.mjs";
 import {isPrelaunchCaseworkPreview,prepareOpeningLeadCase} from "./src/audiotel-opening-lead-bridge.mjs";
 import {readPreclientStaffQueue,readCustomerPreclientCases,completePreclientTechnicalDetails} from "./src/audiotel-onboarding-casework.mjs";
 import {prioritizeAudiotelOperations} from "./src/audiotel-operational-priorities.mjs";
@@ -841,6 +842,16 @@ export function createBackend(options={}){
           tenant_membership_verified:true,customer_finance_read_authorized:true
         });
         return done(res,metrics,started,"customer.prelaunch_finance_preview",200,view);
+      }
+
+      if(prelaunchCaseworkPreview&&method==="GET"&&
+         pathname==="/api/v1/platform/prelaunch/strategy"){
+        requireRole(actor,["admin"]);
+        const view=await readAudiotelStrategyPreview(store,{
+          authenticated:true,business_unit:"audiotel_platform",
+          role:"administrator",staff_strategy_read_authorized:true
+        });
+        return done(res,metrics,started,"platform.prelaunch_strategy_preview",200,view);
       }
 
       // A read-only release dossier is available even before the preparatory migrations.
