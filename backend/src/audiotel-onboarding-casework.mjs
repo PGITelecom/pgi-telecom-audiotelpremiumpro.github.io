@@ -24,7 +24,9 @@ function contextForCase(context){
     context.business_unit!=="audiotel_platform"||
     context.secure_intake_authorized!==true||
     typeof context.secure_contact_ref!=="string"||!REF.test(context.secure_contact_ref)||
-    typeof context.actor_fingerprint!=="string"||!HASH.test(context.actor_fingerprint))
+    typeof context.actor_fingerprint!=="string"||!HASH.test(context.actor_fingerprint)||
+    (context.linked_tenant_id!=null&&
+     (!Number.isSafeInteger(context.linked_tenant_id)||context.linked_tenant_id<=0)))
     fail("APP_CASE_TRUSTED_INTAKE_REQUIRED");
  return context;
 }
@@ -54,13 +56,15 @@ export async function preparePreclientServiceCase(store,{context,request}={}){
    await tx.unsafe("SELECT pg_advisory_xact_lock(hashtext($1))",
      ["app_case:"+normalized.secure_contact_ref+":"+normalized.request_key]);
    const rows=await tx.unsafe(
-    "SELECT id,public_reference,request_fingerprint,stage,request_kind,requested_e164"+
+    "SELECT id,public_reference,request_fingerprint,stage,request_kind,requested_e164,tenant_id"+
     " FROM app_prelaunch_service_cases WHERE secure_contact_ref=$1 AND request_key=$2 FOR UPDATE",
     [normalized.secure_contact_ref,normalized.request_key]);
    if(rows.length>1)fail("APP_CASE_IDEMPOTENCY_INVARIANT_BROKEN",503);
    if(rows.length){
      const existing=rows[0];
-     if(existing.request_fingerprint!==fingerprint)
+     if(existing.request_fingerprint!==fingerprint||
+         (source.linked_tenant_id!=null&&
+           Number(existing.tenant_id)!==source.linked_tenant_id))
        fail("APP_CASE_IDEMPOTENCY_CONFLICT",409);
      return Object.freeze({
        case_reference:existing.public_reference,kind:existing.request_kind,
@@ -74,11 +78,12 @@ export async function preparePreclientServiceCase(store,{context,request}={}){
    const inserted=await tx.unsafe(
     "INSERT INTO app_prelaunch_service_cases"+
     " (public_reference,secure_contact_ref,request_key,request_fingerprint,country_code,"+
-    " request_kind,number_category,requested_e164,source_operator_label,source_operator_ref)"+
-    " VALUES($1,$2,$3,$4,'FR',$5,$6,$7,$8,$9) RETURNING id,stage",
+    " request_kind,number_category,requested_e164,source_operator_label,source_operator_ref,tenant_id)"+
+    " VALUES($1,$2,$3,$4,'FR',$5,$6,$7,$8,$9,$10) RETURNING id,stage",
     [publicReference,normalized.secure_contact_ref,normalized.request_key,
      fingerprint,normalized.kind,normalized.category,normalized.requested_e164,
-     normalized.source_operator_label,normalized.source_operator_ref]);
+     normalized.source_operator_label,normalized.source_operator_ref,
+     source.linked_tenant_id??null]);
    if(inserted.length!==1)fail("APP_CASE_PERSISTENCE_FAILED",503);
    const caseId=inserted[0].id;
    const sourceReference="created:"+fingerprint.slice(0,32);
