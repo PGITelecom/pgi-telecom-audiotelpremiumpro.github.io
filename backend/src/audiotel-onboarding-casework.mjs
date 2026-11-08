@@ -384,7 +384,7 @@ export async function readCustomerPreclientCases(store,{context,limit=50}={}){
    fail("APP_CASE_QUEUE_LIMIT_INVALID",422);
  const rows=await store.readSql.unsafe(
    "SELECT public_reference,tenant_id,request_kind AS kind,stage,"+
-   " requested_e164,created_at,updated_at"+
+   " requested_e164,number_category,created_at,updated_at"+
    " FROM app_prelaunch_service_cases"+
    " WHERE business_unit='audiotel_platform' AND tenant_id=$1"+
    " ORDER BY created_at DESC,id DESC LIMIT $2",[context.tenant_id,limit]);
