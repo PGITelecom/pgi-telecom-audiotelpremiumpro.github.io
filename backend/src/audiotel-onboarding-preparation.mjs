@@ -204,6 +204,7 @@ export function publicPreparedCaseView(row={},context={}){
     case_reference:row.public_reference,
     kind:row.kind,status:row.stage,
     number:row.requested_e164??null,
+    number_category:row.number_category??null,
     missing_documents:Array.isArray(row.missing_document_kinds)
       ?row.missing_document_kinds.filter(x=>DOC_TYPES.has(x)):[],
     created_at:row.created_at,
