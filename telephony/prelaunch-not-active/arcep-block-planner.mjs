@@ -64,8 +64,11 @@ export function planAudiotelArcepBlock(input={}){
   simulated_blocked:blocked,simulated_released:byStatus.released,
   available_candidate_count:1000-unavailable,
   candidate_for_next_allocation:next,
-  usage_percent:unavailable/10,
-  eighty_percent_planning_threshold_reached:unavailable>=800,
+  // Technical occupancy is not the Arcep regulatory utilisation proof.
+  occupied_percent:unavailable/10,
+  simulated_allocated_percent:allocated/10,
+  eighty_percent_planning_threshold_reached:allocated>=800,
+  official_arcep_utilisation_criteria_checked:false,
   next_subblock_regulatory_approval_verified:false,
   annual_regulatory_fee_reference_minor:fee,
   estimated_monthly_regulatory_amortization_minor:Math.round(fee/12),
