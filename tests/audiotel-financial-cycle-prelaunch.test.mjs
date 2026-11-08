@@ -31,7 +31,7 @@ const draft=(changes={})=>({
   fee_bps:0,fee_minor_per_min:7})],
  holds:[{hold_reference:"HOLD-2026-0001",tenant_reference:"TENANT-0001",
   kind:"dispute",amount_minor:100}],
- bank_receipt_minor:1600,minimum_margin_minor_per_min:7,
+ app_receipt_minor:106,minimum_margin_minor_per_min:7,
  ...changes
 });
 const reject=(x,code)=>assert.throws(()=>planAudiotelFinancialCycle(x),
@@ -40,6 +40,9 @@ const reject=(x,code)=>assert.throws(()=>planAudiotelFinancialCycle(x),
 test("two professionals: sums reconcile, costs and 7c target are separate",()=>{
  const r=planAudiotelFinancialCycle(draft());
  assert.equal(r.reported_operator_total_minor,1600);
+ assert.equal(r.reported_audiotel_bank_receipt_minor,106);
+ assert.equal(r.verified_audiotel_bank_receipt_minor,null);
+ assert.equal(r.verified_carrier_direct_publisher_paid_minor,null);
  assert.equal(r.operator_reported_gross_preview_minor,1600);
  assert.equal(r.carrier_and_processing_cost_preview_minor,200);
  assert.equal(r.audiotel_fee_preview_minor,106);
@@ -97,7 +100,7 @@ test("tenant contract must exist and money cannot become negative or overdrawn",
 test("no forged validation, bank approval, IBAN, payouts or input toggles",()=>{
  const s=draft();
  reject({...s,operator_statement_authenticated:true},"INVALID_INPUT");
- reject({...s,bank_receipt_minor:1600,transfer_authorized:true},"INVALID_INPUT");
+ reject({...s,app_receipt_minor:106,transfer_authorized:true},"INVALID_INPUT");
  reject({...s,statement:{...s.statement,signature_verified:true}},"INVALID_STATEMENT");
  reject({...s,statement:{...s.statement,rows:[
   {...s.statement.rows[0],bank_account:"FR123456789"},s.statement.rows[1]]}},"INVALID_CDR");
@@ -160,4 +163,18 @@ test("reordering rows and contracts cannot change the statement fingerprint",()=
  const alternative=planAudiotelFinancialCycle({...base,statement:{...base.statement,
   rows:[...base.statement.rows].reverse()},contracts:[...base.contracts].reverse()});
  assert.equal(first,alternative.source_digest);
+});
+
+test("carrier pays publishers directly: Audiotel receipt is compared to commission, not whole call revenue",()=>{
+ const direct=planAudiotelFinancialCycle(draft());
+ assert.equal(direct.reported_operator_total_minor,1600);
+ assert.equal(direct.expected_audiotel_gross_fee_preview_minor,106);
+ assert.equal(direct.reported_audiotel_bank_receipt_minor,106);
+ assert.ok(!direct.potential_mismatches.includes(
+   "reported_audiotel_receipt_vs_contract_fee_difference"));
+ const mismatch=planAudiotelFinancialCycle(draft({app_receipt_minor:1600}));
+ assert.ok(mismatch.potential_mismatches.includes(
+   "reported_audiotel_receipt_vs_contract_fee_difference"));
+ assert.equal(mismatch.statutory_revenue_minor,null);
+ assert.equal(mismatch.payout_authorized,false);
 });
