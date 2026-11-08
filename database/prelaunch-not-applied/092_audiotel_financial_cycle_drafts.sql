@@ -19,7 +19,8 @@ CREATE TABLE app_fin_contract_terms_drafts (
  tax_model_approved boolean NOT NULL DEFAULT false CHECK(tax_model_approved=false),
  payment_services_approved boolean NOT NULL DEFAULT false CHECK(payment_services_approved=false),
  created_at timestamptz NOT NULL DEFAULT now(),
- UNIQUE(tenant_id,contract_reference,version_reference)
+ UNIQUE(tenant_id,contract_reference,version_reference),
+ UNIQUE(id,tenant_id)
 );
 CREATE INDEX app_fin_contract_terms_tenant ON app_fin_contract_terms_drafts(tenant_id,id DESC);
 
@@ -46,7 +47,7 @@ CREATE TABLE app_fin_call_allocation_drafts (
  statement_id bigint NOT NULL,
  operator_reference text NOT NULL,
  tenant_id bigint NOT NULL REFERENCES tenants(id),
- contract_terms_id bigint NOT NULL REFERENCES app_fin_contract_terms_drafts(id),
+ contract_terms_id bigint NOT NULL,
  call_reference text NOT NULL CHECK(length(call_reference) BETWEEN 8 AND 180),
  eligible_seconds bigint NOT NULL CHECK(eligible_seconds BETWEEN 0 AND 1000000000),
  operator_gross_minor bigint NOT NULL CHECK(operator_gross_minor BETWEEN 0 AND 1000000000000),
@@ -60,9 +61,15 @@ CREATE TABLE app_fin_call_allocation_drafts (
  created_at timestamptz NOT NULL DEFAULT now(),
  FOREIGN KEY(statement_id,operator_reference)
   REFERENCES app_fin_operator_statement_drafts(id,operator_reference),
+ FOREIGN KEY(contract_terms_id,tenant_id)
+  REFERENCES app_fin_contract_terms_drafts(id,tenant_id),
  UNIQUE(operator_reference,call_reference),
  CHECK(carrier_fee_minor+processor_fee_minor+
        audiotel_fee_preview_minor+publisher_due_preview_minor<=operator_gross_minor),
+ CHECK(record_state<>'operator_reported' OR
+       carrier_fee_minor+processor_fee_minor+
+       audiotel_fee_preview_minor+publisher_due_preview_minor=operator_gross_minor),
+ CHECK(record_state<>'rejected' OR operator_gross_minor=0),
  CHECK(record_state='operator_reported' OR
        (audiotel_fee_preview_minor=0 AND publisher_due_preview_minor=0))
 );
