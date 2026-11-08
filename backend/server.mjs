@@ -804,6 +804,9 @@ export function createBackend(options={}){
           throw Object.assign(new Error("Unexpected case data"),
             {status:400,code:"APP_CASE_UNTRUSTED_REQUEST_FIELD"});
         const key=String(req.headers["idempotency-key"]||"");
+        if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(key))
+          throw Object.assign(new Error("Idempotency key required"),
+            {status:400,code:"IDEMPOTENCY_KEY_REQUIRED"});
         const result=await completePreclientTechnicalDetails(store,{
           context:{authenticated:true,business_unit:"audiotel_platform",
             actor_type:"customer",tenant_membership_verified:true,
