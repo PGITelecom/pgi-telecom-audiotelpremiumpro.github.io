@@ -58,6 +58,10 @@ Preuves de paiement, rapprochements, journal et documents clients
 
 ## 4. Module de calcul ajouté
 
+**Hypothèse de coût de numérotation du dirigeant (08/11/2026)** : location éventuelle d'un **bloc de 1 000 numéros pour 20 EUR/mois au total**, soit 0,02 EUR/numéro/mois à pleine allocation. C'est une **hypothèse non validée par un opérateur**, qui appartient à l'analyse des **coûts fixes** et ne doit pas être déduite une seconde fois de la marge contributive par minute calculée après coûts variables. Comparer le prix au coût de bloc/ressources réellement applicable, aux frais d'attribution et au coût par numéro réellement utilisé. Aucune acquisition ni facturation n'est autorisée.
+
+
+
 `backend/src/audiotel-financial-cycle-prelaunch.mjs` :
 - Contrôles d'unité `audiotel_platform`, France, EUR, références, statut et identité CDR ; aucun mélange `direct_sva`.
 - Par locataire : `fee_bps` (base nette de gros après frais), `fee_minor_per_min` (secondes rémunérables / 60), `fixed_fee_minor_per_call`, tous rattachés à `version_reference` du contrat. Arrondi en **centimes** (BigInt pour multiplication et comparaison de seuils) pour éviter les erreurs cumulées de flottants.
