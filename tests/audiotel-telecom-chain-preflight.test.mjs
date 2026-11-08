@@ -26,6 +26,10 @@ test("empty telecom chain is blocked and cannot release a number, money or softw
  assert.ok(result.missing.includes("arcep_numbering_rights"));
  assert.ok(result.missing.includes("carrier_cdr_correlation"));
  assert.ok(result.missing.includes("bank_receipt_verified"));
+ assert.ok(result.missing.includes("direct_professional_payout_negotiated"));
+ assert.ok(result.missing.includes("direct_payout_or_refusal_alternatives_review"));
+ assert.equal(result.direct_payout_contract_approved,false);
+ assert.equal(result.professional_iban_payout_enabled,false);
  assert.equal(result.business_unit,"audiotel_platform");
 });
 
