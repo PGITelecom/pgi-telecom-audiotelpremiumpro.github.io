@@ -140,11 +140,12 @@ On exige une référence unique et stable par appel, une preuve cryptographique 
 1. Qui facture l'appelant ? Qui encaisse juridiquement en son nom ?
 2. Qui doit les fonds à Audiotel Premium Pro ? À quelle échéance ?
 3. Quel contrat autorise le versement à Audiotel Premium Pro au titre des appels de ses éditeurs ?
-4. Quel PSP ou mandat d'agent permet ensuite les reversements à nos clients professionnels ?
-5. Les montants peuvent-ils être reversés directement par un PSP agréé à l'éditeur en retenant la marge Audiotel, sans faire transiter des fonds tiers sur un compte non autorisé ?
+4. Pouvez-vous verser automatiquement chaque professionnel directement sur son IBAN, sans transit bancaire des fonds tiers sur Audiotel ? Précisez le débiteur légal, le payeur habilité et le mandat/contrat.
+5. Votre opérateur ou un PSP habilité peut-il assurer ces virements directs, tout en versant séparément la rémunération contractuelle d'Audiotel Premium Pro ? Avec quelles références et preuves de paiement ?
 6. Quelles preuves bancaires et quels relevés sont fournis pour justifier les rapprochements et corrections ?
 7. Quelles réserves, échéances, seuils, recours, retenues et litiges s'appliquent ?
 8. Quelle qualification comptable/TVA de la prestation est proposée ? Une analyse indépendante de notre conseil reste obligatoire.
+9. Si vous refusez les reversements directs, fournissez-vous un refus écrit, les modèles alternatifs, une grille complète de frais, les conséquences de trésorerie et les contraintes juridiques ?
 
 ## 9. Format exigé de réponse
 
