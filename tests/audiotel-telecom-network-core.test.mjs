@@ -85,3 +85,28 @@ test("Kamailio dispatcher output is private, non-production and secret-free",()=
  assert.doesNotMatch(s,/password|Authorization|203\.0\.113/);
  assert.throws(()=>renderKamailioDispatcherForLab({environment:"production",live_sip_routing_authorized:true}),{code:"APP_NETWORK_UNSAFE_NETWORK"});
 });
+
+
+test("validated topology cannot be altered or recreated as a trusted route context",()=>{
+ const net=v();
+ assert.equal(Object.isFrozen(net),true);
+ assert.equal(Object.isFrozen(net.numbers[0]),true);
+ assert.equal(Object.isFrozen(net.nodes[0]),true);
+ assert.equal(Object.isFrozen(net.destinations[0]),true);
+ const spoof={...net,nodes:net.nodes};
+ assert.equal(simulateAudiotelIncomingCall(spoof,q).reason,"NETWORK_NOT_VALIDATED");
+ assert.throws(()=>renderKamailioDispatcherForLab(spoof),{code:"APP_NETWORK_UNSAFE_NETWORK"});
+});
+test("dispatcher excludes unhealthy nodes; none means no destinations",()=>{
+ let t=cfg();t.nodes[0].status="simulated_unavailable";
+ const s=renderKamailioDispatcherForLab(validateAudiotelNetworkLab(t));
+ assert.doesNotMatch(s,/10\.12\.0\.21/);
+ assert.match(s,/10\.12\.0\.22/);
+ t.nodes[1].status="simulated_unavailable";
+ assert.throws(()=>renderKamailioDispatcherForLab(validateAudiotelNetworkLab(t)),
+  {code:"APP_NETWORK_NO_HEALTHY_MEDIA_NODE"});
+});
+test("international and French premium PSTN endpoints require separately approved policy",()=>{
+ const t=cfg();t.destinations[1].destination_uri="+441234567890";
+ assert.throws(()=>validateAudiotelNetworkLab(t),{code:"APP_NETWORK_INVALID_PSTN_DESTINATION"});
+});
