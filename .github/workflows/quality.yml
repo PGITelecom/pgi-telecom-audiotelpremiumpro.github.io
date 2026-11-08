@@ -110,6 +110,13 @@ jobs:
             psql -h 127.0.0.1 -U pgi_test -d pgi_test -Atc \
             "SELECT (to_regclass('public.app_prelaunch_service_cases') IS NOT NULL AND to_regclass('public.app_prelaunch_case_events') IS NOT NULL AND to_regclass('public.app_prelaunch_case_documents') IS NOT NULL AND to_regclass('public.app_prelaunch_notification_drafts') IS NOT NULL AND to_regclass('public.app_prelaunch_network_handoff_drafts') IS NOT NULL)::text;" | grep -Eq '^(t|true)$'
 
+      - name: Validate Audiotel financial drafts on disposable CI PostgreSQL only
+        env:
+          PGPASSWORD: pgi_test
+        run: |
+          docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" -v "$PWD/database:/sql:ro" postgres:16-alpine psql -h 127.0.0.1 -U pgi_test -d pgi_test -v ON_ERROR_STOP=1 -f /sql/prelaunch-not-applied/092_audiotel_financial_cycle_drafts.sql
+          docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" postgres:16-alpine psql -h 127.0.0.1 -U pgi_test -d pgi_test -Atc "SELECT (to_regclass('public.app_fin_contract_terms_drafts') IS NOT NULL AND to_regclass('public.app_fin_operator_statement_drafts') IS NOT NULL AND to_regclass('public.app_fin_call_allocation_drafts') IS NOT NULL AND to_regclass('public.app_fin_payout_instruction_drafts') IS NOT NULL AND to_regclass('public.app_fin_reconciliation_drafts') IS NOT NULL AND to_regclass('public.app_fin_audit_events') IS NOT NULL)::text;" | grep -Eq '^(t|true)$'
+
       - name: Backup and restore drill
         env:
           PGPASSWORD: pgi_test
