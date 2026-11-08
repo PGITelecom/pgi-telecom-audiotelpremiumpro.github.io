@@ -173,3 +173,79 @@ ressources Arcep ni de capter ou transférer les fonds des professionnels.**
 **Gel absolu** : pas de production Vercel, pas de migration Neon,
 pas d'achat, pas de contact opérateur, pas de création de numéro,
 pas de virement ni de signature.
+
+## 6. Compléments techniques préparés : blocs, capacité et économie réelle
+
+**Ces modules sont exécutables hors ligne, jamais raccordés automatiquement à une
+ressource de numérotation, un opérateur, une API bancaire ou à la production.**
+
+| Code | Fonction préparatoire | Ce qui n'est PAS activé |
+|---|---|---|
+| `arcep-block-planner.mjs` | Simuler blocs de 1 000 numéros, affectations, disponibilité, numéros libérés, détection de doublons et seuil de planification à 80 % des numéros simulés affectés | Aucun bloc Arcep obtenu, aucun numéro attribué ni réservé réellement |
+| `economics-capacity.mjs` | Calculer marge par minute, contribution mensuelle, charges fixes, coût de ressource annuel et seuil de rentabilité ; estimer avec Erlang-B les canaux SIP et la capacité N+1 | Aucun tarif certifié, aucune capacité réseau mesurée, aucune validation fiscale |
+| `wholesale-comparison.mjs` | Évaluer une proposition écrite sur compatibilité avec l'attribution Arcep directe, SIP, portabilité, mutualisation, zéro minimum individuel, absence d'engagement, CDR, reversement direct et coût total | Aucun devis reçu, accord opérateur ni droit de signer |
+| `network-core.mjs` | Simulation de routage par client et numéro, deux noeuds média, failover, capacité ; indexation des données pour éviter des balayages transversaux lors de la recherche d'un client | Aucun appel, serveur SIP public ou raccordement actif |
+| `scripts/audiotel-telecom-technical-status.mjs` | **Inventaire unique** des fichiers et endpoints du projet, avec inventaire explicite des preuves externes manquantes | Aucune vérification automatique de droits Arcep, de production ou d'un opérateur |
+
+**Commandes de consultation du dépôt préparatoire**, après clonage local
+(si le dirigeant le demande ; elles ne modifient pas la production) :
+
+```bash
+node scripts/audiotel-telecom-technical-status.mjs
+node --test tests/audiotel-arcep-block-planner.test.mjs
+node --test tests/audiotel-telecom-economics-capacity.test.mjs
+node --test tests/audiotel-telecom-wholesale-comparison.test.mjs
+node --test tests/audiotel-telecom-technical-status.test.mjs
+```
+
+Les tests sont également couverts par la suite automatisée GitHub Actions.
+
+### Principes économiques non négociables
+
+- Attributaire direct Arcep si l'éligibilité et l'attribution sont confirmées.
+- **20 EUR/an pour 1 000 numéros** : référence de taxe de numérotation,
+  sans prétendre couvrir la collecte SIP, les frais de transport et les serveurs.
+- **0 minute minimum par professionnel**, y compris en phase de démarrage ;
+  pas de pénalité de faible trafic imposée aux éditeurs.
+- Marge contributive visée **au moins 0,07 EUR HT/minute rémunérable** après
+  coûts variables ; négocier 0,10 / 0,15 EUR et davantage lorsque possible.
+  Cette cible ne peut pas être garantie pour tous les paliers de numéros SVA.
+- Dans le modèle **reversement direct opérateur/PSP**, le calcul part de la
+  rémunération contractuelle propre d'Audiotel ; il **ne recompte pas**
+  les recettes destinées aux professionnels comme ses propres recettes.
+- Les résultats mensuels calculés sont **avant charges sociales et fiscalité**,
+  avec régimes et assiettes à valider indépendamment.
+- Les offres de gros sont comparées sur leurs **coûts complets** à trafic faible,
+  moyen et élevé, sans assumer une prise en charge universelle de nos clients.
+
+### Capacité et performance
+
+Le modèle d'Erlang-B utilise une **hypothèse de trafic à l'heure de pointe**,
+la durée moyenne d'occupation des canaux et un objectif de blocage, puis
+estime les canaux nécessaires en tenant compte des deux jambes SIP d'un pont
+et des noeuds de reprise N+1. Il **ne mesure pas** les appels par seconde (CPS),
+la bande passante RTP, la qualité d'écoute, les annonces tarifaires, les
+conditions de terminaison ni les capacités réellement contractées.
+
+L'index de numéros, professionnels et destinations de `network-core.mjs`
+évite les recherches quadratiques pendant la validation de masse. Une
+validation CI avec plusieurs milliers de numéros reste un **test de logiciel**,
+pas une preuve d'exploitation sous 6 000 appels simultanés.
+
+### Chaîne finale à réaliser sans refonte du site
+
+1. Vérifier l'éligibilité légale de l'entité puis obtenir les ressources Arcep.
+2. Obtenir des devis et spécifications signés d'opérateurs **de gros**
+   compatibles avec notre exploitation directe et le reversement éditeur.
+3. Définir une architecture **unique** : Vercel pour le web actuel, Neon pour
+   les données si le dimensionnement est compatible, **couche SIP/RTP
+   indépendante** et deux zones de défaillance. Ne pas confondre
+   hébergement web et opérateur télécom.
+4. Installer les véritables SBC, médias et pare-feu dans des instances
+   choisies et autorisées, puis relier les points d'entrée internes du backend.
+5. Valider MGIT, CDR avec preuve opérateur, portabilité, anti-fraude,
+   confidentialité, règlement et rapprochement financier.
+6. Avant toute ouverture : sécurité, capacité, panne réseau, continuité,
+   confidentialité, réglementation, contrats et autorisation expresse.
+
+**Aucun de ces six jalons n'est implicitement franchi par un succès en CI.**
