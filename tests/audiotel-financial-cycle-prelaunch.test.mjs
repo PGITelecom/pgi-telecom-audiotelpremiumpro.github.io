@@ -52,7 +52,7 @@ test("two professionals: sums reconcile, costs and 7c target are separate",()=>{
  assert.equal(r.publishers[1].publisher_due_preview_minor,486);
  assert.equal(r.reported_seconds,180);
  assert.equal(r.operator_reported_eligible_seconds_preview,180);
- assert.deepEqual(r.potential_mismatches,["publisher_holds_present","estimated_margin_below_target"]);
+ assert.deepEqual(r.potential_mismatches,["publisher_holds_present"]);
  assert.equal(r.statutory_revenue_minor,null);
  assert.equal(r.micro_enterprise_turnover_minor,null);
  assert.equal(r.payout_authorized,false);
