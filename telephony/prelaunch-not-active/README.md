@@ -11,7 +11,7 @@ L'opérateur exploitant Audiotel Premium Pro est, si Arcep l'autorise,
 avec ses professionnels. Une entreprise tierce ne doit pas remplacer cette
 relation par un modèle de simple revendeur.
 
-\`\`\`text
+```text
 Appelant fixe/mobile
   -> opérateur de départ/facturation et opérateur(s) de transit
   -> interconnexion et collecte de gros contractuelles
@@ -33,34 +33,42 @@ Appelant fixe/mobile
      |          |
      |          +---- versement DIRECT aux IBAN professionnels (opérateur/PSP)
      +--------------- rémunération séparée Audiotel Premium Pro
-\`\`\`
+```
 
 **Nouveau dans ce sous-dossier** :
-- \`network-core.mjs\` : inventaire hors ligne des trunks, nœuds média A/B,
+- `network-core.mjs` : inventaire hors ligne des trunks, nœuds média A/B,
   clients, ressources candidates, destinations SIP/numéros E.164.
   Validation stricte des permissions, contrôle de capacité et des chemins
   secondaires. Décisions de simulation **sans établissement d'appel**.
-- \`renderKamailioDispatcherForLab()\` : génère une liste de destinations
+- `renderKamailioDispatcherForLab()` : génère une liste de destinations
   de dispatcher à partir de **seules IP privées RFC1918** et d'une
   topologie explicitement simulée. Ne crée aucune ACL d'opérateur réelle.
-- \`cdr-reconciliation.mjs\` : rapproche deux extraits CDR minimisés,
+- `cdr-reconciliation.mjs` : rapproche deux extraits CDR minimisés,
   signale doublons, durées incohérentes, DNIS et tenants différents,
   ainsi que les appels présents d'un seul côté. **Aucun calcul de paiement**.
-- Tests : \`tests/audiotel-telecom-network-core.test.mjs\` et
-  \`tests/audiotel-telecom-cdr-reconciliation.test.mjs\`.
+- Tests : `tests/audiotel-telecom-network-core.test.mjs` et
+  `tests/audiotel-telecom-cdr-reconciliation.test.mjs`.
+
+- `kamailio.loopback-deny.cfg.example` : configuration de référence
+  écoutant uniquement `127.0.0.1:5099`, renvoyant 503 à tout appel,
+  sans dispatcher ni trunk réel. Ce n'est pas un SBC prêt pour Internet.
+- `freeswitch.deny-context.xml.example` : contexte média
+  volontairement non routable, qui refuse tout appel sans pontage.
+- `tests/audiotel-telecom-prelaunch-edge.test.mjs` : contrôle des
+  exemples deny-all et de leur isolation de la production.
 
 **Déjà existant et conservé** :
-- \`backend/server.mjs\` :
-  \`GET /api/v1/internal/routing/next-destination\`,
-  \`GET /api/v1/internal/routing/next-destination/text\`,
-  \`POST /api/v1/ingest/freeswitch\`, et endpoints de libération.
+- `backend/server.mjs` :
+  `GET /api/v1/internal/routing/next-destination`,
+  `GET /api/v1/internal/routing/next-destination/text`,
+  `POST /api/v1/ingest/freeswitch`, et endpoints de libération.
   Les routes internes utilisent une authentification téléphonique privée.
-- \`backend/src/cdr-freeswitch.mjs\` :
+- `backend/src/cdr-freeswitch.mjs` :
   normalisation des horodatages, durées, masquage/empreinte appelant,
   état, codec, RTP et mesures de qualité.
-- \`telephony/README.md\` : contrat d'interconnexion technique, DNIS,
+- `telephony/README.md` : contrat d'interconnexion technique, DNIS,
   isolation des éditeurs et portabilité.
-- \`backend/src/audiotel-telecom-chain-preflight.mjs\` :
+- `backend/src/audiotel-telecom-chain-preflight.mjs` :
   preuves réglementaires, opérateur, réseau, finance et sécurité,
   **jamais une permission de lancer en production**.
 
@@ -107,22 +115,22 @@ certificats, barèmes ou règles SIP que nous n'avons pas reçus contractuelleme
 
 ## 4. Design du dossier de simulation
 
-Le modèle impose \`environment: isolated_offline_simulation\`. Les états
-\`simulated_assigned\`, \`simulated_healthy\`, \`simulated_active\` et
-\`simulated_verified\` **ne sont pas des validations réglementaires réelles**.
+Le modèle impose `environment: isolated_offline_simulation`. Les états
+`simulated_assigned`, `simulated_healthy`, `simulated_active` et
+`simulated_verified` **ne sont pas des validations réglementaires réelles**.
 
 Les résultats contiennent toujours :
-\`operational_call_authorized:false\`,
-\`telecom_network_connected:false\`, \`payout_authorized:false\`.
+`operational_call_authorized:false`,
+`telecom_network_connected:false`, `payout_authorized:false`.
 
 Le module de réconciliation n'enregistre **aucune identité d'appelant**,
-aucun IBAN ni montant financier, et retourne \`payments_authorized:false\`.
+aucun IBAN ni montant financier, et retourne `payments_authorized:false`.
 
 Pour exécuter les tests **uniquement en CI, dans une copie du dépôt** :
-\`\`\`bash
+```bash
 node --test tests/audiotel-telecom-network-core.test.mjs
 node --test tests/audiotel-telecom-cdr-reconciliation.test.mjs
-\`\`\`
+```
 
 ## 5. Passage réel à l'exploitation : validation distincte obligatoire
 
