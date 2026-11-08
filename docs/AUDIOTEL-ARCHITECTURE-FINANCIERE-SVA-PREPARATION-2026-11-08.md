@@ -62,7 +62,9 @@ Preuves de paiement, rapprochements, journal et documents clients
 - Une ligne `operator_reported` peut produire une estimation, jamais un virement. Une ligne `provisional`, `disputed` ou `rejected` n'entre pas dans les estimations d'exigible.
 - Total opérateur = somme de toutes les lignes déclarées. Par ligne incluse : `gross = carrier_fee + processor_fee + audiotel_fee + publisher_due`, montant positif, plafond de calcul et pas de double CDR.
 - Retenues par éditeur en cas de `fraud`, `dispute`, `chargeback`, `contract` ou `compliance`, sans conversion en recettes Audiotel.
-- Écart relevé opérateur / banque déclaré, alerte si marge cible inférieure à 0,07 EUR/min (valeur ajustable, non une garantie).
+- **Circuit de reversement direct** : le partenaire peut collecter 16,00 EUR pour les appels, conserver/déduire ses frais, verser les éditeurs directement et régler séparément **1,06 EUR de rémunération contractuelle simulée à Audiotel** dans l'exemple de test. La valeur de 1,06 EUR n'est pas un encaissement constaté, encore moins un chiffre d'affaires déclaré. La ligne `app_receipt_minor` correspond exclusivement au versement reçu par Audiotel, et non au total des communications.
+- Rapprocher le versement Audiotel déclaré de la **rémunération contractuelle Audiotel**, jamais du total collecté quand l'opérateur paie directement les éditeurs. Vérifier séparément les preuves de paiement des éditeurs, les retenues, les frais, les taxes et les écritures du partenaire.
+- Alerte si marge cible inférieure à 0,07 EUR/min (valeur ajustable, non une garantie).
 - Source SHA et empreinte canonique, ordre des lignes neutre, version de contrat incluse, préparation de référence d'ordre unique par période, relevé, éditeur et contrat.
 - Tous les champs de résultat `statutory_revenue_minor`, `micro_enterprise_turnover_minor`, `vat_minor` et `verified_earnings_minor` sont volontairement inconnus tant que les preuves ne sont pas authentifiées.
 - Toutes les sorties `payout_authorized`, `bank_api_called`, `stripe_api_called`, `operator_api_called` valent `false` quel que soit l'état des données.
