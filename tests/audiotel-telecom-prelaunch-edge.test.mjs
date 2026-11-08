@@ -8,7 +8,7 @@ test("SIP edge example never permits public SIP listening or relay",()=>{
  assert.match(cfg,/listen=udp:127\.0\.0\.1:5099/);
  assert.match(cfg,/sl_send_reply\("503", "Audiotel Prelaunch Disabled"\)/);
  assert.doesNotMatch(cfg,/\b(t_relay|forward|sethost|ds_select_dst)\s*\(/);
- assert.doesNotMatch(cfg,/listen=(?:udp|tcp|tls):(?:0\.0\.0\.0|\[[^\]]+\]|[1-9]\d{0,2}\.)/);
+ assert.deepEqual([...cfg.matchAll(/^listen=(.+)$/gm)].map(x=>x[1]),["udp:127.0.0.1:5099"]);
  assert.doesNotMatch(cfg,/password=|api_key|REAL_OPERATOR_IP/);
 });
 test("FreeSWITCH prelaunch context cannot bridge or originate calls",()=>{
