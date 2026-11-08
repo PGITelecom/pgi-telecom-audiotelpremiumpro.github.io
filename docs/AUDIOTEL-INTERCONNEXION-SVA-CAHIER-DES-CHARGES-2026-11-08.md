@@ -4,6 +4,23 @@ Statut : **BROUILLON INTERNE NON ENVOYÉ**. Pas de commande ni de dépense.
 
 ## 1. Objet précis de la consultation
 
+## 0. CLAUSE PRIORITAIRE À NÉGOCIER : REVERSEMENT DIRECT AUX PROFESSIONNELS
+
+**Condition préalable à toute décision contractuelle** : demander une réponse écrite et chiffrée sur la capacité de l'opérateur collecteur, ou d'un prestataire de paiement habilité, à verser **directement sur les IBAN des professionnels** les montants SVA contractuellement dus. Ces fonds **ne doivent pas transiter** par le compte bancaire d'Audiotel Premium Pro dans le montage cible. Audiotel reçoit séparément sa propre rémunération contractuelle.
+
+La proposition doit décrire :
+1. Le rôle juridique de celui qui collecte les recettes, de celui qui les doit aux professionnels et de celui qui exécute les virements.
+2. La possibilité d'utiliser Audiotel Premium Pro comme interlocuteur commercial principal tout en indiquant clairement les cocontractants et les obligations réglementaires.
+3. Le mécanisme automatique de calcul et de reversement aux IBAN professionnels, son calendrier, ses seuils et ses frais détaillés, y compris les coûts de traitement, les retenues et les refus bancaires.
+4. La séparation du virement dû à Audiotel et des virements dus aux professionnels, avec justificatifs de chaque flux.
+5. Les API, fichiers CDR, relevés de commission, statuts de paiement, identifiants de réconciliation et preuves bancaires disponibles pour le cockpit et l'espace client, sans exposer les IBAN dans GitHub.
+6. Les SLA, incidents, corrections, échéances, gestion des impayés et responsabilité des litiges, ainsi que la réversibilité des dossiers.
+7. Les clauses de mandat/contrat et les vérifications ACPR/PSP, comptables et fiscales nécessaires avant toute activation.
+
+**En cas de refus** : exiger une trace écrite du refus, chiffrer les solutions alternatives (partenaire financier habilité, schéma contractuel différent ou autre opérateur), comparer coûts fixes et variables, délais, risque juridique, impact sur la trésorerie et qualification du chiffre d'affaires. Aucun refus ne vaut acceptation implicite d'un transit des fonds tiers sur le compte Audiotel. Aucune signature ni engagement avant examen de ce dossier et validation explicite du dirigeant.
+
+Le versement direct ne démontre **pas à lui seul** que seules les commissions Audiotel entrent dans son chiffre d'affaires fiscal ou social. Cette qualification dépend des contrats, des prestations réelles et des règles applicables, à faire confirmer par un professionnel compétent.
+
 La société porteuse de la marque Audiotel Premium Pro prépare une activité d'opérateur SVA B2B en France métropolitaine pour des éditeurs professionnels de plusieurs secteurs. Elle veut être **le cocontractant exploitant des numéros qu'elle affecte**, idéalement attributaire de ses blocs 081/082/089 auprès de l'Arcep, avec une plateforme informatique et commerciale qu'elle exploite elle-même. Elle souhaite acheter **des prestations d'interconnexion, de transport, d'ouverture des ressources et de collecte de gros**, non une offre « numéro SVA clé en main » revendue avec le contrat d'un concurrent au client final.
 
 Merci de confirmer par écrit la faisabilité de ce schéma juridique précis. Si votre offre requiert de devenir intermédiaire commercial d'un opérateur attributaire tiers, l'indiquer explicitement : elle ne correspond pas à notre cible.
