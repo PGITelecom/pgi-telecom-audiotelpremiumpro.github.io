@@ -4,7 +4,12 @@ const RIO_ALPHABET="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+";
 
 export function normalizeFrenchSvaRio(value,e164){
   const rio=String(value||"").toUpperCase().replace(/\s+/g,"");
-  if(!/^[0-9]{2}A[A-Z0-9]{6}[A-Z0-9+]{3}$/.test(rio))throw portabilityIdentityError("INVALID_PORTABILITY_RIO");
+  // The 2026 Arcep plan defines F0..ZZ for special-number RIO operator prefixes.
+  // Preserve accepted historical 00..99+A RIO strings to avoid regressions
+  // for existing dossiers; real operator eligibility must confirm every RIO.
+  const legacy=/^[0-9]{2}A[A-Z0-9]{6}[A-Z0-9+]{3}$/.test(rio);
+  const current=/^[F-Z][A-Z0-9][A-Z0-9]{7}[A-Z0-9+]{3}$/.test(rio);
+  if(!legacy&&!current)throw portabilityIdentityError("INVALID_PORTABILITY_RIO");
   const national=frNationalNumber(e164);
   const expected=rioChecksum(rio.slice(0,9),national);
   if(rio.slice(9)!==expected)throw portabilityIdentityError("INVALID_PORTABILITY_RIO");
