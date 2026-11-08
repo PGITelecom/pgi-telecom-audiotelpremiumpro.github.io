@@ -27,7 +27,7 @@ CREATE TABLE app_prelaunch_service_cases (
  -- Values are only for recording staged handoff review, not assigning any number.
  prepared_order_id bigint REFERENCES app_number_order_intents(id),
  prepared_portability_request_id bigint REFERENCES tenant_portability_requests(id),
- contact_verified boolean NOT NULL DEFAULT false CHECK(contact_verified=false),
+ contact_verified boolean NOT NULL DEFAULT false,
  customer_account_auto_created boolean NOT NULL DEFAULT false CHECK(customer_account_auto_created=false),
  carrier_request_sent boolean NOT NULL DEFAULT false CHECK(carrier_request_sent=false),
  number_provisioned boolean NOT NULL DEFAULT false CHECK(number_provisioned=false),
@@ -65,7 +65,10 @@ CREATE TABLE app_prelaunch_case_documents (
  protected_object_ref text NOT NULL CHECK(length(protected_object_ref) BETWEEN 8 AND 180),
  source_sha256 char(64) NOT NULL CHECK(source_sha256 ~ '^[0-9a-f]{64}$'),
  retention_until date NOT NULL,
- review_status text NOT NULL DEFAULT 'unverified' CHECK(review_status='unverified'),
+ review_status text NOT NULL DEFAULT 'unverified' CHECK(review_status IN ('unverified','verified','rejected')),
+ reviewed_at timestamptz,
+ review_reference text,
+ CHECK (review_status='unverified' OR (reviewed_at IS NOT NULL AND review_reference IS NOT NULL AND length(review_reference)>=8)),
  created_at timestamptz NOT NULL DEFAULT now(),
  UNIQUE(case_id,document_kind,source_sha256)
 );
@@ -76,7 +79,7 @@ CREATE TABLE app_prelaunch_case_events (
  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
  case_id bigint NOT NULL REFERENCES app_prelaunch_service_cases(id),
  event_key text NOT NULL CHECK(event_key IN ('case_prepared','case_review_requested',
-  'documents_required','document_reference_added','eligibility_checked',
+  'documents_required','document_reference_added','document_reviewed','eligibility_checked',
   'contract_reviewed','operator_packet_prepared','operator_agreement_pending',
   'handoff_prepared','case_paused','case_rejected','case_cancelled')),
  stage_from text,
