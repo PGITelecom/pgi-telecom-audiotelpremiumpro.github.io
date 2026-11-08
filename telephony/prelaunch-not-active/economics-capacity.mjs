@@ -18,7 +18,7 @@ function integer(n,name,min,max){
 function minorFromMicros(value){
  const x=BigInt(value);
  // Preserve the sign for small losses, truncating fractions of one cent.
- return Number(x/MICRO_PER_CENT);
+ return Number(x>=0n?x/MICRO_PER_CENT:-((-x+MICRO_PER_CENT-1n)/MICRO_PER_CENT));
 }
 function monthlyFixed(input){
  const regulatory=BigInt(input.number_block_count)*BigInt(input.annual_arcep_fee_minor_per_block);
