@@ -53,7 +53,7 @@ export const AUDIOTEL_RECONCILIATION_REQUIREMENTS=Object.freeze([
 /** A source payload from a form or CSV never proves the operator signature. */
 export function planAudiotelFinancialCycle(input={}){
  shape(input,["business_unit","currency","period_reference","contract_model","settlement_route",
-  "statement","contracts","holds","bank_receipt_minor","minimum_margin_minor_per_min"],
+  "statement","contracts","holds","app_receipt_minor","minimum_margin_minor_per_min"],
  "INPUT");
  if(input.business_unit!==UNIT||!CURRENCIES.has(input.currency))abort("SCOPE_INVALID");
  const period=ref(input.period_reference,"PERIOD");
@@ -184,8 +184,8 @@ export function planAudiotelFinancialCycle(input={}){
      can_dispatch_payment:false
     });
    });
- const bankReported=input.bank_receipt_minor==null?null:
-   cents(input.bank_receipt_minor,"BANK_RECEIPT");
+ const appReceiptReported=input.app_receipt_minor==null?null:
+   cents(input.app_receipt_minor,"APP_RECEIPT");
  const totalDue=publishers.reduce((n,p)=>checkedSum(n,p.publisher_due_preview_minor),0);
  const totalFee=publishers.reduce((n,p)=>checkedSum(n,p.audiotel_fee_preview_minor),0);
  const totalHeld=publishers.reduce((n,p)=>checkedSum(n,p.held_preview_minor),0);
@@ -195,8 +195,9 @@ export function planAudiotelFinancialCycle(input={}){
  const totalSeconds=publishers.reduce((n,p)=>checkedSum(n,p.operator_reported_seconds),0);
  const lessThanTarget=totalSeconds>0&&BigInt(totalFee)*60n<BigInt(minimumMargin)*BigInt(totalSeconds);
  const mismatches=[];
- if(bankReported!==null&&bankReported!==declared)
-   mismatches.push("reported_bank_vs_operator_difference");
+ if(appReceiptReported!==null&&["carrier_direct","regulated_psp"].includes(input.settlement_route)&&
+    appReceiptReported!==totalFee)
+   mismatches.push("reported_audiotel_receipt_vs_contract_fee_difference");
  if(unconfirmedGross>0)mismatches.push("unconfirmed_or_disputed_calls_present");
  if(totalHeld>0)mismatches.push("publisher_holds_present");
  if(totalSeconds===0)mismatches.push("no_reported_payout_eligible_seconds");
@@ -209,7 +210,7 @@ export function planAudiotelFinancialCycle(input={}){
   contracts:normalizedContracts.sort((a,b)=>a.tenant_reference.localeCompare(b.tenant_reference)),
   rows:rows.slice().sort((a,b)=>a.call_reference.localeCompare(b.call_reference)),
   holds:holdRows.slice().sort((a,b)=>a.hold_reference.localeCompare(b.hold_reference)),
-  reported_bank_receipt_minor:bankReported,minimum_margin_minor_per_min:minimumMargin
+  reported_app_receipt_minor:appReceiptReported,minimum_margin_minor_per_min:minimumMargin
  });
  return Object.freeze({
   schema_version:"app-financial-cycle-prelaunch/1",business_unit:UNIT,
@@ -217,7 +218,9 @@ export function planAudiotelFinancialCycle(input={}){
   contract_model:input.contract_model,
   settlement_route:input.settlement_route,
   input_source:"unauthenticated_draft_only",source_digest:fingerprint,
-  reported_operator_total_minor:declared,reported_bank_receipt_minor:bankReported,
+  reported_operator_total_minor:declared,reported_audiotel_bank_receipt_minor:appReceiptReported,
+  expected_audiotel_gross_fee_preview_minor:totalFee,
+  verified_audiotel_bank_receipt_minor:null,verified_carrier_direct_publisher_paid_minor:null,
   reported_seconds:reportedSeconds,
   operator_reported_eligible_seconds_preview:totalSeconds,
   disputed_or_excluded_calls:disputedCount,
