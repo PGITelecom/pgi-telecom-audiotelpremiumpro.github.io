@@ -2,6 +2,24 @@
 Émetteur commercial : **Audiotel Premium Pro**. Date : 08/11/2026.
 Statut : **BROUILLON INTERNE NON ENVOYÉ**. Pas de commande ni de dépense.
 
+## LIGNE PERMANENTE DE NÉGOCIATION : VOLUME MUTUALISÉ, ACCÈS UNIVERSEL AUX PROFESSIONNELS ÉLIGIBLES
+
+**Notre objectif** : accueillir sans seuil minimal d'activité tous les professionnels légalement éligibles, de tous secteurs autorisés. Conserver la marque et la relation commerciale Audiotel Premium Pro. Automatiser les ouvertures, les portabilités, le suivi CDR, la facturation des prestations propres et le rapprochement des reversements. Réduire au strict nécessaire les coûts fixes de gestion, sans modifier les fonctionnalités actuelles du site.
+
+**Conditions à faire inscrire dans toute consultation et comparer dans chaque offre :**
+1. **Marge contributive cible minimale de 0,07 EUR par minute éligible**, calculée après **tous les coûts variables pertinents** : collecte et interconnexion, transport, média, frais de traitement des paiements, reversement, impayés/fraude, corrections et rémunération contractuelle due au professionnel. N'accepter aucun calcul masquant un coût variable ou confondant la marge brute avec le bénéfice net après charges fixes. En cas de marge insuffisante sur un palier ou un scénario, alerter et renégocier, sans promettre un résultat garanti.
+2. **Zéro minimum de minutes imposé au professionnel**, y compris lorsqu'il ne reçoit aucun appel pendant une période. Pas de pénalité d'inactivité ni d'obligation individuelle de volume.
+3. **Frais fixes par numéro et par professionnel les plus faibles possibles**, tarifs d'attribution, portabilité, hébergement, maintenance et résiliation clairement détaillés. Privilégier les coûts réellement mutualisables et refuser les services accessoires imposés.
+4. **Mutualisation des minutes et volumes de l'ensemble des professionnels Audiotel** pour accéder aux meilleures grilles de gros, sans répercuter un minimum individuel sur chaque client ; faire préciser la possibilité d'agrégation des 081/082/089 et des différents paliers, les périodes et les éventuelles obligations de volume au niveau Audiotel.
+5. **Aucun engagement ni minimum de consommation pour les professionnels**, sans limitation sectorielle arbitraire lorsque le professionnel et le service sont légalement éligibles. Vérifier les coûts et responsabilités des clients à faible ou zéro activité.
+6. **Priorité absolue au reversement direct par l'opérateur ou un PSP habilité aux IBAN des professionnels**, sans transit des fonds tiers sur le compte d'Audiotel ; rémunération Audiotel versée séparément, preuves de paiement et API/fichiers de rapprochement.
+7. Exiger des **API, exports CDR, statuts opérateur, fichiers de règlement et justificatifs** pour l'automatisation et un suivi fiable dans les espaces clients et le cockpit, avec sécurité, RGPD, obligations Arcep, règles SVA/AF2M, anti-fraude et conformité des moyens de paiement.
+8. En cas de refus d'une condition structurante, **documenter l'écart et son impact économique et juridique**, chiffrer les alternatives et solliciter une décision expresse du dirigeant avant signature.
+
+**Méthode de comparaison** : calculer séparément la marge après coûts variables par minute, les charges fixes par numéro et client, les obligations de consommation au niveau de l'opérateur, le coût de l'automatisation et le coût total à trafic nul/faible/moyen/élevé. Ne jamais choisir automatiquement une offre parce qu'elle annonce le reversement nominal par minute le plus élevé.
+
+Cette grille est **permanente pour toutes les futures négociations**, mais demeure un cahier des charges **non envoyé**. Aucun opérateur n'est contacté et aucun tarif, droit, marge garantie ou accord n'est acquis.
+
 ## 1. Objet précis de la consultation
 
 ## 0. CLAUSE PRIORITAIRE À NÉGOCIER : REVERSEMENT DIRECT AUX PROFESSIONNELS
