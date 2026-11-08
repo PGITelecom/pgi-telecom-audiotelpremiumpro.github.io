@@ -18,7 +18,7 @@ test("change micro to EURL or SASU enumerates essential transfers but executes n
   assert.ok(p.worklist.every(x=>x.completed===false&&x.can_execute_without_owner===false));
   assert.equal(p.legal_entity_created,false);
   assert.equal(p.phone_numbers_transferred,false);
-  assert.equal(p.contracts_transferred,false);
+  assert.equal(p.customer_contracts_transferred,false);
   assert.equal(p.operator_contracts_transferred,false);
   assert.equal(p.arcep_numbering_rights_transferred,false);
   assert.equal(p.go_live_authorized,false);
