@@ -83,7 +83,7 @@ CREATE TABLE app_prelaunch_case_events (
  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
  case_id bigint NOT NULL REFERENCES app_prelaunch_service_cases(id),
  event_key text NOT NULL CHECK(event_key IN ('case_prepared','case_review_requested',
-  'documents_required','document_reference_added','document_reviewed','eligibility_checked',
+  'documents_required','document_reference_added','document_reviewed','technical_details_recorded','eligibility_checked',
   'contract_reviewed','operator_packet_prepared','operator_agreement_pending',
   'handoff_prepared','case_paused','case_rejected','case_cancelled')),
  stage_from text,
