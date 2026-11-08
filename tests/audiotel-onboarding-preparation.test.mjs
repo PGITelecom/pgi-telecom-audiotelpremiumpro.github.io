@@ -7,7 +7,7 @@ import {
 } from "../backend/src/audiotel-onboarding-preparation.mjs";
 import {
  preparePreclientServiceCase,advancePreclientServiceCase,
- attachPreclientDocumentReference,readPreclientStaffQueue
+ attachPreclientDocumentReference,reviewPreclientDocument,readPreclientStaffQueue
 } from "../backend/src/audiotel-onboarding-casework.mjs";
 
 const actor={authenticated:true,business_unit:"audiotel_platform",role:"administrator",
@@ -45,6 +45,13 @@ function fakeDb(){
      throw Object.assign(Error("unique violation"),{code:"23505"});
    cases.push(c);return [{id:c.id,stage:c.stage}];
   }
+  if(sql.startsWith("SELECT c.id AS case_id"))
+    return docs.filter(d=>cases.some(c=>c.id===d.case_id&&c.public_reference===p[0])&&d.id===p[1])
+      .map(d=>({case_id:d.case_id,stage:cases.find(c=>c.id===d.case_id).stage,
+        document_id:d.id,review_status:d.review_status||"unverified"}));
+  if(sql.startsWith("UPDATE app_prelaunch_case_documents")){
+    docs.find(d=>d.id===p[0]).review_status=p[1];return [];
+  }
   if(sql.startsWith("SELECT id,request_kind,stage"))
     return cases.filter(c=>c.public_reference===p[0]);
   if(sql.startsWith("SELECT id,stage FROM app_prelaunch_service_cases"))
@@ -58,6 +65,7 @@ function fakeDb(){
     let e;
     if(sql.includes("'case_prepared'"))e={case_id:p[0],stage_to:"received",source_reference:p[2]};
     else if(sql.includes("'document_reference_added'"))e={case_id:p[0],stage_to:p[1],source_reference:p[3]};
+    else if(sql.includes("'document_reviewed'"))e={case_id:p[0],stage_to:p[1],source_reference:p[3]};
     else e={case_id:p[0],stage_to:p[3],source_reference:p[5]};
     events.push(e);return [];
   }
@@ -243,4 +251,36 @@ test("customer projection omits PII, raw RIO and unrelated tenant records",()=>{
  assert.equal(view.number,"+33890123456");
  assert.equal(view.activation_status,"not_activated");
  assert.doesNotMatch(JSON.stringify(view),/secret|private|margin|rio/);
+});
+
+test("authorized document review is audited and never activates numbers or calls",async()=>{
+ const d=fakeDb();
+ const p=await preparePreclientServiceCase(d.db,{context:intake,request:base});
+ const doc=await attachPreclientDocumentReference(d.db,{
+  context:actor,case_reference:p.case_reference,event_reference:"evt-document-attach-2026",
+  document:{kind:"holder_mandate",secure_object_ref:"PRIVATE-DOCUMENT-2026",
+   sha256:"e".repeat(64),retention_until:"2027-09-30"}
+ });
+ assert.equal(doc.created,true);
+ await assert.rejects(()=>reviewPreclientDocument(d.db,{
+  context:actor,case_reference:p.case_reference,document_id:1,
+  decision:"verified",review_reference:"TRUSTED-REVIEW-2026",
+  event_reference:"evt-document-review-2026"
+ }),{code:"APP_CASE_DOCUMENT_REVIEW_EVIDENCE_REQUIRED"});
+ const reviewed=await reviewPreclientDocument(d.db,{
+  context:{...actor,secure_document_review_completed:true},
+  case_reference:p.case_reference,document_id:1,
+  decision:"verified",review_reference:"TRUSTED-REVIEW-2026",
+  event_reference:"evt-document-review-2026"
+ });
+ assert.equal(reviewed.changed,true);assert.equal(reviewed.activated,false);
+ assert.equal(d.docs[0].review_status,"verified");
+ assert.equal(d.events.at(-1).source_reference,"evt-document-review-2026");
+ assert.equal(d.notifications.length,1);
+ await assert.rejects(()=>reviewPreclientDocument(d.db,{
+  context:{...actor,secure_document_review_completed:true},
+  case_reference:p.case_reference,document_id:1,
+  decision:"rejected",review_reference:"TRUSTED-REVIEW-2026",
+  event_reference:"evt-document-conflict-2026"
+ }),{code:"APP_CASE_DOCUMENT_REVIEW_CONFLICT"});
 });
