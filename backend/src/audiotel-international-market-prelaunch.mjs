@@ -83,8 +83,8 @@ export function inspectAudiotelCandidateNumber({country_code,number}={}){
  if(country_code==="GB")prefixMatched=national.startsWith("9")?"09":undefined;
  // Italy has no automatic trunk-zero removal; national 892/899 stays.
  if(country_code==="FR"){
-  if(!/^\+338(?:1|2|9)[0-9]{7}$/.test(normalized))prefixMatched=undefined;
-  if(prefixMatched)prefixMatched="0"+national.slice(0,2);
+  prefixMatched=/^\+338(?:1|2|9)[0-9]{7}$/.test(normalized)?
+    "0"+national.slice(0,2):undefined;
  }
  if(!prefixMatched)err("NOT_A_RESEARCHED_PREMIUM_RANGE");
  return deep({
@@ -148,7 +148,13 @@ export function reviewAudiotelMarketContribution(input={}){
  const total=costs.reduce((a,b)=>a+b,0);
  if(!Number.isSafeInteger(total)||total>1e12)err("COST_OVERFLOW");
  const margin=gross-publisher-total;
- const marginPerMinute=seconds>0?Math.round(margin*60*1000/seconds)/1000:null;
+ const milliPerMinute=seconds>0?
+  ((BigInt(margin)<0n?-1n:1n)*
+   ((BigInt(Math.abs(margin))*60000n+BigInt(Math.floor(seconds/2)))/BigInt(seconds))):null;
+ if(milliPerMinute!==null&&
+   (milliPerMinute>BigInt(Number.MAX_SAFE_INTEGER)||milliPerMinute<BigInt(-Number.MAX_SAFE_INTEGER)))
+   err("MARGIN_PER_MINUTE_OVERFLOW");
+ const marginPerMinute=milliPerMinute===null?null:Number(milliPerMinute)/1000;
  return deep({
   schema_version:"app-market-profitability-prelaunch/1",
   business_unit:UNIT,country_code:input.country_code,currency:profile.currency,
