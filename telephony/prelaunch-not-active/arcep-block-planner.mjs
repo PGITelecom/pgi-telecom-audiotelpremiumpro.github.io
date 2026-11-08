@@ -14,6 +14,7 @@ function canonical(v){return typeof v==="string"&&E164.test(v);}
 function minor(n,name){if(!Number.isSafeInteger(n)||n<0||n>1000000000)reject("INVALID_"+name);return n;}
 const STATUS=new Set(["simulated_reserved","simulated_allocated","simulated_blocked","released"]);
 const occupied=s=>s!=="released";
+const trustedBlocks=new WeakSet();
 
 export function planAudiotelArcepBlock(input={}){
  shape(input,["business_unit","mode","block_start_e164","block_reference",
@@ -76,6 +77,7 @@ export function planAudiotelArcepBlock(input={}){
   portability_authorized:false,
   external_number_order_authorized:false
  });
+ trustedBlocks.add(snapshot);
  return snapshot;
 }
 
@@ -84,7 +86,7 @@ export function previewAudiotelNumberRequest(blocks,{category}={}){
  if(!Array.isArray(blocks)||blocks.length>10000)reject("INVALID_BLOCKS");
  if(!["081","082","089"].includes(category))reject("INVALID_CATEGORY");
  for(const block of blocks){
-  if(!isObject(block)||block.mode!=="offline_simulation"||
+  if(!isObject(block)||!trustedBlocks.has(block)||block.mode!=="offline_simulation"||
      block.business_unit!=="audiotel_platform"||
      block.numbering_resources_owned!==false||
      block.number_activation_authorized!==false)reject("UNTRUSTED_BLOCK");
