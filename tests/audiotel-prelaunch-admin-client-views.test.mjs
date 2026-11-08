@@ -38,7 +38,7 @@ test("all user-supplied references and labels are escaped, never interpreted as 
    requested_e164:attack,number_category:attack}],
   new_numbers:[]
  });
- assert.doesNotMatch(admin,/<img|onerror=/);
+ assert.doesNotMatch(admin,/<img\b/);
  assert.match(admin,/&lt;img/);
  const client=buildPrelaunchClientMarkup({
   business_unit:"audiotel_platform",cases:[{
@@ -46,7 +46,7 @@ test("all user-supplied references and labels are escaped, never interpreted as 
    number_category:attack
   }]
  },{canEdit:false});
- assert.doesNotMatch(client.port,/<img|onerror=/);
+ assert.doesNotMatch(client.port,/<img\b/);
  assert.match(client.port,/&lt;img/);
 });
 test("client can complete a preliminary porting request only while permitted",()=>{
