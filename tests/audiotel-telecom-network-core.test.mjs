@@ -110,3 +110,33 @@ test("international and French premium PSTN endpoints require separately approve
  const t=cfg();t.destinations[1].destination_uri="+441234567890";
  assert.throws(()=>validateAudiotelNetworkLab(t),{code:"APP_NETWORK_INVALID_PSTN_DESTINATION"});
 });
+
+
+test("6,000 simulated SVA numbers / 3,000 professionals remain indexed and isolated",()=>{
+ const t=cfg();
+ t.tenants=Array.from({length:3000},(_,i)=>({
+  id:"tenant_"+String(i).padStart(4,"0"),status:"simulated_active",
+  kyb:"simulated_verified"
+ }));
+ t.numbers=Array.from({length:6000},(_,i)=>({
+  e164:"+"+String(33890123000+i),
+  tenant_id:t.tenants[Math.floor(i/2)].id,
+  state:"simulated_assigned",origin:"arcep_direct_candidate"
+ }));
+ t.destinations=t.numbers.map((n,i)=>({
+  id:"route_"+String(i).padStart(5,"0"),tenant_id:n.tenant_id,
+  number_e164:n.e164,destination_uri:"sip:agent@tenant-one.example.test",
+  destination_type:"sip",priority:0,capacity:5,active_calls:0,
+  status:"simulated_enabled"
+ }));
+ const n=validateAudiotelNetworkLab(t);
+ assert.equal(n.numbers.length,6000);
+ const last=t.numbers[5999];
+ const d=simulateAudiotelIncomingCall(n,{
+  called_e164:last.e164,peer_id:"carrier_a"
+ });
+ assert.equal(d.status,"simulated_route");
+ assert.equal(d.tenant_id,last.tenant_id);
+ assert.equal(d.selected_destination_id,"route_05999");
+ assert.equal(d.operational_call_authorized,false);
+});
