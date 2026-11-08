@@ -4,6 +4,10 @@
 
 ## Grille de négociation permanente d'Audiotel Premium Pro
 
+**Hypothèse de coût et d'approvisionnement communiquée par le dirigeant le 08/11/2026 :** négocier, si réglementairement et commercialement possible, un **bloc de 1 000 numéros SVA loué 20 EUR/mois pour le bloc ENTIER**, et non 20 EUR par numéro. Valeur indicative **non contractuelle**, sans offre ni droit d'attribution confirmé. Cela représente **0,02 EUR par numéro et par mois** à pleine allocation du bloc (20 / 1 000), hors attribution, portabilité, frais opérateur, routage, trafic et gestion. Le coût réel par numéro *utilisé* dépend du taux d'occupation du bloc. Comparer cette formule mutualisée aux frais d'allocation/ressource Arcep et aux offres de gros réellement accessibles. Ne jamais affirmer qu'un bloc de cette taille est disponible à ce tarif sans confirmation écrite.
+
+
+
 - Tous professionnels éligibles et secteurs légalement autorisés : ouverture possible sans volume minimum et sans engagement pour chaque professionnel.
 - Marge contributive cible **au moins 0,07 EUR/min éligible après tous les coûts variables**, y compris frais opérateur, PSP, fraude/impayés, reversements, et la rémunération due au professionnel : demander les éléments de calcul par palier et par origine d'appel.
 - Aucun forfait de minutes obligatoire par professionnel, aucune pénalité d'inactivité ; coût d'une ligne à zéro minute explicitement chiffré.
