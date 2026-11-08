@@ -241,3 +241,51 @@ export async function readPreclientStaffQueue(store,{context,limit=50}={}){
    may_send_notifications:false
  });
 }
+
+/** Human review of a private document, without exposing or moving its bytes.
+ * No customer is activated and no operator receives an API call.
+ */
+export async function reviewPreclientDocument(store,{
+ context,case_reference,document_id,decision,review_reference,event_reference
+}={}){
+ const actor=staffContext(context);
+ if(actor.secure_document_review_completed!==true)
+   fail("APP_CASE_DOCUMENT_REVIEW_EVIDENCE_REQUIRED",403);
+ if(typeof case_reference!=="string"||!/^APP-CASE-[A-Za-z0-9_-]{12,90}$/.test(case_reference)||
+    !Number.isSafeInteger(document_id)||document_id<1||
+    !["verified","rejected"].includes(decision)||
+    typeof review_reference!=="string"||!REF.test(review_reference)||
+    typeof event_reference!=="string"||!KEY.test(event_reference))
+   fail("APP_CASE_DOCUMENT_REVIEW_INVALID",422);
+ const begin=requireTx(store);
+ return begin(async tx=>{
+   const rows=await tx.unsafe(
+     "SELECT c.id AS case_id,c.stage,d.id AS document_id,d.review_status"+
+     " FROM app_prelaunch_case_documents d"+
+     " JOIN app_prelaunch_service_cases c ON c.id=d.case_id"+
+     " WHERE c.public_reference=$1 AND c.business_unit='audiotel_platform'"+
+     " AND d.id=$2 FOR UPDATE OF c,d",[case_reference,document_id]);
+   if(rows.length!==1)fail("APP_CASE_DOCUMENT_NOT_FOUND",404);
+   const row=rows[0];
+   if(["cancelled","rejected"].includes(row.stage))fail("APP_CASE_TERMINAL_DOCUMENT_FORBIDDEN",409);
+   if(row.review_status===decision)return Object.freeze({
+     case_reference,document_id,review_status:decision,changed:false,
+     activated:false,notification_sent:false
+   });
+   if(row.review_status!=="unverified")
+     fail("APP_CASE_DOCUMENT_REVIEW_CONFLICT",409);
+   await tx.unsafe(
+     "UPDATE app_prelaunch_case_documents"+
+     " SET review_status=$2,reviewed_at=now(),review_reference=$3 WHERE id=$1",
+     [document_id,decision,review_reference]);
+   await tx.unsafe(
+     "INSERT INTO app_prelaunch_case_events"+
+     " (case_id,event_key,stage_from,stage_to,actor_fingerprint,source_reference)"+
+     " VALUES($1,'document_reviewed',$2,$2,$3,$4)",
+     [row.case_id,row.stage,actor.actor_fingerprint,event_reference]);
+   return Object.freeze({
+     case_reference,document_id,review_status:decision,changed:true,
+     activated:false,network_call_executed:false,notification_sent:false
+   });
+ });
+}
