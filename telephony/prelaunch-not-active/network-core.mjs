@@ -7,10 +7,12 @@
 import {isIP} from "node:net";
 
 const SVA=/^\+338[129]\d{7}$/;
-const E164=/^\+[1-9]\d{6,14}$/;
+const FR_DESTINATION=/^\+33[1-79]\d{8}$/;
 const ID=/^[A-Za-z0-9_-]{2,80}$/;
 const SIP=/^sip:([A-Za-z0-9_.-]{1,64})@([a-zA-Z0-9.-]{3,253})$/;
 const object=v=>v!==null&&typeof v==="object"&&!Array.isArray(v);
+const approvedNetworks=new WeakSet();
+const frozenRows=rows=>Object.freeze(rows.map(row=>Object.freeze({...row})));
 const fail=code=>{throw Object.assign(new Error("APP_NETWORK_"+code),{code:"APP_NETWORK_"+code,status:422});};
 const exactObject=(o,keys,name)=>{
  if(!object(o)||Object.keys(o).some(k=>!keys.includes(k)))fail("INVALID_"+name);
@@ -31,7 +33,7 @@ function privateIp(v){
 function validateDestination(route,allowedDomains){
  if(typeof route.destination_uri!=="string")fail("MISSING_DESTINATION");
  if(route.destination_type==="pstn"){
-  if(!E164.test(route.destination_uri)||SVA.test(route.destination_uri))
+  if(!FR_DESTINATION.test(route.destination_uri)||SVA.test(route.destination_uri))
    fail("INVALID_PSTN_DESTINATION");
  }else if(route.destination_type==="sip"){
   const match=route.destination_uri.match(SIP);
@@ -109,22 +111,25 @@ export function validateAudiotelNetworkLab(manifest){
   return {...r};
  });
  if(new Set(destinations.map(d=>d.id)).size!==destinations.length)fail("DUPLICATE_DESTINATION");
- return Object.freeze({
+ const model=Object.freeze({
   business_unit:"audiotel_platform",environment:"isolated_offline_simulation",
-  nodes:Object.freeze(nodes),peers:Object.freeze(peers),
-  tenants:Object.freeze(tenants),numbers:Object.freeze(numbers),
-  destinations:Object.freeze(destinations),approved_sip_domains:Object.freeze(domains),
+  nodes:frozenRows(nodes),peers:frozenRows(peers),
+  tenants:frozenRows(tenants),numbers:frozenRows(numbers),
+  destinations:frozenRows(destinations),approved_sip_domains:Object.freeze(domains),
   real_arcep_rights_verified:false,carrier_interconnect_authenticated:false,
   commercial_activation_authorized:false,live_sip_routing_authorized:false,
   live_payout_authorized:false
  });
+ approvedNetworks.add(model);
+ return model;
 }
 const denied=reason=>Object.freeze({
  status:"offline_denied",reason,operational_call_authorized:false,
  telecom_network_connected:false,payout_authorized:false
 });
 export function simulateAudiotelIncomingCall(network,request){
- if(!network||network.environment!=="isolated_offline_simulation"||
+ if(!object(network)||!approvedNetworks.has(network)||
+    network.environment!=="isolated_offline_simulation"||
     network.business_unit!=="audiotel_platform")return denied("NETWORK_NOT_VALIDATED");
  if(!object(request)||Object.keys(request).some(k=>!["called_e164","peer_id"].includes(k)))
   return denied("INVALID_REQUEST");
@@ -164,9 +169,11 @@ export function simulateAudiotelIncomingCall(network,request){
  * validated RFC1918 nodes, and cannot configure a public SIP listener.
  */
 export function renderKamailioDispatcherForLab(network){
- if(!network||network.environment!=="isolated_offline_simulation"||
+ if(!object(network)||!approvedNetworks.has(network)||
+   network.environment!=="isolated_offline_simulation"||
    network.live_sip_routing_authorized!==false)fail("UNSAFE_NETWORK");
- const nodes=network.nodes.slice().sort((a,b)=>a.priority-b.priority||a.id.localeCompare(b.id));
+ const nodes=network.nodes.filter(n=>n.status==="simulated_healthy").sort((a,b)=>a.priority-b.priority||a.id.localeCompare(b.id));
+ if(!nodes.length)fail("NO_HEALTHY_MEDIA_NODE");
  if(nodes.some(n=>!privateIp(n.private_ipv4)))fail("UNSAFE_NODE_IP");
  return "# SIMULATION ONLY - no live SIP or carrier interconnect\n"+
   "# Complete operator and IP ACL review required before activation.\n"+
