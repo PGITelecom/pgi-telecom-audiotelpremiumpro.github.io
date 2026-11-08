@@ -170,5 +170,5 @@ export function renderKamailioDispatcherForLab(network){
  if(nodes.some(n=>!privateIp(n.private_ipv4)))fail("UNSAFE_NODE_IP");
  return "# SIMULATION ONLY - no live SIP or carrier interconnect\n"+
   "# Complete operator and IP ACL review required before activation.\n"+
-  nodes.map(n=>"1 sip:"+n.private_ipv4+":"+n.sip_port+" 8 # "+n.id+" "+n.status).join("\n")+"\n";
+  nodes.map(n=>"# "+n.id+" "+n.status+"\n1 sip:"+n.private_ipv4+":"+n.sip_port+" 8").join("\n")+"\n";
 }
