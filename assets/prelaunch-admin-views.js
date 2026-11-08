@@ -84,15 +84,10 @@ export async function mountCustomerAdminPreview(root,api){
 }
 export async function mountAccountingPreview(root,api){
  if(!preview()||!root||!api)return;
- const settled=await Promise.allSettled([
-  typeof api.prelaunchFinance==="function"?api.prelaunchFinance():Promise.reject(Error("unavailable")),
-  typeof api.prelaunchStrategy==="function"?api.prelaunchStrategy():Promise.reject(Error("unavailable"))
- ]);
+ let data;
+ try{data=await api.prelaunchCases();}catch(_){return;}
  if(!preview()||!root.isConnected)return;
- const markup=buildPrelaunchAccountingMarkup(
-  settled[0].status==="fulfilled"?settled[0].value:null,
-  settled[1].status==="fulfilled"?settled[1].value:null
- );
+ const markup=buildPrelaunchAccountingMarkup(data?.finance,data?.strategy);
  if(markup===null)return;
  let section=root.querySelector("[data-app-accounting-preview]");
  if(!section){
