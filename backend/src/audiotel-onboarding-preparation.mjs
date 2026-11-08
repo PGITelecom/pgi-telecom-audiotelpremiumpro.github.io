@@ -83,15 +83,18 @@ export function normalizePreparedAppCase(input={}){
   const kind=String(input.kind??"");
   if(!APP_CASE_KINDS.includes(kind))error("APP_CASE_KIND_INVALID");
   if(input.country_code!=="FR")error("APP_CASE_FR_ONLY");
-  const category=String(input.category??"");
-  if(!["081","082","089"].includes(category))error("APP_CASE_CATEGORY_INVALID");
+  // The existing public form records intent only. Neither SVA number nor
+  // tariff category is supplied before the secure subsequent step.
+  const category=input.category==null||input.category===""?null:String(input.category);
+  if(category!==null&&!["081","082","089"].includes(category))error("APP_CASE_CATEGORY_INVALID");
   const request_key=validKey(input.request_key);
   const secure_contact_ref=validRef(input.secure_contact_ref,"APP_CASE_CONTACT_REF_INVALID");
   let requested_e164=null;
-  if(kind==="portability"){
+  if(kind==="portability"&&input.number!==undefined&&input.number!==null&&input.number!==""){
     requested_e164=normalizeFrenchSvaNumber(input.number);
-    if("0"+requested_e164.slice(3,5)!==category)error("APP_CASE_CATEGORY_NUMBER_MISMATCH");
-  }else if(input.number!==undefined&&input.number!==null&&input.number!==""){
+    if(category!==null&&"0"+requested_e164.slice(3,5)!==category)
+      error("APP_CASE_CATEGORY_NUMBER_MISMATCH");
+  }else if(kind==="new_number"&&input.number!==undefined&&input.number!==null&&input.number!==""){
     error("APP_CASE_NEW_NUMBER_CANNOT_PREASSIGN");
   }
   // Operator name is unverified applicant data: never infer rights from it.
