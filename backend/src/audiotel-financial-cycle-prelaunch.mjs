@@ -193,7 +193,7 @@ export function planAudiotelFinancialCycle(input={}){
  const totalCosts=publishers.reduce((n,p)=>checkedSum(n,p.carrier_and_processing_cost_preview_minor),0);
  if(totalFee+totalDue+totalCosts!==totalOperatorReported)abort("UNBALANCED_REPORTED_ALLOCATION");
  const totalSeconds=publishers.reduce((n,p)=>checkedSum(n,p.operator_reported_seconds),0);
- const lessThanTarget=totalSeconds>0&&totalFee*60<minimumMargin*totalSeconds;
+ const lessThanTarget=totalSeconds>0&&BigInt(totalFee)*60n<BigInt(minimumMargin)*BigInt(totalSeconds);
  const mismatches=[];
  if(bankReported!==null&&bankReported!==declared)
    mismatches.push("reported_bank_vs_operator_difference");
@@ -208,7 +208,8 @@ export function planAudiotelFinancialCycle(input={}){
   statement_sha256:statement.document_sha256,
   contracts:normalizedContracts.sort((a,b)=>a.tenant_reference.localeCompare(b.tenant_reference)),
   rows:rows.slice().sort((a,b)=>a.call_reference.localeCompare(b.call_reference)),
-  holds:holdRows.slice().sort((a,b)=>a.hold_reference.localeCompare(b.hold_reference))
+  holds:holdRows.slice().sort((a,b)=>a.hold_reference.localeCompare(b.hold_reference)),
+  reported_bank_receipt_minor:bankReported,minimum_margin_minor_per_min:minimumMargin
  });
  return Object.freeze({
   schema_version:"app-financial-cycle-prelaunch/1",business_unit:UNIT,
