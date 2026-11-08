@@ -74,7 +74,10 @@ CREATE TABLE app_international_market_entry_drafts (
  carrier_interconnection_active boolean NOT NULL DEFAULT false CHECK(carrier_interconnection_active=false),
  commercial_market_active boolean NOT NULL DEFAULT false CHECK(commercial_market_active=false),
  created_at timestamptz NOT NULL DEFAULT now(),
- CHECK(regulatory_document_sha256 IS NULL OR regulatory_document_sha256 ~ '^[0-9a-f]{64}$')
+ CHECK(regulatory_document_sha256 IS NULL OR regulatory_document_sha256 ~ '^[0-9a-f]{64}$'),
+ CHECK ((country_code IN ('FR','ES','IT') AND currency='EUR')
+ OR (country_code='GB' AND currency='GBP')
+ OR (country_code='US' AND currency='USD'))
 );
 
 CREATE TABLE app_international_portability_drafts (
@@ -99,6 +102,9 @@ CREATE TABLE app_international_portability_drafts (
  CHECK(carrier_secure_ref IS NULL OR length(carrier_secure_ref) BETWEEN 8 AND 180)
 );
 CREATE INDEX app_intl_port_tenant ON app_international_portability_drafts(customer_tenant_id,id DESC);
+CREATE UNIQUE INDEX app_intl_port_active_number
+ ON app_international_portability_drafts(country_code,number_e164)
+ WHERE status NOT IN ('rejected','cancelled');
 
 CREATE TABLE app_international_quote_drafts (
  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -117,7 +123,10 @@ CREATE TABLE app_international_quote_drafts (
  validated_by_carrier boolean NOT NULL DEFAULT false CHECK(validated_by_carrier=false),
  commercial_activated boolean NOT NULL DEFAULT false CHECK(commercial_activated=false),
  created_at timestamptz NOT NULL DEFAULT now(),
- UNIQUE(country_code,quote_digest)
+ UNIQUE(country_code,quote_digest),
+ CHECK ((country_code IN ('FR','ES','IT') AND currency='EUR')
+ OR (country_code='GB' AND currency='GBP')
+ OR (country_code='US' AND currency='USD'))
 );
 CREATE INDEX app_intl_quote_country ON app_international_quote_drafts(country_code,id DESC);
 
