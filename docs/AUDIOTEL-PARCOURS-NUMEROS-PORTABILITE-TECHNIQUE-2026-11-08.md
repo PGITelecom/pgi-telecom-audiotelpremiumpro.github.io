@@ -23,7 +23,7 @@ Ne pas toucher au design, aux URL publiques ni aux interfaces actuelles. Conserv
 ## 2. Composants ajoutés, uniquement sur la branche isolée
 
 - `backend/src/audiotel-onboarding-preparation.mjs` : politique d'entrée FR, numéro canonique E.164, distinction portabilité / numéro neuf, transitions autorisées, pièces et preuves exigées, projection client sans PII, notifications documentaires inertes, check de bascule non activant.
-- `backend/src/audiotel-onboarding-casework.mjs` : opérations transactionnelles réutilisables pour créer un dossier prospect, lui ajouter des références documentaires, faire une revue staff, changer son étape, consulter la file interne. Aucun endpoint HTTP n'appelle encore ces fonctions.
+- `backend/src/audiotel-onboarding-casework.mjs` : opérations transactionnelles réutilisables pour créer un dossier prospect, lui ajouter des références documentaires, faire une revue staff, changer son étape, consulter la file interne. Des endpoints internes de prévisualisation et un pont depuis le formulaire ont été ajoutés. Ils sont strictement réservés au simulateur explicite, sans accès en production.
 - `database/prelaunch-not-applied/091_audiotel_preclient_number_portability_cases.sql` : dossiers prospects, documents sécurisés par références, journal append-only, outbox non envoyée, intentions d'intégration opérateur non expédiées. Aucun `CREATE TABLE` lancé sur Neon.
 - `backend/src/portability-identity.mjs` : extension rétrocompatible de la reconnaissance des préfixes RIO SVA 2026 (`F0` à `ZZ` en plus des dossiers historiques) avec le contrôle de cohérence déjà présent ; validation par l'opérateur toujours indispensable.
 - Tests de non-activation, d'idempotence, d'isolation entre unités, de statuts, de documents et de compatibilité RIO ; validation du SQL dans la seule base PostgreSQL **temporaire de GitHub Actions**.
@@ -83,9 +83,9 @@ Même entrée vérifiée, mais **aucun numéro choisi par le prospect** et aucun
 
 Toutes les nouvelles tables ont l'accès `PUBLIC` révoqué. Aucun accès client direct à ces tables ne doit être accordé ; le futur backend devra utiliser un rôle dédié non `BYPASSRLS`, un contexte tenant transactionnel et des vérifications de propriétaire. Il faut définir la durée légale de conservation par catégorie documentaire et les habilitations exactes avant de stocker des pièces réelles.
 
-## 6. API prévue pour raccordement ultérieur, PAS publiée
+## 6. API de préparation raccordées au simulateur, NON publiées
 
-Les endpoints existants `POST/GET /api/v1/customer/portability`, `POST /api/v1/customer/portability/:id/cancel`, et la finalisation staff sont **conservés**. Les modules préparés sont des fonctions serveur et **ne sont pas montés sur une nouvelle route publique**.
+Les endpoints existants `POST/GET /api/v1/customer/portability`, `POST /api/v1/customer/portability/:id/cancel`, et la finalisation staff sont **conservés**. Le backend contient désormais trois routes **privées de prévisualisation** (lecture cockpit, lecture client, ajout du numéro), exécutables uniquement lorsque `config.mode=simulator` ET `options.prelaunchCaseworkPreview=true` sont imposés ensemble par l'appelant serveur. En mode `production`, les trois routes sont inaccessibles et ne sont pas annoncées dans l'interface.
 
 Contrat de futur adaptateur, derrière authentification, CSRF et vérification des sources :
 
@@ -135,7 +135,7 @@ Sources :
 - Pas de procédure inter-opérateurs signée, de commande physique de numéro, de transition contrôlée entre donneur et receveur, ni de preuve de retour réseau.
 - Absence de dispositif opérationnel PSP/bancaire et comptable complet pour reversements.
 - Compte Stripe Audiotel, envoi Resend et liaison HubSpot vers les nouveaux dossiers non activés.
-- Aucune nouvelle route d'API, aucun écran ou panneau de cockpit publié : il faudra une intégration supervisée après autorisation.
+- Des routes API de prévisualisation sont intégrées au serveur sur branche, mais **exclusivement en simulateur explicitement autorisé** : aucune route nouvelle n'est publiée ni activée en production. Aucun nouvel écran n'a été créé.
 - Les données fictives locales ne démontrent pas la robustesse sur 200 clients simultanés.
 
 ## 10. Sécurité du gel et livraison
@@ -146,3 +146,18 @@ Sources :
 - Pas de changement en production Vercel, Neon, Resend, HubSpot ou opérateur.
 - La dernière production Vercel reste `5a40538cb25128f15bb06ac9ee993aebbf003292`.
 - Levée du gel, signature des contrats et approbation de mise en service nécessitent des ordres distincts et explicites du propriétaire.
+
+
+## 11. Raccordements internes complémentaires préparés sur cette branche
+
+**Pont d'ouverture** : `backend/src/audiotel-opening-lead-bridge.mjs` est importé dans `backend/server.mjs` à l'intérieur du traitement de la demande publique existante. Il réutilise le `dossier` et le `tenant_id` **pending** déjà créés par `ensureLeadTenant`, distingue `service_intent=portability` et `new_number`, puis crée un dossier APP préparatoire idempotent. L'e-mail, le téléphone et les justificatifs bruts ne sont pas recopiés ; l'étape initiale ne demande ni numéro à porter ni catégorie tarifaire, comme le formulaire actuel. Le dossier n'est créé **en prévisualisation** que lorsque `config.mode="simulator"` et `options.prelaunchCaseworkPreview===true` sont réunis et qu'une base jetable compatible est fournie. Aucune variable d'environnement en production ne peut forcer ce mode.
+
+**Portail et cockpit** : `backend/server.mjs` raccorde en simulation `GET /api/v1/platform/prelaunch/cases` (staff admin), `GET /api/v1/customer/prelaunch/cases` (session, tenant et permission), `POST /api/v1/customer/prelaunch/cases/:id/number` (session, propriétaire/admin et CSRF). L'ajout du numéro est idempotent par clé UUID, normalisé FR, isolé par `tenant_id`, et n'effectue aucune opération SIP/portabilité. Les wrappers `assets/api-client.js` et `assets/client-portal-api.js` exposent les méthodes correspondantes sans injecter de nouvel écran ni modifier les pages.
+
+**Documents et statuts** : le module de dossiers possède une revue de référence documentaire authentifiée, une file de préparation et une outbox sans envoi. Les statuts opérateurs réels, le routage et les comptes de paiement restent liés aux modules existants et **non appelés par ces nouvelles routes**.
+
+**Complément du schéma SQL 091** : la catégorie et le numéro peuvent être absents au stade `received` d'une demande publique, puis renseignés dans l'espace sécurisé. La contrainte PostgreSQL empêche qu'une portabilité sans numéro atteigne le stade d'éligibilité. Les changements sont enregistrés dans le journal append-only avec `technical_details_recorded`. Le script demeure dans `database/prelaunch-not-applied` : aucun enregistrement/DDL effectué dans Neon de production.
+
+**Limitations explicites** : aucun formulaire de téléversement privé, prestataire KYB, signature électronique, pont d'identité documentaire certifié, notification Resend, commande opérateur ni écran d'affichage des nouveaux dossiers n'est encore opérationnel pour les visiteurs. Il faudra des intégrations tierces validées et une mise en production autorisée après une recette de sécurité dédiée.
+
+La connexion interne n'autorise pas de considérer l'ouverture de service, une portabilité ou les reversements comme disponibles.
