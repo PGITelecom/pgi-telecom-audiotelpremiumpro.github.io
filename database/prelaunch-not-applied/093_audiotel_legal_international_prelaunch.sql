@@ -124,8 +124,8 @@ CREATE INDEX app_intl_quote_country ON app_international_quote_drafts(country_co
 CREATE TABLE app_strategy_monthly_runner_config_drafts (
  id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
  business_unit text NOT NULL DEFAULT 'audiotel_platform' CHECK(business_unit='audiotel_platform'),
- schedule_proposal text NOT NULL DEFAULT 'first_business_day_monthly_09_Europe_Paris'
-  CHECK(schedule_proposal='first_business_day_monthly_09_Europe_Paris'),
+ schedule_proposal text NOT NULL DEFAULT 'monthly_day_05_09_Europe_Paris'
+  CHECK(schedule_proposal='monthly_day_05_09_Europe_Paris'),
  enabled boolean NOT NULL DEFAULT false CHECK(enabled=false),
  notification_enabled boolean NOT NULL DEFAULT false CHECK(notification_enabled=false),
  legal_auto_change_enabled boolean NOT NULL DEFAULT false CHECK(legal_auto_change_enabled=false),
