@@ -25,6 +25,8 @@ import {applyResendWebhookEvent,acknowledgeResendInboundForward,drainTransaction
 import {submitHubSpotLead,syncHubSpotCommercialLead,syncHubSpotCommercialTenant,syncHubSpotSupportMessage,syncHubSpotInboundEmail,syncHubSpotCustomerIncident,syncHubSpotCardPaymentState} from "./src/hubspot-crm.mjs";
 import {evaluateLaunchReadiness} from "./src/launch-readiness.mjs";
 import {inspectAudiotelReadiness} from "./src/audiotel-order-assurance.mjs";
+import {isPrelaunchCaseworkPreview,prepareOpeningLeadCase} from "./src/audiotel-opening-lead-bridge.mjs";
+import {readPreclientStaffQueue,readCustomerPreclientCases,completePreclientTechnicalDetails} from "./src/audiotel-onboarding-casework.mjs";
 import {prioritizeAudiotelOperations} from "./src/audiotel-operational-priorities.mjs";
 import {directSvaBusinessSnapshot,directSvaAccountingExport,createDirectSvaDraft,approveDirectSvaDraft} from "./src/direct-sva-business.mjs";
 import {analyzeDirectSvaSettlement} from "./src/direct-sva-reconciliation.mjs";
@@ -69,6 +71,8 @@ export function createBackend(options={}){
   }
 
   const store=options.store||new MemoryStore(config,eventBus);
+  // Must stay disabled for every actual deployment, even if an env flag is set.
+  const prelaunchCaseworkPreview=isPrelaunchCaseworkPreview(config,options);
   if(config.mode==="simulator"&&typeof store.seedSimulator==="function")store.seedSimulator();
   const staticSite=createStaticSiteHandler(config.staticDir,{getDirectSvaWebsiteState:()=>readDirectSvaWebsiteVisibility(store)});
 
@@ -458,7 +462,21 @@ export function createBackend(options={}){
             await sendTransactionalEmail(config,{to:recipient,name,senderRole:"notifications",templateKey:"lead_received",data:{name,locale},idempotencyKey:idem,internalEventId:idem});
           }catch(error){logSecurityEmailFailure("lead_received",error);}
         }
+        // Reuse the existing pending-tenant dossier for CI-only preparation.
+        // Nothing is sent to an operator and no live deployment may enter here.
+        let prelaunchPreviewResult=null;
+        if(prelaunchCaseworkPreview&&dossier){
+          try{
+            prelaunchPreviewResult=await prepareOpeningLeadCase(store,{
+              config,options,dossier,lead:body
+            });
+          }catch(error){
+            process.stderr.write(JSON.stringify({level:"warn",event:"prelaunch_case_preview_failed",
+              code:String(error?.code||"APP_CASE_PREVIEW_FAILED")})+"\\n");
+          }
+        }
         return done(res,metrics,started,"public.hubspot_lead",202,{
+          ...(prelaunchCaseworkPreview?{prelaunch_case_reference:prelaunchPreviewResult?.case_reference||null}:{}),
           accepted,
           provider_status:formResult?.status||null,
           commercial_sync:Boolean(commercialResult?.synced),
@@ -748,6 +766,54 @@ export function createBackend(options={}){
 
       const actor=authenticate(req,config);
       const customerActor=authenticateCustomer(req,config);
+
+      // Pre-client integration preview: CI simulator and explicit in-process
+      // opt-in only, never live Vercel, never an alternative signup endpoint.
+      if(prelaunchCaseworkPreview&&method==="GET"&&
+         pathname==="/api/v1/platform/prelaunch/cases"){
+        requireRole(actor,["admin"]);
+        const staffContext={
+          authenticated:true,business_unit:"audiotel_platform",role:"administrator",
+          staff_casework_authorized:true,review_evidence_from_server:true,
+          actor_fingerprint:createHash("sha256").update("staff:"+actor.sub).digest("hex")
+        };
+        const overview=await readPreclientStaffQueue(store,{context:staffContext});
+        return done(res,metrics,started,"platform.prelaunch_cases_preview",200,overview);
+      }
+      if(prelaunchCaseworkPreview&&method==="GET"&&
+         pathname==="/api/v1/customer/prelaunch/cases"){
+        requireActor(customerActor);
+        const current=await store.customerSessionContext(customerActor);
+        requireCustomerPermission(current,"overview.read");
+        const data=await readCustomerPreclientCases(store,{
+          context:{authenticated:true,business_unit:"audiotel_platform",
+            tenant_id:Number(current.tenant_id),customer_case_access_verified:true}
+        });
+        return done(res,metrics,started,"customer.prelaunch_cases_preview",200,data);
+      }
+      let draftCaseMatch=routeMatch(pathname,"/api/v1/customer/prelaunch/cases/:id/number");
+      if(prelaunchCaseworkPreview&&method==="POST"&&draftCaseMatch){
+        requireCustomerCsrf(req,customerActor,config);
+        const current=await store.customerSessionContext(customerActor);
+        if(!["owner","admin"].includes(current.customer_role))
+          throw Object.assign(new Error("Customer admin required"),
+            {status:403,code:"CUSTOMER_ADMIN_REQUIRED"});
+        const body=await readJson(req,config.bodyLimitBytes);
+        if(!body||typeof body!=="object"||Array.isArray(body)||
+           Object.keys(body).some(k=>!["number","category"].includes(k)))
+          throw Object.assign(new Error("Unexpected case data"),
+            {status:400,code:"APP_CASE_UNTRUSTED_REQUEST_FIELD"});
+        const key=String(req.headers["idempotency-key"]||"");
+        const result=await completePreclientTechnicalDetails(store,{
+          context:{authenticated:true,business_unit:"audiotel_platform",
+            actor_type:"customer",tenant_membership_verified:true,
+            tenant_id:Number(current.tenant_id),case_information_write_authorized:true,
+            actor_fingerprint:createHash("sha256").update("customer:"+customerActor.sub).digest("hex")},
+          case_reference:draftCaseMatch.id,number:body.number,category:body.category,
+          event_reference:"customer-technical-"+key
+        });
+        return done(res,metrics,started,"customer.prelaunch_number_preview",200,result);
+      }
 
       // A read-only release dossier is available even before the preparatory migrations.
       if(method==="GET"&&pathname==="/api/v1/platform/direct-sva-release-readiness"){
