@@ -27,7 +27,24 @@ Sources :
 
 ## Paiements / reversements
 
-Le modèle commercial cible de PGI est explicite :
+
+**Orientation prioritaire actualisée le 08/11/2026 :** Audiotel Premium Pro veut négocier le paiement DIRECT des éditeurs professionnels par l'opérateur collecteur ou un PSP habilité. Les fonds destinés aux professionnels ne passent pas par le compte bancaire Audiotel. L'opérateur/PSP règle les IBAN des éditeurs et verse séparément à Audiotel sa rémunération. La relation commerciale, l'espace client et les dossiers restent centralisés chez Audiotel lorsque les contrats le permettent, sans dissimuler les rôles juridiques des intervenants.
+
+```text
+Appel SVA -> Opérateur collecteur / PSP habilité
+                 |                     |
+          Versements directs     Versement séparé
+          aux professionnels     de la rémunération
+          sur leurs IBAN         contractuelle Audiotel
+                 |                     |
+      Professionnels éditeurs   Audiotel Premium Pro
+```
+
+Le montage contractuel doit être négocié et documenté AVANT signature, avec proposition écrite, frais et SLA, CDR, relevés de paiements, API/fichiers de rapprochement, KYB, et qualification fiscale/comptable indépendante. Si un opérateur refuse, documenter son refus, les alternatives et leurs conséquences financières/juridiques. Ne pas signer sans décision explicite du dirigeant.
+
+Le schéma ci-après est conservé **uniquement comme description de l'ancienne hypothèse technique**, et **n'est plus le circuit financier cible ni une permission de faire transiter les fonds tiers sur le compte Audiotel**. Il ne pourra être repris qu'après validation juridique du rôle réel, des exigences PSP/ACPR, des modalités fiscales, et autorisation spécifique du dirigeant.
+
+L'ancienne hypothèse de flux PGI, non retenue comme circuit par défaut, était :
 
 ```
 Opérateur SVA amont
@@ -42,7 +59,7 @@ Opérateur SVA amont
    Client / éditeur
 ```
 
-Dans le ledger PGI, le reversement opérateur est donc attribué à PGI avant calcul du net client. PGI conserve sa marge selon les conditions configurées pour le tenant, le marché ou le numéro. L’absence de conditions commerciales bloque le reversement client et ne vaut jamais marge nulle implicite.
+Dans le schéma historique décrit ci-dessus seulement, le reversement opérateur était attribué à PGI avant calcul du net client. PGI conserve sa marge selon les conditions configurées pour le tenant, le marché ou le numéro. L’absence de conditions commerciales bloque le reversement client et ne vaut jamais marge nulle implicite.
 
 La circulation juridique et bancaire des fonds doit utiliser un montage autorisé pour le marché concerné. Selon le contrat retenu, cela peut notamment nécessiter un PSP agréé, un statut d’agent de PSP ou un autre schéma validé. `payment_compliance_profiles` représente ce garde-fou. Aucun net client ne devient payable tant que le règlement amont n’est pas encaissé et que le profil de conformité applicable, le KYC et les informations bancaires ne sont pas validés.
 
