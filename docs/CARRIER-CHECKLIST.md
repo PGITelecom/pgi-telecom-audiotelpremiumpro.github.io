@@ -4,7 +4,7 @@
 
 ## Grille de négociation permanente d'Audiotel Premium Pro
 
-**Hypothèse de coût et d'approvisionnement communiquée par le dirigeant le 08/11/2026 :** négocier, si réglementairement et commercialement possible, un **bloc de 1 000 numéros SVA loué 20 EUR/mois pour le bloc ENTIER**, et non 20 EUR par numéro. Valeur indicative **non contractuelle**, sans offre ni droit d'attribution confirmé. Cela représente **0,02 EUR par numéro et par mois** à pleine allocation du bloc (20 / 1 000), hors attribution, portabilité, frais opérateur, routage, trafic et gestion. Le coût réel par numéro *utilisé* dépend du taux d'occupation du bloc. Comparer cette formule mutualisée aux frais d'allocation/ressource Arcep et aux offres de gros réellement accessibles. Ne jamais affirmer qu'un bloc de cette taille est disponible à ce tarif sans confirmation écrite.
+**Référence Arcep 2026 vérifiée :** **20 EUR de taxe par AN pour l'attribution directe de 1 000 numéros standards à dix chiffres** (1 000 × 0,02 EUR/numéro/an). La précédente hypothèse de **20 EUR/mois en location auprès d'un tiers est dépassée** : les nouvelles mises à disposition de numéros en 08 entre opérateurs sont normalement interdites depuis 2018. Le coût de 20 EUR/an concerne la ressource réglementaire, **pas** l'interconnexion, la collecte, le support, le routage, la conformité ni le reversement. Vérifier éligibilité Arcep, disponibilité des blocs, accès aux numéros, capacité de l'opérateur exploitant, conditions d'utilisation à 80 % par sous-bloc et frais additionnels des fournisseurs de gros. Source : https://www.arcep.fr/la-regulation/grands-dossiers-thematiques-transverses/la-numerotation/taxes-de-numerotation.html
 
 
 
