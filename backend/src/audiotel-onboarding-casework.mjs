@@ -8,8 +8,9 @@
  */
 import {createHash,randomUUID} from "node:crypto";
 import {
-  normalizePreparedAppCase,fingerprintPreparedAppCase,prepareAppCaseDocument,
-  assessPreparedCaseTransition,planPreparedCaseNotification
+  normalizePreparedAppCase,normalizeFrenchSvaNumber,fingerprintPreparedAppCase,
+  prepareAppCaseDocument,assessPreparedCaseTransition,planPreparedCaseNotification,
+  publicPreparedCaseView
 } from "./audiotel-onboarding-preparation.mjs";
 
 const fail=(code,status=403)=>{throw Object.assign(new Error(code),{code,status});};
@@ -292,5 +293,105 @@ export async function reviewPreclientDocument(store,{
      case_reference,document_id,review_status:decision,changed:true,
      activated:false,network_call_executed:false,notification_sent:false
    });
+ });
+}
+
+/**
+ * After the initial public lead, the professional can supply a number via an
+ * authenticated, tenant-scoped private operation. Admin can also prepare a
+ * draft after verifying the requester. No carrier call and no customer creation.
+ */
+export async function completePreclientTechnicalDetails(store,{
+  context,case_reference,number,category,event_reference
+}={}){
+ if(typeof case_reference!=="string"||!/^APP-CASE-[A-Za-z0-9_-]{12,90}$/.test(case_reference)||
+    typeof event_reference!=="string"||!KEY.test(event_reference))
+   fail("APP_CASE_TECHNICAL_REFERENCE_INVALID",422);
+ const isCustomer=context?.actor_type==="customer";
+ if(isCustomer){
+   if(context.authenticated!==true||
+      context.tenant_membership_verified!==true||
+      context.business_unit!=="audiotel_platform"||
+      !Number.isSafeInteger(context.tenant_id)||context.tenant_id<1||
+      context.case_information_write_authorized!==true||
+      typeof context.actor_fingerprint!=="string"||!HASH.test(context.actor_fingerprint))
+     fail("APP_CASE_CUSTOMER_ACCESS_DENIED");
+ }else staffContext(context);
+ if(!["081","082","089"].includes(category))
+   fail("APP_CASE_TECHNICAL_CATEGORY_INVALID",422);
+ const begin=requireTx(store);
+ return begin(async tx=>{
+   const rows=await tx.unsafe(
+     "SELECT id,tenant_id,request_kind,requested_e164,number_category,stage"+
+     " FROM app_prelaunch_service_cases WHERE public_reference=$1"+
+     " AND business_unit='audiotel_platform' FOR UPDATE",[case_reference]);
+   if(rows.length!==1)fail("APP_CASE_NOT_FOUND",404);
+   const row=rows[0];
+   if(isCustomer&&String(row.tenant_id)!==String(context.tenant_id))
+     fail("APP_CASE_CUSTOMER_ACCESS_DENIED");
+   if(!["received","awaiting_documents","on_hold"].includes(row.stage))
+     fail("APP_CASE_TECHNICAL_DETAILS_LOCKED",409);
+   const e164=row.request_kind==="portability"?normalizeFrenchSvaNumber(number):null;
+   if(row.request_kind==="portability"){
+     if("0"+e164.slice(3,5)!==category)
+       fail("APP_CASE_CATEGORY_NUMBER_MISMATCH",422);
+   }else if(number!=null&&String(number).trim()!==""){
+     fail("APP_CASE_NEW_NUMBER_CANNOT_PREASSIGN",422);
+   }
+   if(row.requested_e164!=null&&row.requested_e164!==e164)
+     fail("APP_CASE_NUMBER_ALREADY_RECORDED",409);
+   if(row.number_category!=null&&row.number_category!==category)
+     fail("APP_CASE_CATEGORY_ALREADY_RECORDED",409);
+   const replay=await tx.unsafe(
+     "SELECT id FROM app_prelaunch_case_events WHERE case_id=$1"+
+     " AND source_reference=$2 LIMIT 1",[row.id,event_reference]);
+   const changed=row.requested_e164!==e164||row.number_category!==category;
+   if(replay.length){
+     if(changed)fail("APP_CASE_EVENT_REPLAY_CONFLICT",409);
+     return Object.freeze({case_reference,changed:false,requested_e164:e164,
+       category,number_ported:false,number_assigned:false});
+   }
+   if(changed){
+     await tx.unsafe(
+       "UPDATE app_prelaunch_service_cases"+
+       " SET requested_e164=$2,number_category=$3,updated_at=now() WHERE id=$1",
+       [row.id,e164,category]);
+   }
+   await tx.unsafe(
+     "INSERT INTO app_prelaunch_case_events"+
+     " (case_id,event_key,stage_from,stage_to,actor_fingerprint,source_reference)"+
+     " VALUES($1,'technical_details_recorded',$2,$2,$3,$4)",
+     [row.id,row.stage,context.actor_fingerprint,event_reference]);
+   return Object.freeze({case_reference,changed,requested_e164:e164,category,
+     eligibility_verified:false,number_ported:false,number_assigned:false,
+     routing_activated:false,operator_contacted:false});
+ });
+}
+
+/**
+ * Existing customer session scoped to one tenant. No client registration
+ * happens here. The raw SQL rows never leave the server.
+ */
+export async function readCustomerPreclientCases(store,{context,limit=50}={}){
+ if(!context||context.authenticated!==true||
+    context.business_unit!=="audiotel_platform"||
+    context.customer_case_access_verified!==true||
+    !Number.isSafeInteger(context.tenant_id)||context.tenant_id<=0)
+   fail("APP_CASE_TENANT_ACCESS_DENIED",403);
+ if(typeof store?.readSql?.unsafe!=="function")
+   fail("APP_CASE_READER_NOT_AVAILABLE",503);
+ if(!Number.isSafeInteger(limit)||limit<1||limit>100)
+   fail("APP_CASE_QUEUE_LIMIT_INVALID",422);
+ const rows=await store.readSql.unsafe(
+   "SELECT public_reference,tenant_id,request_kind AS kind,stage,"+
+   " requested_e164,created_at,updated_at"+
+   " FROM app_prelaunch_service_cases"+
+   " WHERE business_unit='audiotel_platform' AND tenant_id=$1"+
+   " ORDER BY created_at DESC,id DESC LIMIT $2",[context.tenant_id,limit]);
+ return Object.freeze({
+   business_unit:"audiotel_platform",
+   cases:rows.map(row=>publicPreparedCaseView(row,context)),
+   may_cutover_portability:false,may_assign_number:false,
+   financial_data_unverified:true
  });
 }
