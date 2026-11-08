@@ -123,15 +123,20 @@ Anti-fraude : quotas par numéro/tenant, durée maximum contractuelle, fréquenc
 
 ## 8. Flux financier sans transit bancaire non autorisé
 
+**Priorité contractuelle durable : reversement DIRECT aux professionnels.** Toute négociation doit documenter, par réponse écrite de l'opérateur, la possibilité de régler automatiquement les IBAN des professionnels SVA sans transit sur le compte Audiotel Premium Pro. Audiotel reçoit séparément sa rémunération contractuelle et conserve, si les contrats le permettent, la relation commerciale et la visibilité sur les règlements (CDR, API/fichiers, rapprochement).
+
 ```text
-Facture de l'appelant
-  → opérateur de départ, facturation/collecte
-  → relevé et règlement de gros confirmé
-  → reconnaissance de marge selon contrat + normes validées
-  → obligation de reversement au client B2B
-  → PSP / paiement bancaire autorisé (contrat ou mandat valide)
-  → preuve d'ordre + preuve de règlement, sans double paiement
+Appelant SVA
+  → opérateur facturant et collecteur
+  → calcul des rémunérations sur CDR et contrats vérifiés
+     ├── opérateur / PSP habilité → IBAN du professionnel
+     └── opérateur / PSP habilité → rémunération distincte Audiotel
+  → preuves bancaires distinctes, rapprochement, incidents, SLA
 ```
+
+Le flux ci-dessus est une **architecture cible**, pas une capacité contractuelle déjà obtenue. Le refus d'un opérateur impose un dossier daté de refus, une analyse chiffrée des alternatives et de leurs conséquences juridiques/fiscales avant une décision explicite du dirigeant. Le transit des fonds tiers sur le compte d'Audiotel n'est jamais un repli automatiquement autorisé.
+
+Le versement direct ne démontre pas, à lui seul, que les flux revenant aux professionnels sont hors du chiffre d'affaires fiscal/social Audiotel. Les cocontractants réels et les qualifications fiscales, comptables et PSP doivent être vérifiés indépendamment.
 
 **Blocage dur** si absence d'un des éléments suivants : statut principal/mandataire validé, droits d'encaissement tiers, PSP agréé ou agent déclaré selon montage, justificatif KYB, conditions contractuelles, règlement opérateur authentifié, banque réconciliée, comptes et TVA validés, aucune contestation/gel.
 
