@@ -14,6 +14,7 @@ export const TELECOM_CHAIN_GATE_SPEC=Object.freeze([
   ["regulatory","af2m_sva_compliance","af2m"],
   ["regulatory","payment_services_legal_model","legal_officer"],
   ["regulatory","publisher_eligibility_policy","compliance_officer"],
+  ["wholesale","direct_professional_payout_negotiated","carrier_contract_registry"],
   ["wholesale","carrier_wholesale_agreement","carrier_contract_registry"],
   ["wholesale","network_opening_confirmed","carrier_network"],
   ["wholesale","tariff_and_collection_schedule","carrier_finance"],
@@ -30,6 +31,7 @@ export const TELECOM_CHAIN_GATE_SPEC=Object.freeze([
   ["financial","operator_statement_verified","carrier_finance"],
   ["financial","bank_receipt_verified","bank_feed"],
   ["financial","publisher_terms_and_kyb","compliance_officer"],
+  ["financial","direct_payout_or_refusal_alternatives_review","legal_officer"],
   ["financial","ledger_and_psp_controls","legal_officer"],
   ["commercial","customer_consent_and_isolation","security_officer"],
   ["commercial","independent_release_review","release_committee"]
@@ -103,6 +105,7 @@ export function assessAudiotelTelecomChain(input={},at=new Date()){
     external_sources_authenticated:false,
     actual_arcep_rights_verified:false,physical_sip_acceptance_verified:false,
     carrier_cdr_bank_reconciliation_verified:false,
+    direct_payout_contract_approved:false,professional_iban_payout_enabled:false,
     operational_telecom_chain_ready:false,
     number_assignment_authorized:false,commercial_activation_authorized:false,
     bank_transfer_authorized:false,psp_payout_authorized:false,
