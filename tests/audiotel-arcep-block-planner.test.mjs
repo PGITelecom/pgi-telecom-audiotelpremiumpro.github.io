@@ -30,9 +30,11 @@ test("1000-number direct-ARCEP block is only a planning candidate, zero activati
  assert.equal(picked.order_submitted,false);
 });
 test("planning threshold 80 percent doesn't close clients or allocate numbers",()=>{
- const x=Array.from({length:800},(_,i)=>record(i));
+ const x=Array.from({length:800},(_,i)=>record(i,"simulated_allocated"));
  const plan=planAudiotelArcepBlock(draft(x));
- assert.equal(plan.usage_percent,80);
+ assert.equal(plan.simulated_allocated_percent,80);
+ assert.equal(plan.occupied_percent,80);
+ assert.equal(plan.official_arcep_utilisation_criteria_checked,false);
  assert.equal(plan.eighty_percent_planning_threshold_reached,true);
  assert.equal(plan.available_candidate_count,200);
  assert.equal(plan.candidate_for_next_allocation,"+33890123800");
