@@ -58,7 +58,7 @@ Preuves de paiement, rapprochements, journal et documents clients
 
 ## 4. Module de calcul ajouté
 
-**Hypothèse de coût de numérotation du dirigeant (08/11/2026)** : location éventuelle d'un **bloc de 1 000 numéros pour 20 EUR/mois au total**, soit 0,02 EUR/numéro/mois à pleine allocation. C'est une **hypothèse non validée par un opérateur**, qui appartient à l'analyse des **coûts fixes** et ne doit pas être déduite une seconde fois de la marge contributive par minute calculée après coûts variables. Comparer le prix au coût de bloc/ressources réellement applicable, aux frais d'attribution et au coût par numéro réellement utilisé. Aucune acquisition ni facturation n'est autorisée.
+**Coût réglementaire Arcep vérifié le 08/11/2026 :** **20 EUR/an pour 1 000 numéros standards à dix chiffres en attribution directe**, selon le barème actuel (0,02 EUR/numéro/an), soit environ 1,67 EUR/mois en répartition budgétaire, **hors frais techniques, collecte, portabilité et exploitation**. Ce montant **remplace** l'ancienne hypothèse de location privée à 20 EUR/mois. Le coût est une **charge fixe réglementaire** et ne doit pas être soustrait une seconde fois de la marge contributive par minute. L'attribution reste conditionnée à l'éligibilité et à la décision de l'Arcep : aucune ressource n'est acquise. Source : https://www.arcep.fr/la-regulation/grands-dossiers-thematiques-transverses/la-numerotation/taxes-de-numerotation.html
 
 
 
