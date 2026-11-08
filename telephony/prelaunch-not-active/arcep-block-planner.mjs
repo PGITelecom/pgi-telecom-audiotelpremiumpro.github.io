@@ -29,7 +29,7 @@ export function planAudiotelArcepBlock(input={}){
  minor(fee,"REGULATORY_FEE");
  if(!Array.isArray(input.assignments)||input.assignments.length>1000)
   reject("INVALID_ASSIGNMENTS");
- const used=new Set();
+ const used=new Set(),released=new Set();
  const byStatus={simulated_reserved:0,simulated_allocated:0,simulated_blocked:0,released:0};
  for(const row of input.assignments){
   shape(row,["number_e164","status","tenant_reference"],"ASSIGNMENT");
@@ -38,6 +38,7 @@ export function planAudiotelArcepBlock(input={}){
   if(used.has(row.number_e164))reject("DUPLICATE_NUMBER");
   used.add(row.number_e164);
   if(!STATUS.has(row.status))reject("INVALID_ASSIGNMENT_STATUS");
+  if(row.status==="released")released.add(row.number_e164);
   if(occupied(row.status)){
    if(typeof row.tenant_reference!=="string"||!REF.test(row.tenant_reference))
     reject("MISSING_TENANT_REFERENCE");
@@ -52,7 +53,7 @@ export function planAudiotelArcepBlock(input={}){
  let next=null;
  for(let i=0;i<1000;i++){
   const number=start+String(i).padStart(3,"0");
-  if(!used.has(number)||input.assignments.some(x=>x.number_e164===number&&x.status==="released")){
+  if(!used.has(number)||released.has(number)){
    next=number;break;
   }
  }
