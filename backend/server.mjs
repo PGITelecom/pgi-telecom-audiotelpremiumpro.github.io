@@ -780,7 +780,15 @@ export function createBackend(options={}){
           actor_fingerprint:createHash("sha256").update("staff:"+actor.sub).digest("hex")
         };
         const overview=await readPreclientStaffQueue(store,{context:staffContext});
-        return done(res,metrics,started,"platform.prelaunch_cases_preview",200,overview);
+        const supervisor={...staffContext,staff_finance_read_authorized:true,
+          staff_strategy_read_authorized:true};
+        let finance=null,strategy=null;
+        try{finance=await readAudiotelFinanceStaffPreview(store,supervisor);}
+        catch(error){if(error?.code!=="42P01")throw error;}
+        try{strategy=await readAudiotelStrategyPreview(store,supervisor);}
+        catch(error){if(error?.code!=="42P01")throw error;}
+        return done(res,metrics,started,"platform.prelaunch_cases_preview",200,
+          {...overview,finance,strategy});
       }
       if(prelaunchCaseworkPreview&&method==="GET"&&
          pathname==="/api/v1/customer/prelaunch/cases"){
