@@ -125,6 +125,7 @@ function render(d){
     '<section class="acc-section"><div class="acc-section-head"><div><p class="panel-kicker">EXPERT-COMPTABLE</p><h3>Comptabilité générale et dossier de révision</h3></div></div><p class="acc-note">Cette couche est distincte du pilotage financier ci-dessus. Les flux sont préparés automatiquement en partie double, puis les comptes et traitements fiscaux sont validés avant qu’une écriture devienne immuable.</p><div data-accounting-expert-root></div></section>'+
   '</div>';
   bind();bindUnitTabs();renderExpert();
+  if(window.PGI_CONFIG?.mode==="simulator")import("./prelaunch-admin-views.js").then(m=>m.mountAccountingPreview(root,window.PGIApi)).catch(()=>{});
 }
 function csvCell(v){return '"'+String(v??"").replace(/"/g,'""')+'"';}
 function exportCsv(){
