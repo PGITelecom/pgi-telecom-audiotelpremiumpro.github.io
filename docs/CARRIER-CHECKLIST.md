@@ -2,6 +2,20 @@
 
 À remplir avant toute mise en production réelle.
 
+## Grille de négociation permanente d'Audiotel Premium Pro
+
+- Tous professionnels éligibles et secteurs légalement autorisés : ouverture possible sans volume minimum et sans engagement pour chaque professionnel.
+- Marge contributive cible **au moins 0,07 EUR/min éligible après tous les coûts variables**, y compris frais opérateur, PSP, fraude/impayés, reversements, et la rémunération due au professionnel : demander les éléments de calcul par palier et par origine d'appel.
+- Aucun forfait de minutes obligatoire par professionnel, aucune pénalité d'inactivité ; coût d'une ligne à zéro minute explicitement chiffré.
+- Frais d'attribution, portabilité, hébergement, maintenance, résiliation et frais par virement **minimisés et détaillés**.
+- Mutualisation des volumes de **tous les clients Audiotel** pour négocier les tarifs de gros : modalités, paliers d'agrégation, engagements éventuels **au niveau Audiotel** et risques chiffrés.
+- **Priorité absolue** au versement direct par l'opérateur ou un PSP habilité sur l'IBAN de chaque professionnel, sans transit bancaire chez Audiotel ; sa rémunération est versée séparément.
+- API ou fichiers pour CDR, portabilités, calcul, rapprochement et confirmations de versement, avec automatisation à faibles coûts de gestion.
+- Conformité Arcep, RGPD, AF2M, règles des opérateurs et du prestataire de paiement ; ne jamais confondre reversement direct et qualification automatique du chiffre d'affaires.
+- Aucun changement aux fonctionnalités et à la présentation des sites existants.
+- Pour chaque offre : comparer **marge réelle/minute**, **coût fixe par numéro**, **coût à zéro minute**, **absence de minimum individuel**, **volume agrégé**, **délais/frais de versement** et conformité juridique.
+- Tout refus : obtenir une trace écrite, analyser les alternatives et leur coût, puis soumettre la décision au dirigeant. Aucun engagement signé automatiquement.
+
 ## Numéro
 
 - 089 exact ;
