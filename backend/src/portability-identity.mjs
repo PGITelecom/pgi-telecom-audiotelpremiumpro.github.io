@@ -8,7 +8,7 @@ export function normalizeFrenchSvaRio(value,e164){
   // Preserve accepted historical 00..99+A RIO strings to avoid regressions
   // for existing dossiers; real operator eligibility must confirm every RIO.
   const legacy=/^[0-9]{2}A[A-Z0-9]{6}[A-Z0-9+]{3}$/.test(rio);
-  const current=/^[F-Z][A-Z0-9][A-Z0-9]{7}[A-Z0-9+]{3}$/.test(rio);
+  const current=/^[F-Z][A-Z0-9]A[A-Z0-9]{6}[A-Z0-9+]{3}$/.test(rio);
   if(!legacy&&!current)throw portabilityIdentityError("INVALID_PORTABILITY_RIO");
   const national=frNationalNumber(e164);
   const expected=rioChecksum(rio.slice(0,9),national);
