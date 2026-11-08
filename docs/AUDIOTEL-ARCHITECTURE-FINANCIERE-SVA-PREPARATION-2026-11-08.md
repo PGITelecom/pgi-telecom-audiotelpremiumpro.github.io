@@ -28,6 +28,8 @@ Personne morale / régime fiscal encore à valider. Ne PAS déployer, ne PAS mig
 
 ## 3. Source -> calcul -> paiement : chaîne cible
 
+**Clause incontournable pour les futurs accords opérateur :** négocier prioritairement la collecte SVA suivie du reversement direct de l'opérateur ou d'un PSP habilité aux IBAN des professionnels, avec rémunération d'Audiotel sur un flux distinct. Requérir une réponse écrite documentant automatisation, coûts par transfert, statuts de règlement, preuves CDR/banque, délai de paiement, litiges et réconciliation via API/fichiers. Refus de l'opérateur = dossier de refus, alternatives chiffrées et validation juridique/fiscale avant décision expresse du dirigeant. Le circuit historique où Audiotel recevrait les fonds tiers n'est pas une alternative activable sans autorisations. Le versement direct n'emporte aucune conclusion automatique sur l'assiette du CA micro.
+
 ```text
 Ressource SVA légalement exploitable
      ↓
