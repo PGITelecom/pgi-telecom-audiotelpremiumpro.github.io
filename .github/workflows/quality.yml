@@ -44,6 +44,9 @@ jobs:
       - name: Verify repository
         run: npm run verify
 
+      - name: Audiotel telecom preparation inventory (offline, not go-live)
+        run: node scripts/audiotel-telecom-technical-status.mjs
+
       - name: Performance and resilience tool smoke
         env:
           PGI_BACKEND_MODE: simulator
