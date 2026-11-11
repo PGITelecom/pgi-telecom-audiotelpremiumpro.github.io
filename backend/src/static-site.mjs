@@ -187,14 +187,18 @@ export function createStaticSiteHandler(rootDir,{getDirectSvaWebsiteState}={}){
     const privateUi=clientUi||cockpitUi;
     const editorialHtml=html&&/^\/[a-z0-9-]+\/$/.test(requestPath)&&
       PUBLIC_EDITORIAL_CACHE_SLUGS.has(requestPath.slice(1,-1));
-    const versionedAsset=!runtimeConfig&&!html&&/\.(?:css|js|png|webp|svg|ico)$/i.test(requestPath)&&/[?&]v=[A-Za-z0-9._-]{1,32}(?:&|$)/.test(String(req?.url||""));
+    const staticAsset=!runtimeConfig&&!html&&/\.(?:css|js|png|webp|svg|ico)$/i.test(requestPath);
+    const versionedAsset=staticAsset&&/[?&]v=[A-Za-z0-9._-]{1,32}(?:&|$)/.test(String(req?.url||""));
     res.setHeader("Content-Type",MIME[ext]||"application/octet-stream");
     const serviceWorker=requestPath==="/service-worker.js";
     if(runtimeConfig||privateUi)res.setHeader("Cache-Control","no-store");
     else if(serviceWorker)res.setHeader("Cache-Control","no-store, must-revalidate");
     else if(editorialHtml)res.setHeader("Cache-Control",PUBLIC_EDITORIAL_CACHE);
     else if(html)res.setHeader("Cache-Control","no-store, must-revalidate");
-    else if(versionedAsset)res.setHeader("Cache-Control","public, max-age=31536000, immutable");
+    // Keep private/dynamic responses uncached. Cache only public static assets at Vercel edge.
+    // Vercel requires s-maxage for CDN caching; max-age alone primarily caches browsers.
+    else if(versionedAsset)res.setHeader("Cache-Control","public, max-age=31536000, s-maxage=31536000, immutable");
+    else if(staticAsset)res.setHeader("Cache-Control","public, max-age=300, s-maxage=300, stale-while-revalidate=60");
     else res.setHeader("Cache-Control","public, max-age=300, stale-while-revalidate=60");
     if(clientUi)res.setHeader("Content-Security-Policy",PRIVATE_CSP);
     else if(cockpitUi)res.setHeader("Content-Security-Policy",COCKPIT_CSP);

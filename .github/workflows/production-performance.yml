@@ -2,7 +2,9 @@ name: Production Performance Baseline
 
 on:
   schedule:
-    - cron: "35 3 * * *"
+    # Reuse the 03:00 Vercel cron and 03:03 Production Watch database wake window.
+    # Keep the same daily checks and performance thresholds, with less idle compute time.
+    - cron: "5 3 * * *"
   workflow_dispatch:
 
 permissions:

@@ -117,8 +117,10 @@ test("same-origin static handler serves marketing at root and keeps private UI n
     assert.equal(immutableAsset.status,200);
     assert.match(immutableAsset.headers.get("cache-control")||"",/max-age=31536000/);
     assert.match(immutableAsset.headers.get("cache-control")||"",/immutable/);
+    assert.match(immutableAsset.headers.get("cache-control")||"",/s-maxage=31536000/);
     const ordinaryAsset=await fetch(base+"/site/app.css");
     assert.match(ordinaryAsset.headers.get("cache-control")||"",/max-age=300/);
+    assert.match(ordinaryAsset.headers.get("cache-control")||"",/s-maxage=300/);
     const api=await fetch(base+"/api/v1/health");
     assert.equal(api.status,404);
   }finally{
