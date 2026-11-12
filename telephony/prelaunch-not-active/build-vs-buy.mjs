@@ -86,11 +86,20 @@ function cost(a,s,months,annualArcep){
   BigInt(s.ported_count)*BigInt(o.portability_minor_per_number)+
   BigInt(s.deactivation_count)*BigInt(o.deactivation_minor_per_number)+
   BigInt(s.reactivation_count)*BigInt(o.reactivation_minor_per_number);
+ // A wholesale minimum is normally a SPEND FLOOR, not an extra flat charge.
+ // Only carrier fixed fees + carrier-minute spend are eligible here: PSP,
+ // internal platform costs and payouts are excluded. Confirm eligible lines
+ // against the signed carrier contract before replacing the simulation.
+ const monthlyCarrierFixed=BigInt(o.fixed_monthly_minor)+n*BigInt(o.monthly_minor_per_number);
+ const monthlyCarrierUsage=microsCostToMinor(monthlyMinutes*BigInt(o.minute_micros));
+ const operatorMinimum=BigInt(o.global_minimum_monthly_minor);
+ const minimumTopup=operatorMinimum>monthlyCarrierFixed+monthlyCarrierUsage?
+  operatorMinimum-(monthlyCarrierFixed+monthlyCarrierUsage):0n;
  const monthlyFixed=add(i,["hosting_monthly_minor","redundancy_monthly_minor",
   "maintenance_monthly_minor","support_monthly_minor",
   "security_compliance_monthly_minor","ops_monthly_minor"])+
-  BigInt(o.fixed_monthly_minor)+BigInt(o.global_minimum_monthly_minor)+
-  n*(BigInt(o.monthly_minor_per_number)+BigInt(o.monthly_minimum_minor_per_professional))+
+  monthlyCarrierFixed+minimumTopup+
+  n*BigInt(o.monthly_minimum_minor_per_professional)+
   BigInt(s.payout_count_per_month)*BigInt(o.payout_minor_per_professional);
  const minuteCosts=add(o,["minute_micros","psp_minute_micros"])+
   add(i,["media_minute_micros","network_minute_micros","fraud_minute_micros"]);
@@ -117,6 +126,8 @@ function cost(a,s,months,annualArcep){
   monthly_minutes_assumed:safe(monthlyMinutes,"MINUTES"),total_minutes_assumed:safe(fullMinutes,"TOTAL_MINUTES"),
   upfront_total_minor:safe(setup,"UPFRONT"),
   monthly_fixed_minor:safe(monthlyFixed,"MONTHLY_FIXED"),
+  operator_global_minimum_floor_minor:o.global_minimum_monthly_minor,
+  operator_global_minimum_topup_monthly_minor:safe(minimumTopup,"MINIMUM_TOPUP"),
   total_variable_minor:safe(variable,"VARIABLE"),
   arcep_reference_tax_minor:safe(arcep,"ARCEP"),
   total_cost_minor:safe(total,"COST"),
