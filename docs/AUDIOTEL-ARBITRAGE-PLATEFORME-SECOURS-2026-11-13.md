@@ -104,3 +104,47 @@ Le reversement direct par operateur ou PSP habilite **ne demontre pas** a lui se
 - L'absence de frais de mise en service par numero **doit etre obtenue contractuellement**. L'automatisation de notre propre console ne supprime pas les frais que nous facturerait un collecteur.
 
 **Statut final : modele de secours preparatoire, calculs hypothetiques, aucune exploitation autorisee, aucune depense engagee.**
+
+## 7. Renforcement du modèle : minimum de gros, stress financier et refus automatique d'exploiter
+
+### Minimum contractuel de gros : ne plus le compter deux fois
+
+Le moteur distingue désormais un **minimum global de facturation (plancher)** d'un coût supplémentaire.
+Pour la simulation, le complément à payer au collecteur est :
+
+`complement = max(0, minimum_mensuel - forfait_operateur_et_numeros - consommation_minutes_facturee_par_collecteur)`.
+
+Les frais internes, PSP et reversements ne sont pas pris en compte dans ce minimum de collecte.
+Cette hypothèse correspond à un **plancher de facturation**, pas à une clause universelle. Si un devis établit qu'un minimum est **une surcharge indépendante**, qu'il utilise un autre périmètre d'assiette ou qu'il impose un engagement ferme de volume, **la formule doit être adaptée au contrat avant toute conclusion**.
+Le résultat expose séparément `operator_global_minimum_floor_minor` et `operator_global_minimum_topup_monthly_minor`. Le minimum par professionnel reste une condition commerciale bloquante.
+
+### Sensibilité et résistance à la baisse d'activité
+
+Le composant `telephony/prelaunch-not-active/decision-robustness.mjs` examine le même projet dans plusieurs conditions d'exploitation **hypothétiques** :
+- Baisse de trafic téléphonique jusqu'à zéro.
+- Baisse de la rémunération propre d'Audiotel.
+- Hausse des coûts variables de collecte, PSP, réseau et fraude.
+- Hausse des frais fixes récurrents et frais de maintenance.
+- Dépense d'installation imprévue et unique.
+
+La fonction `assessAudiotelFallbackRobustness` :
+- Ne peut travailler qu'en mode `offline_simulation`.
+- Recalcule les coûts et résultats sur les horizons existants de 12, 24 et 36 mois.
+- Distingue le scénario dont le **coût est le plus bas** de celui dont le **résultat avant impôts serait le plus élevé** si les commissions hypothétiques étaient exactes.
+- Signale explicitement les conditions commerciales non satisfaites.
+- Maintient l'absence de devis authentifié et de marge nette personnelle validée.
+- Ne génère aucune autorisation de commande, migration, déploiement, activité SVA ou transfert financier.
+
+Les résultats ne constituent ni une prévision commerciale ni une évaluation fiscale.
+
+### Principaux risques économiques non neutralisés par le code
+
+1. **Frais de mise en service** : notre automatisation peut éviter les frais d'intégration internes, mais ne supprime pas une activation contractuellement facturée par un opérateur.
+2. **Coûts de personnel et d'astreinte** : les coûts de maintenance et de support sont des hypothèses sensibles. Un réseau SIP/RTP nécessite des compétences disponibles pendant les incidents, y compris hors horaires de bureau.
+3. **Volume réel** : une moyenne de 60 min/professionnel/jour ne vaut pas engagement de trafic ni preuve de revenu encaissé.
+4. **Tarif et palier SVA** : les plafonds et reversements diffèrent selon le préfixe, le prix du service, l'opérateur d'origine et les conditions contractuelles. Une commission fixe de 0,10 EUR/min dans les exemples ne doit **jamais** être transformée en revenu garanti.
+5. **Imposition personnelle** : le bénéfice avant impôts ne permet pas de vérifier l'objectif de 0,07 EUR/min effectivement conservés après prélèvements.
+6. **Fiabilité** : redondance réelle, qualité des communications, prévention de la fraude et contrats de niveau de service demeurent non démontrés.
+7. **Confidentialité commerciale** : le dépôt GitHub est public ; ne pas ajouter de véritables offres confidentielles, tarifs négociés, seuils de négociation ou secrets bancaires à ce dossier. Tout devis reçu doit être traité dans un espace à accès restreint.
+
+**Règle de décision :** tant que les devis ne sont pas authentifiés et que les obligations légales, le paiement direct, les frais d'activation et la fiscalité ne sont pas résolus, **ne choisir aucun fournisseur, ne commander aucun serveur, ne lancer aucun service**. Comparer les options sur leur résultat après charges et prélèvements réellement établis, puis valider une mise en service distincte.
