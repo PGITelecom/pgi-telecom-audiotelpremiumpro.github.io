@@ -107,7 +107,7 @@ test("reject live mode, unexpected sensitive data, negative prices and duplicate
 test("unusual 0/50/150/200/500/1000 cases remain illustrative and safe",()=>{
  const scenarios=[50,150,200,500,1000].flatMap(n=>[0,15,60].map(min=>scenario(n,min)));
  const out=compareAudiotelBuildVsBuy(input([
-  alternative("A"),alternative("B",{model:"self_managed_sip"})
+  alternative("ALT-A"),alternative("ALT-B",{model:"self_managed_sip"})
  ],scenarios));
  assert.equal(out.rows.length,90);
  assert.equal(out.cases.length,45);
