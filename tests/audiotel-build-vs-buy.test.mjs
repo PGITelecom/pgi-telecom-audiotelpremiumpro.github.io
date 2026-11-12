@@ -114,3 +114,31 @@ test("unusual 0/50/150/200/500/1000 cases remain illustrative and safe",()=>{
  assert.ok(out.rows.every(x=>x.approval_to_purchase_or_operate===false));
  assert.equal(out.recommendation,"WAIT_FOR_AUTHENTICATED_QUOTES_AND_WRITTEN_ACTIVATION_TERMS");
 });
+
+test("wholesale monthly minimum is a spending floor, not an extra charge",()=>{
+ const empty=scenario(50,0);
+ const terms=operator({fixed_monthly_minor:20000,global_minimum_monthly_minor:100000});
+ const a=alternative("MIN-FLOOR",{operator:terms,internal:internal({
+  development_minor:0,telecom_setup_minor:0,security_legal_setup_minor:0,
+  hosting_monthly_minor:0,redundancy_monthly_minor:0,maintenance_monthly_minor:0,
+  support_monthly_minor:0,security_compliance_monthly_minor:0,ops_monthly_minor:0,
+  media_minute_micros:0,network_minute_micros:0,fraud_minute_micros:0
+ })});
+ const noCalls=compareAudiotelBuildVsBuy(input([a],[empty],[12])).rows[0];
+ assert.equal(noCalls.operator_global_minimum_floor_minor,100000);
+ assert.equal(noCalls.operator_global_minimum_topup_monthly_minor,80000);
+ assert.equal(noCalls.monthly_fixed_minor,100000);
+ assert.equal(noCalls.total_cost_minor,1202000);
+ const traffic=compareAudiotelBuildVsBuy(input([a],[scenario(50,60)],[12])).rows[0];
+ assert.equal(traffic.operator_global_minimum_topup_monthly_minor,0);
+ assert.equal(traffic.monthly_fixed_minor,20000);
+});
+test("wholesale floor does not count payment provider or internal infrastructure against carrier spend",()=>{
+ const a=alternative("FLOOR-PSP",{
+  operator:operator({fixed_monthly_minor:10000,minute_micros:0,
+    psp_minute_micros:100000,global_minimum_monthly_minor:30000}),
+  internal:internal({hosting_monthly_minor:100000})
+ });
+ const row=compareAudiotelBuildVsBuy(input([a],[scenario(50,15)],[12])).rows[0];
+ assert.equal(row.operator_global_minimum_topup_monthly_minor,20000);
+});
