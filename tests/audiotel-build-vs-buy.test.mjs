@@ -129,7 +129,7 @@ test("wholesale monthly minimum is a spending floor, not an extra charge",()=>{
  assert.equal(noCalls.operator_global_minimum_topup_monthly_minor,80000);
  assert.equal(noCalls.monthly_fixed_minor,100000);
  assert.equal(noCalls.total_cost_minor,1202000);
- const traffic=compareAudiotelBuildVsBuy(input([a],[scenario(50,60)],[12])).rows[0];
+ const traffic=compareAudiotelBuildVsBuy(input([a],[scenario(200,60)],[12])).rows[0];
  assert.equal(traffic.operator_global_minimum_topup_monthly_minor,0);
  assert.equal(traffic.monthly_fixed_minor,20000);
 });
