@@ -2440,6 +2440,22 @@ export class PostgresStore{
     const providerInvoicePdfUrl=payload.provider_invoice_pdf_url==null?null:String(payload.provider_invoice_pdf_url).trim();
     const paymentAttemptCount=payload.payment_attempt_count==null?null:Number(payload.payment_attempt_count);
     const nextPaymentAttempt=payload.next_payment_attempt||null;
+    const paidMinor=payload.provider_invoice_amount_paid_minor??null;
+    const dueMinor=payload.provider_invoice_amount_due_minor??null;
+    const remainingMinor=payload.provider_invoice_amount_remaining_minor??null;
+    const invoiceCurrency=payload.provider_invoice_currency??null;
+    const invoiceStatus=payload.provider_invoice_status??null;
+    for(const [key,v] of [["PAID",paidMinor],["DUE",dueMinor],["REMAINING",remainingMinor]]){
+      if(v!==null&&(!Number.isSafeInteger(v)||v<0))throw problem(400,"INVALID_PROVIDER_INVOICE_"+key+"_AMOUNT");
+    }
+    if(invoiceCurrency!==null&&(typeof invoiceCurrency!=="string"||!/^[A-Z]{3}$/.test(invoiceCurrency)))
+      throw problem(400,"INVALID_PROVIDER_INVOICE_CURRENCY");
+    if(invoiceStatus!==null&&!["draft","open","paid","void","uncollectible"].includes(invoiceStatus))
+      throw problem(400,"INVALID_PROVIDER_INVOICE_STATUS");
+    if(invoiceCurrency!==null&&providerPriceCurrency&&invoiceCurrency!==providerPriceCurrency)
+      throw problem(409,"PROVIDER_INVOICE_CURRENCY_MISMATCH");
+    if(eventType==="invoice.paid"&&(!providerInvoiceReference||invoiceStatus!=="paid"||paidMinor===null))
+      throw problem(409,"PAID_INVOICE_EVIDENCE_INCOMPLETE");
     if(!/^[a-z0-9_.-]{2,40}$/.test(provider))throw problem(400,"INVALID_BILLING_PROVIDER");
     if(!eventId||eventId.length>200)throw problem(400,"INVALID_BILLING_EVENT_ID");
     if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(tenantPublicId))throw problem(400,"INVALID_BILLING_TENANT");
@@ -2472,14 +2488,24 @@ export class PostgresStore{
       cancel_at_period_end:!!payload.cancel_at_period_end,last_payment_status:lastPaymentStatus,ends_at:endsAtInput,
       provider_price_reference:providerPriceReference,provider_price_amount_minor:providerPriceAmount,provider_price_currency:providerPriceCurrency,
       provider_billing_interval:providerBillingInterval,provider_interval_count:providerIntervalCount,
-      provider_invoice_reference:providerInvoiceReference,provider_invoice_url:providerInvoiceUrl,provider_invoice_pdf_url:providerInvoicePdfUrl,payment_attempt_count:paymentAttemptCount,next_payment_attempt:nextPaymentAttempt
+      provider_invoice_reference:providerInvoiceReference,provider_invoice_url:providerInvoiceUrl,provider_invoice_pdf_url:providerInvoicePdfUrl,payment_attempt_count:paymentAttemptCount,next_payment_attempt:nextPaymentAttempt,
+      provider_invoice_amount_paid_minor:paidMinor,provider_invoice_amount_due_minor:dueMinor,
+      provider_invoice_amount_remaining_minor:remainingMinor,provider_invoice_currency:invoiceCurrency,
+      provider_invoice_status:invoiceStatus
     };
     const hash=createHash("sha256").update(JSON.stringify(normalized)).digest("hex");
+    // Upgrade compatibility: events journaled before invoice amount capture
+    // must remain idempotent when the exact same Stripe event is redelivered.
+    const legacyNormalized={...normalized};
+    for(const k of ["provider_invoice_amount_paid_minor","provider_invoice_amount_due_minor",
+      "provider_invoice_amount_remaining_minor","provider_invoice_currency","provider_invoice_status"])
+      delete legacyNormalized[k];
+    const legacyHash=createHash("sha256").update(JSON.stringify(legacyNormalized)).digest("hex");
     const result=await this.sql.begin(async tx=>{
       await tx.unsafe("SELECT pg_advisory_xact_lock(hashtext($1))",[provider+":"+eventId]);
       const seen=await tx.unsafe("SELECT id,subscription_id,payload_sha256 FROM subscription_billing_events WHERE provider=$1 AND provider_event_id=$2",[provider,eventId]);
       if(seen.length){
-        if(String(seen[0].payload_sha256)!==hash)throw problem(409,"BILLING_EVENT_ID_COLLISION");
+        if(String(seen[0].payload_sha256)!==hash&&String(seen[0].payload_sha256)!==legacyHash)throw problem(409,"BILLING_EVENT_ID_COLLISION");
         return {duplicate:true,subscription_id:seen[0].subscription_id};
       }
       const tenantRows=await tx.unsafe("SELECT id,tenant_type,status FROM tenants WHERE public_id=$1::uuid LIMIT 1",[tenantPublicId]);
