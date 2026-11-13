@@ -164,6 +164,7 @@ function render(data){
   $("portal-sync").textContent="Dernière consolidation : "+(a.updated?dt(a.updated):dt(data.server_time));
   $("traffic-total").textContent=nf(a.calls)+" appels";
   renderAnalytics(data);renderNumbers(data);renderCalls(data);renderSettlements(data);renderSubscriptions(data);renderOnboarding(data);renderDestinations(data);renderPortabilitySummary(data);renderVoiceStudio(data);renderServiceCenter(data);if(I.apply)I.apply(document.body);
+  import("./client-finance-documents.js").then(function(m){m.mount({tenantId:data.tenant?.id||data.tenant?.public_id||"",demo:state.demo});}).catch(function(){/* Other portal sections remain available. */});
 }
 async function loadPortal(){
   var range=rangeFor(state.range),data;
