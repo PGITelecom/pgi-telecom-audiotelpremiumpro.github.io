@@ -92,9 +92,9 @@ function number(value,multiplier,key){
 function payload(root){
  readState(root);
  const mode=root.querySelector("[data-as-objective]").value;
- const volume=root.querySelector("[data-as-minutes]").value;
- const keep=root.querySelector("[data-as-retention]").value;
- const accept=root.querySelector("[data-as-sacrifice]").value;
+ const volume=root.querySelector("[data-as-field="minutes"]").value;
+ const keep=root.querySelector("[data-as-field="retention"]").value;
+ const accept=root.querySelector("[data-as-field="sacrifice"]").value;
  return {
   business_unit:"audiotel_platform",currency:"EUR",
   objective:mode,billable_minutes_month:number(volume,1,"MINUTES"),
@@ -132,9 +132,9 @@ function results(root,data){
 }
 function render(root){
  const oldMode=root.querySelector("[data-as-objective]")?.value||"max_profit";
- const oldMinutes=root.querySelector("[data-as-minutes]")?.value||"";
- const oldRetention=root.querySelector("[data-as-retention]")?.value||"";
- const oldSacrifice=root.querySelector("[data-as-sacrifice]")?.value||"0";
+ const oldMinutes=root.querySelector("[data-as-field="minutes"]")?.value||"";
+ const oldRetention=root.querySelector("[data-as-field="retention"]")?.value||"";
+ const oldSacrifice=root.querySelector("[data-as-field="sacrifice"]")?.value||"0";
  const oldResult=generated;
  root.innerHTML='<div class="as-layout">'+
  '<section class="as-block"><h3 class="as-heading">Couteau suisse : rentabilité ou délégation</h3>'+
@@ -157,9 +157,9 @@ function render(root){
  '<div class="as-block" data-as-result role="status" aria-live="polite"><p class="as-note">Renseignez vos paramètres et au moins une offre réelle pour calculer.</p></div>'+
  '</div>';
  if(oldResult)results(root,oldResult);
- root.querySelector("[data-as-minutes]").value=oldMinutes;
- root.querySelector("[data-as-retention]").value=oldRetention;
- root.querySelector("[data-as-sacrifice]").value=oldSacrifice;
+ root.querySelector("[data-as-field="minutes"]").value=oldMinutes;
+ root.querySelector("[data-as-field="retention"]").value=oldRetention;
+ root.querySelector("[data-as-field="sacrifice"]").value=oldSacrifice;
 }
 function wire(root,request){
  root.addEventListener("click",async ev=>{
@@ -211,7 +211,7 @@ function wire(root,request){
  });
  root.addEventListener("change",ev=>{
   if(!ev.target.matches("[data-as-objective]"))return;
-  const target=root.querySelector("[data-as-sacrifice]");
+  const target=root.querySelector("[data-as-field="sacrifice"]");
   if(target)target.value=ev.target.value==="max_profit"?"0":ev.target.value==="balanced"?"10":"30";
  });
 }
