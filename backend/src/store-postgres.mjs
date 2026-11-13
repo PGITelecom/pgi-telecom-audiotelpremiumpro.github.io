@@ -4430,6 +4430,23 @@ export class PostgresStore{
     return rows[0];
   }
 
+  async customerFinancialSettlementRows(tenantId){
+    const id=Number(tenantId);
+    if(!Number.isInteger(id)||id<=0)throw problem(400,"INVALID_TENANT_ID");
+    return this.withTenantReadContext(id,async tx=>{
+      const rows=await tx.unsafe(
+        "SELECT to_char(period_start,'YYYY-MM-DD') AS period_start,to_char(period_end,'YYYY-MM-DD') AS period_end,"+
+        " currency,status,upstream_payout_ht::float8 AS upstream_payout_ht,platform_fee_ht::float8 AS platform_fee_ht,"+
+        " net_payout_ht::float8 AS net_payout_ht,statement_reference,"+
+        " to_char(payment_due_date,'YYYY-MM-DD') AS payment_due_date,to_char(paid_at AT TIME ZONE 'Europe/Paris','YYYY-MM-DD') AS paid_at"+
+        " FROM tenant_settlements WHERE tenant_id=$1 AND period_end >= (CURRENT_DATE - INTERVAL '48 months')::date"+
+        " ORDER BY period_end DESC,id DESC LIMIT 1000",
+        [id]
+      );
+      return rows;
+    });
+  }
+
   async customerBillingPreparation(tenantId){
     const id=Number(tenantId);
     if(!Number.isInteger(id)||id<=0)throw problem(400,"INVALID_TENANT_ID");
