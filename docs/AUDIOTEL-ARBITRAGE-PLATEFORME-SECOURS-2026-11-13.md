@@ -148,3 +148,72 @@ Les résultats ne constituent ni une prévision commerciale ni une évaluation f
 7. **Confidentialité commerciale** : le dépôt GitHub est public ; ne pas ajouter de véritables offres confidentielles, tarifs négociés, seuils de négociation ou secrets bancaires à ce dossier. Tout devis reçu doit être traité dans un espace à accès restreint.
 
 **Règle de décision :** tant que les devis ne sont pas authentifiés et que les obligations légales, le paiement direct, les frais d'activation et la fiscalité ne sont pas résolus, **ne choisir aucun fournisseur, ne commander aucun serveur, ne lancer aucun service**. Comparer les options sur leur résultat après charges et prélèvements réellement établis, puis valider une mise en service distincte.
+
+
+## 8. Ajouts effectifs du 13/11/2026 : frais masques et activation en masse inerte
+
+**Portee** : deux nouveaux modules hors ligne ajoutes a la PR 190, et
+integration des controles dans les rapports existants. Pas de nouveau site,
+pas de changement des pages, CSS, UI publique, portail client ni cockpit
+de production.
+
+### 8.1 Frais d'activation annonces a zero : controle des charges compensees
+
+Le module **telephony/prelaunch-not-active/activation-fee-audit.mjs**
+conserve les modeles de comparaison existants, puis comptabilise
+*uniquement les frais supplementaires non repris dans ces modeles* :
+- ouverture de compte, raccordement de collecte et SIP ;
+- administration manuelle, forfait d'activation par lot, KYB,
+  frais de reservation et frais de sortie ;
+- frais au mois, numero/mois et a la minute ;
+- frais dont la nature precise reste inconnue et demande classification.
+
+Les calculs portent sur les nouveaux numeros, les numeros portes,
+le nombre de lots, les minutes et les horizons 12/24/36 mois.
+Les sorties separent les frais initiaux, mensuels et variables,
+le cout complet et la marge hypothesee avant impots.
+
+Un numero "gratuit a activer" peut rester tres couteux par frais de lot,
+raccordement, obligation de minimum ou maintenance. **Aucune conclusion
+de zero frais n'est autorisee sans devis contractuel complet**, et aucun
+frais ne peut etre compte deux fois entre modele initial et surcharge.
+
+Le script financier existant affiche en outre un scenario autonome
+de frais caches **entierement fictif**, non inclus dans les tableaux
+de reference. Il ne s'agit pas d'un tarif d'Orange, Bouygues, Colt,
+SFR, Odigo, Axialys ni d'un autre operateur.
+
+### 8.2 Gestion en masse sans intervention humaine future inutile
+
+Le module **telephony/prelaunch-not-active/bulk-provisioning-plan.mjs**
+organise les futures operations de nouveaux numeros, portabilites,
+suspensions, reprises et changement de destination par lots de 1 a 1 000
+et jusqu'a 5 000 demandes par evaluation. Chaque demande possede
+une reference unique, une empreinte deterministe et une liste de pieces
+documentaires restant a verifier. Les ordres concurrents sur un meme
+numero sont rejetes.
+
+Il ne contient **aucun client telecom actif**, aucun portage executif,
+aucun numero Arcep attribue, aucun appel, aucun paiement et aucun
+adaptateur operateur capable de mettre une ligne en service.
+
+Avant de produire de vrais ordres operateur, il faudra les specifications
+authentiques d'API, les droits Arcep, les contrats, les autorisations
+KYB/mandats, la securite du control-plane et la validation du dirigeant.
+
+### 8.3 Conditions de rentabilite et de gel
+
+Les logiciels prepares ne garantissent pas 0 EUR d'activation, ni
+0,07 EUR/minute personnellement conserves apres impots. Le choix final
+necessite un devis exhaustif, le cout complet (SIP, hebergement, 24/7,
+fraude, PSP, maintenance, fiscalite), un controle de fiabilite et une
+confirmation de faisabilite reglementaire. Ne pas surdimensionner
+l'infrastructure pour les premiers clients.
+
+Tests ajoutes a la suite GitHub : **audiotel-activation-fee-audit.test.mjs**
+et **audiotel-bulk-provisioning-plan.test.mjs**. Les scripts et
+l'inventaire existants reutilisent ces nouveaux composants.
+
+**Gel permanent** : PR 190 brouillon, non fusionnee, aucun Vercel/Neon
+de production, aucune depense, serveur SIP, ordre Arcep, portabilite
+effective ou operation bancaire declenchee par ce lot.
