@@ -55,7 +55,7 @@ export async function listStripeCustomerInvoices(config,customerReference){
     for(const invoice of list){
       const belongs=typeof invoice.customer==="string"?invoice.customer:invoice.customer?.id;
       if(belongs!==customer||!/^in_[A-Za-z0-9]+$/.test(String(invoice.id||"")))continue;
-      if(!["paid","open","uncollectible","void","draft"].includes(String(invoice.status||"")))continue;
+      if(!["paid","open","uncollectible","void"].includes(String(invoice.status||"")))continue;
       const when=Number(invoice.created);
       const amountMinor=Number(invoice.total),paidMinor=Number(invoice.amount_paid);
       const invoicePdf=trustedStripeDocumentUrl(invoice.invoice_pdf);
