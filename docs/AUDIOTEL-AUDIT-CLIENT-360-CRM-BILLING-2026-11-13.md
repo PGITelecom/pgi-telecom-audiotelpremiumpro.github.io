@@ -152,3 +152,93 @@ inutilise. Aucune superiorite generale n'est revendiquee aujourd'hui.
 **Verdict** : des lacunes de traçabilite ont ete corrigees dans la branche.
 Le parcours portabilite operateur et le revenu personnel net par client
 ne sont pas certifiables aujourd'hui. La production demeure hors perimetre.
+
+
+## Complement : consultation Stripe et integrity CRM (13/11/2026)
+
+### Liaison HubSpot par dossier permanent
+
+Le correctif de \`backend/src/hubspot-crm.mjs\` empeche de selectionner
+une opportunite simplement parce qu'elle est ouverte et associee au
+meme contact e-mail. Lorsque \`pgi_dossier_ref\` est fourni :
+- rechercher uniquement l'opportunite ouverte du **meme dossier** ;
+- ne pas modifier une opportunite d'un dossier different ;
+- si le contact represente deja un autre dossier, **ne pas ecraser**
+  sa reference, sa societe commerciale, son intention, sa phase de cycle
+  de vie ni son statut commercial ;
+- pour une nouvelle demande du meme contact mais d'un autre dossier,
+  creer une opportunite distincte avec son propre stade.
+
+Tests : \`tests/hubspot-dossier-integrity.test.mjs\`, en plus des
+tests HubSpot existants. **Les appels HubSpot sont doubles par le test**,
+il n'y a eu aucune ecriture de fiches HubSpot reelles.
+
+**Limite connue** : si plusieurs requetes concurrentes peuvent creer un
+meme deal, le systeme HubSpot n'offre ici aucune preuve d'unicite atomique.
+Une reprise durable avec controle de concurrence et rapprochement effectif
+reste necessaire avant d'affirmer "aucun doublon possible".
+
+### Recouvrement client
+
+La fiche client reutilise des informations de recouvrement deja
+stockees dans \`tenant_subscriptions\` : etape de recouvrement, tentatives,
+prochaine date de paiement et date butoir. Il ne s'agit ni d'un
+prelevement ni d'une relance lancee par l'audit.
+
+### Consultation des factures actuelles sur demande uniquement
+
+Nouveau composant \`backend/src/stripe-invoice-readonly.mjs\`,
+route \`GET /api/v1/platform/tenants/:id/stripe-invoices\` reservee aux
+roles admin et finance, ainsi que bouton dans la **fiche client existante**.
+
+Principe :
+1. La demande provient d'un administrateur connecte ayant clique sur
+   « Consulter Stripe en direct ». Il n'y a aucun polling automatique.
+2. \`tenantStripeBillingBinding\` retrouve **dans Neon et sans accepter
+   d'identifiant client fourni par le navigateur** le compte Stripe et
+   les abonnements du dossier.
+3. S'il existe plusieurs comptes Stripe incompatibles, une reference
+   mal formee ou plus de 50 souscriptions, le systeme refuse la lecture
+   plutot que de risquer de divulguer des factures d'un tiers.
+4. Effectuer uniquement une operation **GET** de lecture a
+   \`https://api.stripe.com/v1/invoices\` avec une page de 25 elements au
+   maximum et pagination explicite sur clic.
+5. Afficher uniquement les factures dont le numero de client Stripe
+   **et** la reference d'abonnement figurent dans les associations
+   autorisees du dossier. Trier les montants par devise.
+6. Exposer l'etat actuel de facture, les montants Stripe paye, du et
+   restant, date d'echeance et liens de facture de domaines Stripe,
+   sans renvoyer de secret, e-mail ou detail bancaire.
+7. **Aucune promesse de solde global exhaustif** : une page peut
+   exclure d'autres factures et ne tient pas compte des litiges,
+   remboursements, transferts, charges ou TVA non etablis.
+
+Mode de fonctionnement : necessite un environnement Stripe configure.
+Pas d'appel API Stripe dans la PR tant que cette fonctionnalite n'est pas
+deployee et **ouverte manuellement** par un utilisateur autorise.
+
+Les routes ne prennent aucune action de facturation ; aucun
+paiement, abonnement, encaissement, mandat, portage ni reversement
+n'est declenche. Les nouveaux codes sont soumis aux tests
+\`tests/stripe-invoice-readonly.test.mjs\`.
+
+### Protection du budget
+
+Le chargement ne declenche pas d'interrogation de Stripe par defaut.
+Il utilise les identifiants de souscription deja existants et n'ajoute
+aucun fournisseur ni service heberge. Les appels ne sont effectues
+qu'a la demande, lorsque la partie concernée sera autorisee et
+mise en production a une date ulterieure avec approbation explicite.
+
+Le **benefice net par client apres frais, charges et fiscalite** ne peut
+toujours pas etre presente comme reel : ces donnees ne sont pas
+reconciliees dans un ledger analytique avec couts des operateurs.
+Aucune optimisation fiscale ou compensation sur fonds des professionnels
+n'est executee.
+
+### Etat et restrictions
+
+Les changements de cette section sont uniquement dans la branche
+\`prep/chaine-telecom-operateur-20261108\` de la PR 190.
+Aucun design public ou feuille CSS changee, aucune migration Neon,
+aucun deploiement Vercel, aucune fusion, aucun achat ni numero active.
