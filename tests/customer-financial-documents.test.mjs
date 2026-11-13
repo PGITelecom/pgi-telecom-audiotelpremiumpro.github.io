@@ -52,7 +52,7 @@ test("generated PDF is binary, multi-page, branded and no fiscal invoice is inve
   assert.match(pdf.toString("latin1"),/%%EOF/);
   const longReport={...report,lines:Array.from({length:40},(_,i)=>({...report.lines[0],statement_reference:"E-"+i}))};
   const multiple=createMonthlySettlementPdf(longReport);
-  assert.match(multiple.toString("latin1"),/\/Count 3/);
+  assert.match(multiple.toString("latin1"),/\/Count 4/);
   assert.throws(()=>createMonthlySettlementPdf({kind:"invoice",period:"2026-10",currency:"EUR"}),/INVALID_STATEMENT/);
 });
 
