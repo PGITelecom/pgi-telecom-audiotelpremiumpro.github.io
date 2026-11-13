@@ -159,10 +159,10 @@ test("new UI and API are staff-only and bundled, do not change checkout or custo
  assert.match(part,/requireCsrf\(req,actor,config\)/);
  assert.match(part,/planAudiotelMultiOperatorStrategy\(body\)/);
  assert.doesNotMatch(part,/store\.[a-zA-Z_]+\(/);
- const launch=fs.readFileSync(new URL("../assets/launch-readiness.js",import.meta.url),"utf8");
+ const cockpit=fs.readFileSync(new URL("../assets/control-tower.js",import.meta.url),"utf8");
  const js=fs.readFileSync(new URL("../assets/audiotel-operator-strategy.js",import.meta.url),"utf8");
  const build=fs.readFileSync(new URL("../scripts/build-static.mjs",import.meta.url),"utf8");
- assert.match(launch,/audiotel-operator-strategy\.js/);
+ assert.match(cockpit,/audiotel-operator-strategy\.js/);
  assert.match(js,/data-as-objective/);
  assert.match(js,/max_profit/);
  assert.match(js,/max_delegation/);
