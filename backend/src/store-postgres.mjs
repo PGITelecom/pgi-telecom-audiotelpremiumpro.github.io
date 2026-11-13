@@ -2454,8 +2454,10 @@ export class PostgresStore{
       throw problem(400,"INVALID_PROVIDER_INVOICE_STATUS");
     if(invoiceCurrency!==null&&providerPriceCurrency&&invoiceCurrency!==providerPriceCurrency)
       throw problem(409,"PROVIDER_INVOICE_CURRENCY_MISMATCH");
-    if(eventType==="invoice.paid"&&(!providerInvoiceReference||invoiceStatus!=="paid"||paidMinor===null))
-      throw problem(409,"PAID_INVOICE_EVIDENCE_INCOMPLETE");
+    // An older or partially populated signed Stripe event must still be
+    // journaled and deduplicated. Missing monetary fields remain NULL and are
+    // never counted as zero cash in a customer financial statement.
+    // Incomplete evidence is flagged by the read-only reconciler.
     if(!/^[a-z0-9_.-]{2,40}$/.test(provider))throw problem(400,"INVALID_BILLING_PROVIDER");
     if(!eventId||eventId.length>200)throw problem(400,"INVALID_BILLING_EVENT_ID");
     if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(tenantPublicId))throw problem(400,"INVALID_BILLING_TENANT");
