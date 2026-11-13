@@ -1,6 +1,7 @@
 
 import {createHash} from "node:crypto";
 import {normalizeFrenchSvaRio,rioFingerprint,encryptPortabilityCredential} from "./portability-identity.mjs";
+import {summarizeCustomerInvoiceJournal} from "./customer-invoice-audit.mjs";
 import {sanitizeCdrPayload,deriveCallerHash} from "./cdr-privacy.mjs";
 import {computeExpertCost} from "./expert-finance.mjs";
 import {normalizeSettlementPayload} from "./settlement-finance.mjs";
@@ -7912,10 +7913,18 @@ export class PostgresStore{
         [id]
       )
     ]);
+    // Read-only, tenant-scoped Stripe invoice journal, not a live Stripe balance.
+    // The source contains signed webhook evidence, no payment operation occurs.
+    const invoiceEvents=await this.readSql.unsafe(
+      "SELECT event_type,event_time,normalized_details FROM subscription_billing_events"+
+      " WHERE tenant_id=$1 AND provider='stripe' AND event_type LIKE 'invoice.%'"+
+      " ORDER BY event_time DESC,id DESC LIMIT 300",[id]
+    );
+    const invoiceAudit=summarizeCustomerInvoiceJournal(invoiceEvents,{maxInvoices:50,sourceLimit:300});
     const access=await this.readSql.unsafe("SELECT pgi_tenant_has_premium_call_access($1,NULL,now()) AS allowed",[id]);
     return {
       tenant:{...tenant,dossier_ref:dossierReference(id,tenant.created_at),premium_call_access:Boolean(access[0]?.allowed)},
-      subscriptions:subs,lines,portability,destinations,experts,alerts,settlements,payout_terms:payoutTerms,controls,audit,service_incidents:serviceIncidents,operational_alerts:operationalAlerts,users,invitations,line_performance:linePerformance,
+      subscriptions:subs,invoice_audit:invoiceAudit,lines,portability,destinations,experts,alerts,settlements,payout_terms:payoutTerms,controls,audit,service_incidents:serviceIncidents,operational_alerts:operationalAlerts,users,invitations,line_performance:linePerformance,
       activity:activity[0]||{calls_30d:0,connected_30d:0,billable_seconds_30d:0,revenue_ttc_30d:0,margin_ht_30d:0,last_call_at:null}
     };
   }
