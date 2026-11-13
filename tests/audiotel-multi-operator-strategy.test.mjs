@@ -167,6 +167,105 @@ test("even all self-declared evidence never switches operator traffic, payments 
  assert.equal(r.commercial_operation_authorized,undefined);
 });
 
+test("direct contracting operator keeps client and number rights at APP and accepts wholesale suppliers",()=>{
+ const x=input();
+ x.plans[0].operating_profile={
+  mode:"direct_contracting_operator",
+  customer_contract_holder:"audiotel",numbering_rights_holder:"audiotel",
+  upstream_chains:{}
+ };
+ const r=planAudiotelMultiOperatorStrategy(x);
+ assert.equal(r.plans[0].operating_profile.mode,"direct_contracting_operator");
+ assert.deepEqual(r.plans[0].operating_profile.supplier_chains.collection,["operateur_a"]);
+ assert.deepEqual(r.plans[0].operating_profile.supplier_chains.noc_support,["audiotel"]);
+ assert.equal(r.plans[0].operating_profile.max_chain_depth,1);
+ assert.equal(r.plans[0].operating_profile.legal_role_claim_verified,false);
+ assert.equal(r.plans[0].compatible_for_scenario_selection,true);
+});
+
+test("intermediated contracting operator can model multiple supplier layers without changing customer contracts",()=>{
+ const x=input();
+ x.providers.push({id:"intermediaire_b",label:"Intermédiaire B",services:same});
+ x.providers.push({id:"grossiste_c",label:"Grossiste C",services:same});
+ x.plans[0].operating_profile={
+  mode:"intermediated_contracting_operator",
+  customer_contract_holder:"audiotel",numbering_rights_holder:"audiotel",
+  upstream_chains:{collection:["intermediaire_b","grossiste_c"],sip_routing:["grossiste_c"]}
+ };
+ const r=planAudiotelMultiOperatorStrategy(x);
+ assert.equal(r.plans[0].operating_profile.total_extra_supplier_layers,3);
+ assert.equal(r.plans[0].operating_profile.max_chain_depth,3);
+ assert.deepEqual(r.plans[0].operating_profile.supplier_chains.collection,
+  ["operateur_a","intermediaire_b","grossiste_c"]);
+ assert.equal(r.plans[0].external_provider_count,3);
+ assert.equal(r.plans[0].compatible_for_scenario_selection,true);
+ assert.equal(r.plans[0].operating_profile.live_model_switch_permitted,false);
+ assert.equal(r.live_operator_selected,false);
+});
+
+test("a direct model with intermediary tiers is not silently misrepresented as direct",()=>{
+ const x=input();x.providers.push({id:"grossiste_b",label:"Grossiste B",services:same});
+ x.plans[0].operating_profile={
+  mode:"direct_contracting_operator",
+  customer_contract_holder:"audiotel",numbering_rights_holder:"audiotel",
+  upstream_chains:{collection:["grossiste_b"]}
+ };
+ const r=planAudiotelMultiOperatorStrategy(x);
+ assert.ok(r.plans[0].issues.includes("direct_model_contains_additional_intermediaries"));
+ assert.equal(r.plans[0].compatible_for_scenario_selection,false);
+ assert.equal(r.selected_preview_plan_id,"delegation");
+});
+
+test("partner contracting model explicitly separates the final customer contract and portability risk",()=>{
+ const x=input();
+ x.plans[0].operating_profile={
+  mode:"partner_contracting_white_label",
+  customer_contract_holder:"operateur_a",numbering_rights_holder:"operateur_a",
+  upstream_chains:{}
+ };
+ const r=planAudiotelMultiOperatorStrategy(x);
+ const op=r.plans[0].operating_profile;
+ assert.equal(op.customer_contract_holder,"operateur_a");
+ assert.equal(op.numbering_rights_holder,"operateur_a");
+ assert.equal(op.customer_relationship_preservation_verified,false);
+ assert.ok(r.plans[0].issues.includes("customer_contract_and_data_control_require_partner_agreement"));
+ assert.ok(r.plans[0].issues.includes("numbering_and_portability_depend_on_partner"));
+ assert.equal(r.plans[0].compatible_for_scenario_selection,true);
+});
+
+test("model legal-holder mismatch, impossible chains, cycles and unsupported intermediaries fail closed",()=>{
+ const first=input();
+ first.plans[0].operating_profile={
+  mode:"direct_contracting_operator",
+  customer_contract_holder:"operateur_a",numbering_rights_holder:"operateur_a"
+ };
+ const report=planAudiotelMultiOperatorStrategy(first);
+ assert.ok(report.plans[0].issues.includes("audiotel_customer_contract_holder_required"));
+ assert.ok(report.plans[0].issues.includes("audiotel_numbering_rights_holder_required"));
+ assert.equal(report.plans[0].compatible_for_scenario_selection,false);
+ const errors=[
+  [x=>x.plans[0].operating_profile={mode:"unregulated_operator"},"OPERATING_MODE_INVALID"],
+  [x=>x.plans[0].operating_profile={mode:"managed_wholesale",customer_contract_holder:"not_registered"},"CUSTOMER_CONTRACT_HOLDER_INVALID"],
+  [x=>x.plans[0].operating_profile={mode:"managed_wholesale",numbering_rights_holder:"not_registered"},"NUMBERING_RIGHTS_HOLDER_INVALID"],
+  [x=>x.plans[0].operating_profile={mode:"managed_wholesale",upstream_chains:{unknown:["operateur_a"]}},"UPSTREAM_CHAINS_INVALID"],
+  [x=>x.plans[0].operating_profile={mode:"managed_wholesale",upstream_chains:{noc_support:["operateur_a"]}},"INTERNAL_SERVICE_HAS_UPSTREAM"],
+  [x=>x.plans[0].operating_profile={mode:"managed_wholesale",upstream_chains:{collection:["operateur_a"]}},"UPSTREAM_CHAIN_CYCLE"],
+  [x=>x.plans[0].operating_profile={mode:"managed_wholesale",upstream_chains:{collection:["operateur_b"]}},"UPSTREAM_PROVIDER_NOT_CAPABLE_COLLECTION"]
+ ];
+ for(const [edit,code] of errors){const x=input();edit(x);fails(x,code);}
+});
+
+test("marking an intermediated mode without intermediaries does not pretend to add suppliers",()=>{
+ const x=input();
+ x.plans[0].operating_profile={
+  mode:"intermediated_contracting_operator",
+  customer_contract_holder:"audiotel",numbering_rights_holder:"audiotel"
+ };
+ const r=planAudiotelMultiOperatorStrategy(x);
+ assert.equal(r.plans[0].compatible_for_scenario_selection,false);
+ assert.ok(r.plans[0].issues.includes("intermediated_model_has_no_intermediary"));
+});
+
 test("new UI and API are staff-only and bundled, do not change checkout or customer-facing routes",()=>{
  const server=fs.readFileSync(new URL("../backend/server.mjs",import.meta.url),"utf8");
  const part=server.split('if(method==="POST"&&pathname==="/api/v1/platform/audiotel/operator-strategy/preview"){')[1]?.split('if(method==="POST"&&pathname==="/api/v1/platform/performance-lab/runs"){')[0]||"";
@@ -179,6 +278,11 @@ test("new UI and API are staff-only and bundled, do not change checkout or custo
  const build=fs.readFileSync(new URL("../scripts/build-static.mjs",import.meta.url),"utf8");
  assert.match(cockpit,/audiotel-operator-strategy\.js/);
  assert.match(js,/data-as-objective/);
+ assert.match(js,/data-as-mode/);
+ assert.match(js,/data-as-contract-holder/);
+ assert.match(js,/data-as-numbering-holder/);
+ assert.match(js,/data-as-upstream/);
+ assert.match(js,/operating_profile:/);
  assert.match(js,/max_profit/);
  assert.match(js,/max_delegation/);
  assert.match(js,/publisher_payout/);
