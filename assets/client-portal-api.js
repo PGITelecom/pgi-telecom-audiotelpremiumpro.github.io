@@ -67,6 +67,7 @@ passkeyRegister:function(body){return post("/customer/security/passkeys/register
 passkeyAssertOptions:function(){return post("/customer/security/passkeys/assert-options",{});},
 passkeyVerify:function(body){return post("/customer/security/passkeys/verify",body);},
 billingStatus:function(){return get("/customer/billing/status",5000);},
+financeDocuments:function(){return get("/customer/finance/documents",18000);},
 cardPaymentStatus:function(){return get("/customer/card-payments/status",8000);},
 activateCardPayments:function(idempotencyKey){return post("/customer/card-payments/connect",{},idempotencyKey);},
 createCardPaymentCheckout:function(payload,idempotencyKey){return post("/customer/card-payments/checkout-session",payload||{},idempotencyKey);},

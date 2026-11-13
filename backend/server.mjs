@@ -14,7 +14,7 @@ import {createOutboundPortabilityQueueHandlers} from "./src/outbound-portability
 import {webauthnConfigured,publicPasskeyOptions,verifyWebAuthnState,validateWebAuthnRegistration,verifyWebAuthnAssertion} from "./src/webauthn.mjs";
 import {customerPermissions,hasCustomerPermission,requireCustomerPermission,scopeCustomerPortalData,scopeCustomerAnnualProgressData} from "./src/customer-access.mjs";
 import {createStaticSiteHandler} from "./src/static-site.mjs";
-import {stripeProviderReadiness,invalidateStripeProviderReadiness,createStripeCheckout,createStripePortalSession,createStripePortabilityPriorityCheckout,verifyStripeWebhook,normalizeStripePortabilityPriorityEvent,normalizeStripeBillingEvent,normalizeStripeRefundEvent} from "./src/stripe-billing.mjs";
+import {stripeProviderReadiness,invalidateStripeProviderReadiness,createStripeCheckout,createStripePortalSession,createStripePortabilityPriorityCheckout,listStripeCustomerInvoices,verifyStripeWebhook,normalizeStripePortabilityPriorityEvent,normalizeStripeBillingEvent,normalizeStripeRefundEvent} from "./src/stripe-billing.mjs";
 import {STRIPE_CONNECT_APPLICATION_FEE_BPS,stripeConnectState,createStripeConnectedAccount,retrieveStripeConnectedAccount,normalizeStripeConnectedAccount,createStripeConnectOnboardingLink,createStripeCardCheckout,retrieveStripeCardCheckout,normalizeStripeConnectPaymentEvent,hashStripeEventPayload,stripeConnectWebhookSecretForPath,createStripeReferralRecipientAccount,retrieveStripeReferralRecipientAccount,normalizeStripeReferralRecipientAccount,createStripeReferralOnboardingLink} from "./src/stripe-connect.mjs";
 import {runReferralAutomaticPayouts} from "./src/referral-payout-automation.mjs";
 import {expertAccountingSnapshot,refreshExpertAccountingLedger,updateExpertAccountingSettings,createExpertAccountingEntry,validateExpertAccountingEntry,reverseExpertAccountingEntry,setAccountingPeriodState,importAccountingBankTransactions,matchAccountingBankTransaction,expertAccountingFec} from "./src/accounting-expert.mjs";
@@ -42,6 +42,7 @@ import {eligibleExistingCustomerNumbers,preparedExistingCustomerTransitions,prep
 import {directSvaProductionReadiness} from "./src/direct-sva-production-readiness.mjs";
 import {directSvaComplaintPreparatoryOverview} from "./src/direct-sva-complaint-automation.mjs";
 import {runDailyReportCron} from "./src/daily-report.mjs";
+import {monthlySettlementIndex,monthlySettlementReport,createMonthlySettlementPdf} from "./src/customer-financial-documents.mjs";
 
 export async function createDefaultBackend(){
   const config=loadConfig();
@@ -1004,6 +1005,56 @@ export function createBackend(options={}){
         return done(res,metrics,started,"customer.consumption_receipt_create",201,{...result.value,replayed:result.replayed});
       }
 
+      if(method==="GET"&&pathname==="/api/v1/customer/finance/documents"){
+        requireActor(customerActor);
+        const context=await store.customerSessionContext(customerActor);
+        requireCustomerPermission(context,"finance.read");
+        const [rows,billing]=await Promise.all([
+          typeof store.customerFinancialSettlementRows==="function"?store.customerFinancialSettlementRows(context.tenant_id):Promise.resolve([]),
+          store.customerBillingPreparation(context.tenant_id)
+        ]);
+        const customerReference=billing.subscription?.provider_customer_reference;
+        let invoiceArchive={available:false,invoices:[],truncated:false},invoiceError=null;
+        if(customerReference){
+          try{invoiceArchive=await listStripeCustomerInvoices(config,customerReference);}
+          catch(error){invoiceError="STRIPE_INVOICE_ARCHIVE_UNAVAILABLE";}
+        }
+        return done(res,metrics,started,"customer.finance.documents",200,{
+          schema_version:"customer-financial-documents/1",
+          invoices:invoiceArchive.invoices,
+          invoice_archive_available:invoiceArchive.available,
+          invoice_archive_truncated:invoiceArchive.truncated,
+          invoice_error:invoiceError,
+          statements:monthlySettlementIndex(rows),
+          statement_source:"tenant_settlements",
+          statement_warning:"Les relevés SVA ne sont pas des factures. Les statuts internes ne prouvent pas à eux seuls la réception bancaire."
+        });
+      }
+      const monthlyPdfMatch=/^\/api\/v1\/customer\/finance\/statements\/(20\d{2}-(?:0[1-9]|1[0-2]))\.pdf$/.exec(pathname);
+      if(method==="GET"&&monthlyPdfMatch){
+        requireActor(customerActor);
+        const context=await store.customerSessionContext(customerActor);
+        requireCustomerPermission(context,"finance.read");
+        const currency=String(url.searchParams.get("currency")||"EUR").toUpperCase();
+        if(!/^[A-Z]{3}$/.test(currency))return done(res,metrics,started,"customer.finance.statement",400,{error:{code:"INVALID_CURRENCY"}});
+        const [rows,billing]=await Promise.all([
+          typeof store.customerFinancialSettlementRows==="function"?store.customerFinancialSettlementRows(context.tenant_id):Promise.resolve([]),
+          store.customerBillingPreparation(context.tenant_id)
+        ]);
+        const report=monthlySettlementReport({
+          tenant:{display_name:billing.tenant?.name||"Titulaire du dossier"},
+          rows,period:monthlyPdfMatch[1],currency
+        });
+        if(!report)return done(res,metrics,started,"customer.finance.statement",404,{error:{code:"STATEMENT_NOT_AVAILABLE"}});
+        const pdf=createMonthlySettlementPdf(report);
+        res.statusCode=200;
+        res.setHeader("Content-Type","application/pdf");
+        res.setHeader("Content-Disposition",'attachment; filename="audiotel-releve-sva-'+monthlyPdfMatch[1]+'-'+currency+'.pdf"');
+        res.setHeader("Cache-Control","private, no-store, max-age=0");
+        res.setHeader("X-Content-Type-Options","nosniff");
+        res.end(pdf);
+        return;
+      }
       if(method==="GET"&&pathname==="/api/v1/customer/billing/status"){
         requireActor(customerActor);
         const context=await store.customerSessionContext(customerActor);

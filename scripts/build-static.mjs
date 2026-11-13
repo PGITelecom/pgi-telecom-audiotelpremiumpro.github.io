@@ -49,6 +49,7 @@ const files=[
   "assets/ambassador-portal.js",
   "assets/ambassador-portal.css",
   "assets/client-billing.js",
+  "assets/client-finance-documents.js",
   "assets/withdrawal.js",
   "assets/withdrawal.css",
   "assets/customer-email-verification.js",
