@@ -2,7 +2,7 @@ import {renderPortabilitySection,runPortabilityAction,portabilityError,renderPay
 import {renderServiceOperations,runServiceOperation} from "./tenant-service-admin.js";
 import {$,esc,nf,money,date,dur,lab,chip,eventText} from "./tenant-control-utils.js";
 import {renderCustomerIdentity,downloadCustomerExport,mountCustomerPayoutHistory} from "./customer-360-detail.js";
-import {renderCustomerInvoiceAudit} from "./customer-invoice-detail.js";
+import {renderCustomerInvoiceAudit,mountCustomerStripeLive} from "./customer-invoice-detail.js";
 let currentId=null,currentData=null,busy=false;
 
 function ensure(){
@@ -45,6 +45,7 @@ renderServiceOperations(data)+
 '<section class="td-section" id="td-internal-notes" hidden></section>'+
 '<section class="td-section"><div class="td-section-head"><h3>Historique & audit</h3><span>80 derniers événements</span></div><div class="td-timeline">'+(events||'<p class="td-empty">Aucun événement.</p>')+'</div></section>';
 mountCustomerPayoutHistory(currentId,$("td-payout-history"),data.settlements||[]);
+mountCustomerStripeLive(currentId,$("td-body"));
 void import("./customer-profitability.js").then(m=>m.mountTenantProfitability(currentId,$("td-profitability"))).catch(()=>{});
 void import("./yearly-progress.js").then(m=>m.mountAdminAnnualProgress(currentId,$("td-yearly-progress"))).catch(()=>{});
 void import("./tenant-line-command.js").then(m=>m.mountTenantLineCommand(data,$("td-line-command"))).catch(()=>{});
