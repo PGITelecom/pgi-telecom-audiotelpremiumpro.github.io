@@ -281,13 +281,16 @@ export async function syncHubSpotCommercialLead(input={},options={}){
   let effectiveStatus=requestedStatus;
   if(contact){
     const current=contact.properties||{};
-    effectiveStatus=advanceCommercialStatus(current.statut_commercial_pgi,requestedStatus);
+    // Commercial status is dossier-specific; do not inherit the status of a
+    // different dossier that happens to share this contact email.
+    effectiveStatus=requestedStatus;
     const preserveReferral=/Parrainage\s*:/i.test(String(current.besoin__projet_audiotel||""))&&!/Parrainage\s*:/i.test(String(baseProps.besoin__projet_audiotel||""));
     // A contact can represent several commercial dossiers. Do not overwrite
     // identity of its prior dossier when the new request has another one.
     const previousDossier=String(current.pgi_dossier_ref||"").trim().toUpperCase();
     const nextDossier=String(baseProps.pgi_dossier_ref||"").trim().toUpperCase();
     const anotherDossier=Boolean(previousDossier&&nextDossier&&previousDossier!==nextDossier);
+    if(!anotherDossier)effectiveStatus=advanceCommercialStatus(current.statut_commercial_pgi,requestedStatus);
     const update={
       firstname:baseProps.firstname,
       lastname:baseProps.lastname,
@@ -304,8 +307,8 @@ export async function syncHubSpotCommercialLead(input={},options={}){
     }
     if(!current.hubspot_owner_id)update.hubspot_owner_id=HUBSPOT_OWNER_ID;
     const lifecycle=commercialLifecycle(effectiveStatus,current.lifecyclestage);
-    if(lifecycle&&lifecycle!==current.lifecyclestage)update.lifecyclestage=lifecycle;
-    if(effectiveStatus&&effectiveStatus!==current.statut_commercial_pgi)update.statut_commercial_pgi=effectiveStatus;
+    if(!anotherDossier&&lifecycle&&lifecycle!==current.lifecyclestage)update.lifecyclestage=lifecycle;
+    if(!anotherDossier&&effectiveStatus&&effectiveStatus!==current.statut_commercial_pgi)update.statut_commercial_pgi=effectiveStatus;
     contact=await hubSpotPrivateRequest("/crm/v3/objects/contacts/"+encodeURIComponent(contact.id),{
       token,fetchImpl,method:"PATCH",body:{properties:compactProperties(update)}
     });
