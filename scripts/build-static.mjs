@@ -124,6 +124,7 @@ const files=[
   "assets/yearly-progress.js",
   "assets/tenant-consumption-check.js",
   "assets/customer-360-detail.js",
+   "assets/customer-invoice-detail.js",
   "assets/customer-internal-notes.js",
   "assets/tenant-control-utils.js",
   "assets/tenant-portability-admin.js",
