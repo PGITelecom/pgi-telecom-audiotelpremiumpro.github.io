@@ -39,15 +39,6 @@ async function stripeApi(config,path,{method="GET",params={},idempotencyKey}={})
   }
   return body;
 }
-function trustedStripeDocumentUrl(value){
-  if(typeof value!=="string"||value.length>2048)return null;
-  try{
-    const url=new URL(value);
-    if(url.protocol!=="https:"||url.username||url.password)return null;
-    if(url.hostname!=="stripe.com"&&!url.hostname.endsWith(".stripe.com"))return null;
-    return url.href;
-  }catch{return null;}
-}
 /** Read-only. Stripe owns the actual invoice, tax treatment and chronological number.
  * No locally invented invoices are generated from estimates or payment intents.
  */
@@ -386,7 +377,7 @@ function trustedStripeDocumentUrl(value){
   try{
     const url=new URL(String(value));
     const host=url.hostname.toLowerCase();
-    if(url.protocol!=="https:"||!(host==="stripe.com"||host.endsWith(".stripe.com")))return null;
+    if(url.protocol!=="https:"||url.username||url.password||!(host==="stripe.com"||host.endsWith(".stripe.com")))return null;
     return url.toString();
   }catch{return null;}
 }
