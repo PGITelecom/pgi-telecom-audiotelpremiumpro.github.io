@@ -42,6 +42,21 @@ export async function render(target,request){
           'Les contrôles externes et la recette restent obligatoires.</small></div>')+
         '</section>');
     }
+    const connection=data.audiotel_connector_preflight;
+    if(connection?.business_unit==="audiotel_platform"&&Array.isArray(connection.stages)){
+      const items=connection.stages.map(x=>'<div class="ct-row"><div><strong>'+esc(x.label)+'</strong>'+
+        '<small>Preuve requise : '+esc(x.evidence_required)+'. '+
+        (x.internal_indicator_observed===true?"Un indicateur interne est présent ; l'acceptation externe reste obligatoire.":
+          "Aucun indicateur interne suffisant, validation externe requise.")+
+        '</small></div><span class="ct-badge warn">Non raccordé</span></div>').join("");
+      target.insertAdjacentHTML("beforeend",
+        '<section class="ct-list" style="margin-top:16px" aria-label="Raccordements opérateurs Audiotel">'+
+        '<div class="ct-row"><div><strong>Raccordements à préparer : '+esc(connection.required_stages)+' étapes</strong>'+
+        '<small>Transport, numérotation, CDR, reversement direct opérateur vers les professionnels et facturation. '+
+        'Les documents de preuve et les recettes réelles restent obligatoires, sans activation automatique.</small>'+
+        '</div><span class="ct-badge warn">0 accepté</span></div>'+
+        items+'</section>');
+    }
     target.querySelector("[data-launch-readiness-export]")?.addEventListener("click",()=>exportEvidence(data));
   }catch(error){
     target.innerHTML='<p class="ct-note">Launch Readiness indisponible. '+esc(error.code||error.message||"")+'</p>';
