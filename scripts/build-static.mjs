@@ -133,6 +133,7 @@ const files=[
   "assets/control-tower.js",
   "assets/control-tower-assurance.js",
   "assets/launch-readiness.js",
+  "assets/audiotel-operator-strategy.js",
   "assets/performance-resilience-lab.js",
   "assets/sva-compliance-center.js",
   "assets/call-tools.js",
