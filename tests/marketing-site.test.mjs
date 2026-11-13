@@ -662,7 +662,7 @@ test("new complementary products are public, indexable and commercially explicit
   assert.match(sitemap,/portabilite-prioritaire/);
   assert.match(sitemap,/parrainage-audiotel/);
   assert.match(html,/data-current-period-badge/);
-  assert.match(html,/En octobre 2026 \.\.\. Des reversements plus généreux/);
+  assert.match(html,/En octobre 2026 \.\.\. Des reversements plus généreux que la concurrence/);
   assert.match(js,/Intl\.DateTimeFormat\("fr-FR"/);
   assert.match(js,/timeZone:"Europe\/Paris"/);
 });
@@ -833,7 +833,7 @@ test("current reversement badge is injected consistently on commercial public pa
   assert.match(tracking,/currentPeriodMarketingLabel/);
   assert.match(tracking,/\.hero \.hero-copy,\.application-hero \.application-copy/);
   assert.match(tracking,/data-current-period-badge/);
-  assert.match(tracking,/En "\+month\+" "\+year\+" \.\.\. Des reversements plus généreux/);
+  assert.match(tracking,/En "\+month\+" "\+year\+" \.\.\. Des reversements plus généreux que la concurrence/);
   assert.match(tracking,/timeZone:"Europe\/Paris"/);
   for(const path of [
     "site/seo/parrainage-audiotel.html",
