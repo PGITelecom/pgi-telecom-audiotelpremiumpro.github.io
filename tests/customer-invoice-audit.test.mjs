@@ -93,7 +93,7 @@ test("existing protected admin API integrates invoice evidence without a new pay
  const store=fs.readFileSync("backend/src/store-postgres.mjs","utf8");
  const server=fs.readFileSync("backend/server.mjs","utf8");
  const ui=fs.readFileSync("assets/tenant-control-detail.js","utf8");
- const detail=fs.readFileSync("assets/customer-360-detail.js","utf8");
+ const detail=fs.readFileSync("assets/customer-invoice-detail.js","utf8");
  const stripe=fs.readFileSync("backend/src/stripe-billing.mjs","utf8");
  assert.match(store,/summarizeCustomerInvoiceJournal/);
  assert.match(store,/WHERE tenant_id=\$1 AND provider='stripe' AND event_type LIKE 'invoice\.\%'/);
