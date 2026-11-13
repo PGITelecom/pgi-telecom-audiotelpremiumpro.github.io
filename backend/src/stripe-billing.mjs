@@ -39,6 +39,53 @@ async function stripeApi(config,path,{method="GET",params={},idempotencyKey}={})
   }
   return body;
 }
+function trustedStripeDocumentUrl(value){
+  if(typeof value!=="string"||value.length>2048)return null;
+  try{
+    const url=new URL(value);
+    if(url.protocol!=="https:"||url.username||url.password)return null;
+    if(url.hostname!=="stripe.com"&&!url.hostname.endsWith(".stripe.com"))return null;
+    return url.href;
+  }catch{return null;}
+}
+/** Read-only. Stripe owns the actual invoice, tax treatment and chronological number.
+ * No locally invented invoices are generated from estimates or payment intents.
+ */
+export async function listStripeCustomerInvoices(config,customerReference){
+  const customer=String(customerReference||"").trim();
+  if(!/^cus_[A-Za-z0-9]+$/.test(customer))return {available:false,invoices:[],truncated:false};
+  if(!config?.externalBillingEnabled||!config?.stripeSecretKey)return {available:false,invoices:[],truncated:false};
+  const invoices=[];let cursor=null,hasMore=false;
+  for(let page=0;page<5;page++){
+    const params={customer,limit:100};
+    if(cursor)params.starting_after=cursor;
+    const response=await stripeApi(config,"/v1/invoices",{params});
+    const list=Array.isArray(response?.data)?response.data:[];
+    for(const invoice of list){
+      const belongs=typeof invoice.customer==="string"?invoice.customer:invoice.customer?.id;
+      if(belongs!==customer||!/^in_[A-Za-z0-9]+$/.test(String(invoice.id||"")))continue;
+      if(!["paid","open","uncollectible","void","draft"].includes(String(invoice.status||"")))continue;
+      const when=Number(invoice.created);
+      const amountMinor=Number(invoice.total),paidMinor=Number(invoice.amount_paid);
+      const invoicePdf=trustedStripeDocumentUrl(invoice.invoice_pdf);
+      const hosted=trustedStripeDocumentUrl(invoice.hosted_invoice_url);
+      invoices.push({
+        id:String(invoice.id),number:String(invoice.number||""),
+        issued_at:Number.isFinite(when)&&when>0?new Date(when*1000).toISOString().slice(0,10):null,
+        currency:String(invoice.currency||"EUR").toUpperCase(),
+        total_minor:Number.isSafeInteger(amountMinor)?amountMinor:0,
+        paid_minor:Number.isSafeInteger(paidMinor)?paidMinor:0,
+        status:String(invoice.status),invoice_pdf:invoicePdf,hosted_invoice_url:hosted
+      });
+    }
+    hasMore=response?.has_more===true;
+    cursor=list.at(-1)?.id||null;
+    if(!hasMore||!cursor)break;
+  }
+  invoices.sort((a,b)=>(b.issued_at||"").localeCompare(a.issued_at||"")||b.id.localeCompare(a.id));
+  return {available:true,invoices,truncated:hasMore};
+}
+
 function lookupKey(config,offer){
   const explicit=String(config?.stripePriceLookupKey||"").trim();
   if(explicit)return explicit;
