@@ -49,6 +49,72 @@ function providers(input){
  }
  return Object.freeze(result);
 }
+/**
+ * Operating model is independent of the provider count or financial objective.
+ * A chain describes *contractual/service suppliers* in order, not SIP hops.
+ * It never grants an ARCEP right, a real customer contract or portability.
+ */
+export const APP_OPERATING_MODELS=Object.freeze([
+ Object.freeze({id:"direct_contracting_operator",label:"Exploitant direct (minimum d'intermédiaires)",customer_contract_holder:"audiotel",numbering_rights_holder:"audiotel"}),
+ Object.freeze({id:"managed_wholesale",label:"Exploitant avec opérateur technique délégué",customer_contract_holder:"audiotel",numbering_rights_holder:"audiotel"}),
+ Object.freeze({id:"intermediated_contracting_operator",label:"Exploitant avec plusieurs intermédiaires",customer_contract_holder:"audiotel",numbering_rights_holder:"audiotel"}),
+ Object.freeze({id:"partner_contracting_white_label",label:"Marque blanche sous contrat du partenaire",customer_contract_holder:"partner",numbering_rights_holder:"partner"})
+]);
+function operatingModel(profile,assignments,roster,providersUsed,issues){
+ const p=profile===undefined?{}:profile;
+ if(!plain(p))fail("OPERATING_PROFILE_INVALID");
+ const mode=p.mode??"managed_wholesale";
+ if(!APP_OPERATING_MODELS.some(x=>x.id===mode))fail("OPERATING_MODE_INVALID");
+ const byId=new Map(roster.map(x=>[x.id,x]));
+ const holder=p.customer_contract_holder??"audiotel";
+ const numbering=p.numbering_rights_holder??"audiotel";
+ for(const [value,k] of [[holder,"CUSTOMER_CONTRACT_HOLDER_INVALID"],[numbering,"NUMBERING_RIGHTS_HOLDER_INVALID"]]){
+  if(value!=="audiotel"&&!byId.has(value))fail(k);
+ }
+ const chains=p.upstream_chains??{};
+ if(!plain(chains)||Object.keys(chains).some(key=>!SERVICES.includes(key)))fail("UPSTREAM_CHAINS_INVALID");
+ const providerChains={},extraLayers={};
+ let intermediaries=0,maximumDepth=0;
+ for(const service of SERVICES){
+  const main=assignments[service];
+  const rest=chains[service]??[];
+  if(!Array.isArray(rest)||rest.length>2)fail("UPSTREAM_CHAIN_TOO_LONG");
+  if(main==="audiotel"&&rest.length)fail("INTERNAL_SERVICE_HAS_UPSTREAM");
+  const chain=[main,...rest];
+  if(new Set(chain).size!==chain.length)fail("UPSTREAM_CHAIN_CYCLE");
+  for(const provider of rest){
+   if(!byId.has(provider)||!byId.get(provider).services.includes(service))
+    fail("UPSTREAM_PROVIDER_NOT_CAPABLE_"+service.toUpperCase());
+   providersUsed.add(provider);
+  }
+  providerChains[service]=Object.freeze(chain);
+  extraLayers[service]=rest.length;
+  maximumDepth=Math.max(maximumDepth,chain.length);
+  intermediaries+=rest.length;
+ }
+ const appContracts=mode!=="partner_contracting_white_label";
+ if(appContracts&&holder!=="audiotel")issues.push("audiotel_customer_contract_holder_required");
+ if(appContracts&&numbering!=="audiotel")issues.push("audiotel_numbering_rights_holder_required");
+ if(!appContracts&&holder==="audiotel")issues.push("partner_customer_contract_holder_required");
+ if(mode==="direct_contracting_operator"&&intermediaries>0)
+  issues.push("direct_model_contains_additional_intermediaries");
+ if(mode==="intermediated_contracting_operator"&&intermediaries===0)
+  issues.push("intermediated_model_has_no_intermediary");
+ if(mode==="partner_contracting_white_label"){
+  issues.push("customer_contract_and_data_control_require_partner_agreement");
+  if(numbering!=="audiotel")issues.push("numbering_and_portability_depend_on_partner");
+ }
+ return Object.freeze({
+  mode,customer_contract_holder:holder,numbering_rights_holder:numbering,
+  supplier_chains:Object.freeze(providerChains),
+  extra_intermediaries_by_service:Object.freeze(extraLayers),
+  total_extra_supplier_layers:intermediaries,max_chain_depth:maximumDepth,
+  legal_role_claim_verified:false,numbering_rights_legal_evidence_verified:false,
+  customer_relationship_preservation_verified:false,
+  service_chain_contracts_verified:false,
+  live_model_switch_permitted:false
+ });
+}
 function plan(input,roster,minutes,retentionBps,personalTargetMilli){
  if(!plain(input))fail("PLAN_INVALID");
  const id=validId(input.id,"PLAN_ID_INVALID");
@@ -68,6 +134,7 @@ function plan(input,roster,minutes,retentionBps,personalTargetMilli){
    fail("ASSIGNMENT_INVALID");
   assignments[service]=providerId;
  }
+ const operating=operatingModel(input.operating_profile,assignments,roster,providersUsed,issues);
  // The owner explicitly requires direct carrier/authorized PSP payout to editors.
  if(assignments.publisher_payout==="audiotel")issues.push("publisher_funds_must_not_transit_audiotel");
  // Carrier/source CDR must have a documented data transport between vendors.
@@ -113,6 +180,7 @@ function plan(input,roster,minutes,retentionBps,personalTargetMilli){
  // No proof is ever independently established from user-provided booleans.
  return Object.freeze({
   id,label:input.label.trim(),assignments:Object.freeze(assignments),
+  operating_profile:operating,
   external_provider_ids:Object.freeze([...providersUsed].sort()),
   external_provider_count:providersUsed.size,
   delegated_services:Object.freeze(delegated),
@@ -137,7 +205,12 @@ function plan(input,roster,minutes,retentionBps,personalTargetMilli){
    "cdr_cross_provider_reconciliation_not_documented",
    "sip_cross_provider_interconnection_not_documented",
    "operating_result_not_positive",
-   "personal_net_below_minimum_target"
+   "personal_net_below_minimum_target",
+   "audiotel_customer_contract_holder_required",
+   "audiotel_numbering_rights_holder_required",
+   "partner_customer_contract_holder_required",
+   "direct_model_contains_additional_intermediaries",
+   "intermediated_model_has_no_intermediary"
   ].includes(k)),
   bank_or_carrier_api_calls_permitted:false
  });
