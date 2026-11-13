@@ -119,7 +119,7 @@ function validateAutomationReadiness(task,config,action){
   if(!task.active_carrier_id)return fail("PORTABILITY_OPERATOR_NOT_SELECTED",900);
   if(!task.api_connection_id||!ACTIVE_CONNECTION_STATES.has(String(task.api_connection_state||"")))return fail("PORTABILITY_OPERATOR_API_NOT_READY",900);
   if(!task.adapter_key)return fail("PORTABILITY_OPERATOR_ADAPTER_NOT_READY",900);
-  if(config?.requireCarrierContract&&!task.carrier_contract_ready)return fail("PORTABILITY_CARRIER_CONTRACT_REQUIRED",1800);
+  if(task.carrier_contract_ready!==true)return fail("PORTABILITY_CARRIER_CONTRACT_REQUIRED",1800);
   if(task.country_code==="FR"&&task.rio_validation_status!=="verified")return fail("PORTABILITY_RIO_VERIFICATION_REQUIRED",3600);
   if(task.source_contract_liability_acknowledged!==true)return fail("PORTABILITY_SOURCE_CONTRACT_ACK_REQUIRED",3600);
   if(!task.authorization_confirmed||!task.number_owner_confirmed)return fail("PORTABILITY_AUTHORIZATION_REQUIRED",3600);
@@ -360,7 +360,7 @@ function validateOperatorConnectivity(task,config){
   if(!task.active_carrier_id)return fail("PORTABILITY_OPERATOR_NOT_SELECTED",900);
   if(!task.api_connection_id||!ACTIVE_CONNECTION_STATES.has(String(task.api_connection_state||"")))return fail("PORTABILITY_OPERATOR_API_NOT_READY",900);
   if(!task.adapter_key)return fail("PORTABILITY_OPERATOR_ADAPTER_NOT_READY",900);
-  if(config?.requireCarrierContract&&!task.carrier_contract_ready)return fail("PORTABILITY_CARRIER_CONTRACT_REQUIRED",1800);
+  if(task.carrier_contract_ready!==true)return fail("PORTABILITY_CARRIER_CONTRACT_REQUIRED",1800);
   return {ok:true};
 }
 
