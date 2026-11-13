@@ -134,7 +134,7 @@ function plan(input,roster,minutes,retentionBps,personalTargetMilli){
    fail("ASSIGNMENT_INVALID");
   assignments[service]=providerId;
  }
- const operating=operatingModel(input.operating_profile,assignments,roster,providersUsed,issues);
+ const operatingProfile=operatingModel(input.operating_profile,assignments,roster,providersUsed,issues);
  // The owner explicitly requires direct carrier/authorized PSP payout to editors.
  if(assignments.publisher_payout==="audiotel")issues.push("publisher_funds_must_not_transit_audiotel");
  // Carrier/source CDR must have a documented data transport between vendors.
@@ -180,7 +180,7 @@ function plan(input,roster,minutes,retentionBps,personalTargetMilli){
  // No proof is ever independently established from user-provided booleans.
  return Object.freeze({
   id,label:input.label.trim(),assignments:Object.freeze(assignments),
-  operating_profile:operating,
+  operating_profile:operatingProfile,
   external_provider_ids:Object.freeze([...providersUsed].sort()),
   external_provider_count:providersUsed.size,
   delegated_services:Object.freeze(delegated),
