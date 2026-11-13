@@ -94,12 +94,14 @@ function payload(root){
  const mode=root.querySelector("[data-as-objective]").value;
  const volume=root.querySelector('[data-as-field="minutes"]').value;
  const keep=root.querySelector('[data-as-field="retention"]').value;
+ const floor=root.querySelector('[data-as-field="floor"]').value;
  const accept=root.querySelector('[data-as-field="sacrifice"]').value;
  return {
   business_unit:"audiotel_platform",currency:"EUR",
   objective:mode,billable_minutes_month:number(volume,1,"MINUTES"),
   max_profit_sacrifice_bps:number(accept,100,"SACRIFICE"),
   personal_retention_basis_points:keep===""?null:number(keep,100,"RETENTION"),
+  minimum_personal_net_millieur_per_min:number(floor,1000,"FLOOR"),
   providers:providers.map(x=>({...x})),
   plans:plans.map(p=>({
    id:p.id,label:p.label,assignments:p.assignments,
@@ -134,6 +136,7 @@ function render(root){
  const oldMode=root.querySelector("[data-as-objective]")?.value||"max_profit";
  const oldMinutes=root.querySelector('[data-as-field="minutes"]')?.value||"";
  const oldRetention=root.querySelector('[data-as-field="retention"]')?.value||"";
+ const oldFloor=root.querySelector('[data-as-field="floor"]')?.value||"0.07";
  const oldSacrifice=root.querySelector('[data-as-field="sacrifice"]')?.value||"0";
  const oldResult=generated;
  root.innerHTML='<div class="as-layout">'+
@@ -145,6 +148,7 @@ function render(root){
  '</select></label>'+
  field("Minutes facturables / mois","minutes",oldMinutes,"1")+
  field("Part du résultat conservée personnellement, %","retention",oldRetention,"0.01","Hypothèse fiscale à valider, non garantie")+
+ field("Minimum personnel après impôts, €/min","floor",oldFloor,"0.001","Objectif obligatoire : 0,07 € minimum")+
  field("Perte maximale acceptée sur résultat, %","sacrifice",oldSacrifice,"0.01","0 % pour marge maximale, à personnaliser sinon")+
  '</div></section>'+
  '<section class="as-block"><h3 class="as-heading">Prestataires possibles</h3><p class="as-note">Des partenaires hypothétiques jusqu’à réception de contrats et de spécifications vérifiés.</p>'+
@@ -159,6 +163,7 @@ function render(root){
  if(oldResult)results(root,oldResult);
  root.querySelector('[data-as-field="minutes"]').value=oldMinutes;
  root.querySelector('[data-as-field="retention"]').value=oldRetention;
+ root.querySelector('[data-as-field="floor"]').value=oldFloor;
  root.querySelector('[data-as-field="sacrifice"]').value=oldSacrifice;
 }
 function wire(root,request){
@@ -208,6 +213,12 @@ function wire(root,request){
   }catch(err){
    target.innerHTML='<p class="as-bad">Impossible de comparer : '+esc(err.code||err.message||"Données ou accès invalides")+'. Vérifiez les devis, les responsabilités et les montants saisis.</p>';
   }finally{busy=false;el.disabled=false;}
+ });
+ root.addEventListener("input",ev=>{
+  if(!generated)return;
+  generated=null;
+  const target=root.querySelector("[data-as-result]");
+  if(target)target.innerHTML='<p class="as-note">Paramètres modifiés. Relancez le calcul pour actualiser la comparaison.</p>';
  });
  root.addEventListener("change",ev=>{
   if(!ev.target.matches("[data-as-objective]"))return;
