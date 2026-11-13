@@ -3,6 +3,12 @@
  * All user entered quotes live in this tab until export, never in Neon.
  * Only the authenticated staff POST preview endpoint performs the calculation.
  */
+const MODELS=Object.freeze([
+ ["direct_contracting_operator","Exploitant direct"],
+ ["managed_wholesale","Exploitant avec opérateur géré"],
+ ["intermediated_contracting_operator","Exploitant avec intermédiaires"],
+ ["partner_contracting_white_label","Marque blanche sous contrat partenaire"]
+]);
 const SERVICES=Object.freeze([
  ["collection","Collecte des appels"],
  ["portability","Portabilité"],
@@ -20,8 +26,8 @@ let nextProvider=2,nextPlan=3,generated=null,busy=false;
 let providers=[defaultProvider()];
 const defaultAssignments=(delegated=false)=>Object.fromEntries(SERVICES.map(([k])=>[k,delegated||["collection","portability","sip_routing","publisher_payout"].includes(k)?"partenaire_1":"audiotel"]));
 let plans=[
- {id:"maitrise",label:"Maîtrise et marge",assignments:defaultAssignments(false),terms:["","","",""],linkedSip:false,linkedCdr:false},
- {id:"delegue",label:"Gestion intégralement déléguée",assignments:defaultAssignments(true),terms:["","","",""],linkedSip:false,linkedCdr:false}
+ {id:"maitrise",label:"Maîtrise et marge",mode:"direct_contracting_operator",contractHolder:"audiotel",numberingHolder:"audiotel",upstreamChains:{},assignments:defaultAssignments(false),terms:["","","",""],linkedSip:false,linkedCdr:false},
+ {id:"delegue",label:"Gestion intégralement déléguée",mode:"managed_wholesale",contractHolder:"audiotel",numberingHolder:"audiotel",upstreamChains:{},assignments:defaultAssignments(true),terms:["","","",""],linkedSip:false,linkedCdr:false}
 ];
 
 function style(){
@@ -46,12 +52,27 @@ function planHtml(p){
  return '<div class="as-block" data-as-plan="'+esc(p.id)+'">'+
  '<h4>Option de fonctionnement</h4>'+
  '<label class="as-label">Nom de l’option<input type="text" data-as-plan-name maxlength="100" value="'+esc(p.label)+'"></label>'+
- '<p class="as-note">Indiquez les responsabilités. « Audiotel » signifie une gestion en interne, pas nécessairement une infrastructure physique.</p>'+
+ '<p class="as-note">Choisissez votre modèle d’exploitation, qui signe le contrat et la chaîne des prestataires. Simulation uniquement.</p>'+
+ '<div class="as-grid">'+
+ '<label class="as-label">Modèle d’exploitation<select data-as-mode>'+
+ MODELS.map(([id,label])=>'<option value="'+esc(id)+'"'+(p.mode===id?" selected":"")+'>'+esc(label)+'</option>').join("")+
+ '</select></label>'+
+ '<label class="as-label">Signataire du contrat client<select data-as-contract-holder>'+
+ [{id:"audiotel",label:"Audiotel Premium Pro"},...providers].map(x=>'<option value="'+esc(x.id)+'"'+(p.contractHolder===x.id?" selected":"")+'>'+esc(x.label)+'</option>').join("")+
+ '</select></label>'+
+ '<label class="as-label">Droits sur la numérotation<select data-as-numbering-holder>'+
+ [{id:"audiotel",label:"Audiotel, sous réserve des droits ARCEP"},...providers].map(x=>'<option value="'+esc(x.id)+'"'+(p.numberingHolder===x.id?" selected":"")+'>'+esc(x.label)+'</option>').join("")+
+ '</select></label></div>'+
+ '<p class="as-note">Par service : prestataire direct et jusqu’à deux intervenants amont supplémentaires, selon leurs contrats.</p>'+
  '<div class="as-grid-6">'+SERVICES.map(([key,label])=>
- '<label class="as-label">'+esc(label)+'<select data-as-assignment="'+esc(key)+'">'+
+ '<div class="as-label"><strong>'+esc(label)+'</strong><label class="as-label">Prestataire direct<select data-as-assignment="'+esc(key)+'">'+
  [{id:"audiotel",label:"Audiotel en interne"},...providers].map(x=>
  '<option value="'+esc(x.id)+'"'+(p.assignments[key]===x.id?" selected":"")+'>'+esc(x.label)+'</option>').join("")+
- '</select></label>').join("")+'</div>'+
+ '</select></label>'+
+ [0,1].map(i=>'<label class="as-label">Intermédiaire amont '+(i+1)+'<select data-as-upstream="'+esc(key)+'" data-as-upstream-level="'+i+'">'+
+ [{id:"",label:"Aucun"},...providers].map(x=>'<option value="'+esc(x.id)+'"'+((p.upstreamChains?.[key]||[])[i]===x.id?" selected":"")+'>'+esc(x.label)+'</option>').join("")+
+ '</select></label>').join("")+
+ '</div>').join("")+'</div>'+
  '<div class="as-grid" style="margin-top:10px">'+
  field("Rémunération propre Audiotel, €/min",keys[0],p.terms[0],"0.001","Après tous reversements éditeurs et retenues amont")+
  field("Autres coûts variables APP, €/min",keys[1],p.terms[1],"0.001","Ne comptez pas deux fois les retenues déjà déduites")+
@@ -76,6 +97,12 @@ function readState(root){
  plans=planRows.map(r=>({
   id:r.dataset.asPlan,label:r.querySelector("[data-as-plan-name]").value,
   assignments:Object.fromEntries([...r.querySelectorAll("[data-as-assignment]")].map(x=>[x.dataset.asAssignment,x.value])),
+  mode:r.querySelector("[data-as-mode]").value,
+  contractHolder:r.querySelector("[data-as-contract-holder]").value,
+  numberingHolder:r.querySelector("[data-as-numbering-holder]").value,
+  upstreamChains:Object.fromEntries(SERVICES.map(([service])=>[
+   service,[...r.querySelectorAll('[data-as-upstream="'+service+'"]')].map(x=>x.value).filter(Boolean)
+  ])),
   terms:keys.map(key=>r.querySelector('[data-as-field="'+key+'"]').value),
   linkedSip:r.querySelector('[data-as-link="sip"]').checked,
   linkedCdr:r.querySelector('[data-as-link="cdr"]').checked
@@ -105,6 +132,10 @@ function payload(root){
   providers:providers.map(x=>({...x})),
   plans:plans.map(p=>({
    id:p.id,label:p.label,assignments:p.assignments,
+   operating_profile:{
+    mode:p.mode,customer_contract_holder:p.contractHolder,
+    numbering_rights_holder:p.numberingHolder,upstream_chains:p.upstreamChains
+   },
    cross_provider_sip_interconnection_documented:p.linkedSip,
    cross_provider_reconciliation_documented:p.linkedCdr,
    financial_terms:{
@@ -181,15 +212,21 @@ function wire(root,request){
    if(providers.length<=1)return;
    const id=el.dataset.asRemoveProvider;
    providers=providers.filter(p=>p.id!==id);
-   for(const p of plans)for(const [k,v] of Object.entries(p.assignments))
-    if(v===id)p.assignments[k]="audiotel";
+   for(const p of plans){
+    for(const [k,v] of Object.entries(p.assignments))
+     if(v===id)p.assignments[k]="audiotel";
+    for(const [k,chain] of Object.entries(p.upstreamChains||{}))
+     p.upstreamChains[k]=chain.filter(v=>v!==id);
+    if(p.contractHolder===id)p.contractHolder="audiotel";
+    if(p.numberingHolder===id)p.numberingHolder="audiotel";
+   }
    generated=null;render(root);return;
   }
   if(el.hasAttribute("data-as-add-plan")){
    readState(root);
    if(plans.length>=30)return;
    const id="plan_"+nextPlan++;
-   plans.push({id,label:"Nouvelle configuration",assignments:Object.fromEntries(SERVICES.map(([k])=>[k,k==="publisher_payout"?providers[0].id:"audiotel"])),terms:["","","",""],linkedSip:false,linkedCdr:false});
+   plans.push({id,label:"Nouvelle configuration",mode:"managed_wholesale",contractHolder:"audiotel",numberingHolder:"audiotel",upstreamChains:{},assignments:Object.fromEntries(SERVICES.map(([k])=>[k,k==="publisher_payout"?providers[0].id:"audiotel"])),terms:["","","",""],linkedSip:false,linkedCdr:false});
    generated=null;render(root);return;
   }
   if(el.hasAttribute("data-as-remove-plan")){
