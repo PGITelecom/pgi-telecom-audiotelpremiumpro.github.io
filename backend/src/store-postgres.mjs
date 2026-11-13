@@ -7804,6 +7804,7 @@ export class PostgresStore{
       this.readSql.unsafe(
         "SELECT s.id,s.status,s.billing_currency,s.starts_at,s.current_period_start,s.current_period_end,s.ends_at,"+
         " s.billing_provider,s.provider_customer_reference,s.provider_subscription_reference,s.cancel_at_period_end,s.last_payment_status,s.last_event_at,"+
+        " s.recovery_stage,s.payment_attempt_count,s.next_payment_attempt,s.dunning_deadline_at,s.last_invoice_reference,"+
         " p.plan_key,p.display_name AS plan_name,v.amount_minor,v.currency AS price_currency"+
         " FROM tenant_subscriptions s JOIN service_plans p ON p.id=s.service_plan_id"+
         " LEFT JOIN service_plan_price_versions v ON v.id=s.price_version_id WHERE s.tenant_id=$1 ORDER BY s.created_at DESC,s.id DESC LIMIT 10",[id]
