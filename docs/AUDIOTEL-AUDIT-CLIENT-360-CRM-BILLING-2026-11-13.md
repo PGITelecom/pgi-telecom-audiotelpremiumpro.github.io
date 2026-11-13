@@ -242,3 +242,30 @@ Les changements de cette section sont uniquement dans la branche
 \`prep/chaine-telecom-operateur-20261108\` de la PR 190.
 Aucun design public ou feuille CSS changee, aucune migration Neon,
 aucun deploiement Vercel, aucune fusion, aucun achat ni numero active.
+
+
+### Complement : factures d'abonnement payees dans la rentabilite client
+
+Le module existant \`customerProfitability\` peut desormais presenter,
+pour un client selectionne et une periode choisie, **en dehors de la
+marge SVA**, le total TTC des factures Stripe \`invoice.paid\` qui
+disposent d'une reference de facture, d'une devise correspondante et
+d'un montant identifiable dans le journal d'evenements signe. Un
+\`DISTINCT ON\` SQL evite la double comptabilisation d'une facture
+notifiee plusieurs fois. Les factures anciennes sans montant restent
+signalees comme incompletes.
+
+Le cockpit \`assets/customer-profitability.js\` affiche le bloc
+« Factures d'abonnement payees, TTC », distinct des commissions
+telecom en HT. Il ne les additionne pas et ne deduit pas de montant
+de taxe, de frais Stripe ou de remboursement non rapproche.
+
+**Important** : les autres recettes propres a Audiotel et les couts
+propres a ce client ne sont pas encore tous connus ou autoritatifs.
+Le benefice reel de la societe et le revenu personnel net apres impots
+restent **non etablis**. Ce panneau ne doit jamais etre presente
+comme une comptabilite legale ni comme une verification de la caisse
+Stripe en direct.
+
+Pas de nouveau prestataire, pas d'ecriture Stripe ou HubSpot,
+pas de requete telephonique, pas de migration de production.
