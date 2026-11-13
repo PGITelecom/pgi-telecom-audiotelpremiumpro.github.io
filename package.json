@@ -35,6 +35,6 @@
     "node": ">=20"
   },
   "dependencies": {
-    "postgres": "3.4.9"
+    "postgres": "4.1.0"
   }
 }
