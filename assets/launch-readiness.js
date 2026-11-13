@@ -57,18 +57,6 @@ export async function render(target,request){
         '</div><span class="ct-badge warn">0 accepté</span></div>'+
         items+'</section>');
     }
-    target.insertAdjacentHTML("beforeend",
-      '<section class="ct-list" style="margin-top:16px" aria-label="Pilotage des opérateurs Audiotel">'+
-      '<div class="ct-row"><div><strong>Stratégie multi-opérateurs : marge ou délégation</strong>'+
-      '<small>Attribution des responsabilités par partenaire, simulations tarifaires et choix de stratégie. Réservé à l’administrateur, aucune configuration réelle modifiée.</small></div>'+
-      '<span class="ct-badge warn">SIMULATION</span></div>'+
-      '<div id="ct-audiotel-operator-strategy"><p class="ct-note">Chargement du comparateur opérateurs…</p></div></section>');
-    import("./audiotel-operator-strategy.js").then(m=>
-      m.mountAudiotelOperatorStrategy(target.querySelector("#ct-audiotel-operator-strategy"),request)
-    ).catch(error=>{
-      const el=target.querySelector("#ct-audiotel-operator-strategy");
-      if(el)el.textContent="Comparateur indisponible : "+String(error?.code||"module");
-    });
     target.querySelector("[data-launch-readiness-export]")?.addEventListener("click",()=>exportEvidence(data));
   }catch(error){
     target.innerHTML='<p class="ct-note">Launch Readiness indisponible. '+esc(error.code||error.message||"")+'</p>';
