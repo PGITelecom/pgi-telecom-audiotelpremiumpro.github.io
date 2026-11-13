@@ -249,3 +249,46 @@ pas une preuve d'exploitation sous 6 000 appels simultanés.
    confidentialité, réglementation, contrats et autorisation expresse.
 
 **Aucun de ces six jalons n'est implicitement franchi par un succès en CI.**
+
+
+## 7. Complement du 13/11/2026 : frais caches et preparation de lots
+
+**Travail supplementaire dans la PR 190 uniquement, sans refonte du site.**
+
+**Module activation-fee-audit.mjs** : reutilise build-vs-buy.mjs et ajoute
+exclusivement les frais non deja modelises. Les postes supplementaires sont
+l'ouverture de compte, la mise en place de trunk et d'interconnexion, les
+frais par lot, les operations manuelles, les reservations, le KYB, les frais
+de sortie et les charges non classees. Bases : par projet, numero, numero
+nouveau, numero porte, lot, mois, numero-mois ou minute. Un poste inconnu
+reste non verifie ; un forfait de lot ne doit jamais etre impute a chaque
+numero. Le cout initial equivalent par numero, le TCO 12/24/36 mois et la
+marge avant impots sont recalcules. Les vrais tarifs sont toujours inconnus
+tant qu'un devis n'est pas authentifie.
+
+**Module bulk-provisioning-plan.mjs** : prepare exclusivement hors ligne des
+intentions d'ouverture, portabilite, suspension, reprise et changement de
+destination. Capacite par lot : 1 a 1 000 ; total maximal : 5 000 intentions.
+Rejet des demandes contradictoires ou dupliquees, controle des references de
+preuves, empreinte stable par operation. L'existence d'une reference KYB ou
+mandat n'est jamais assimilee a une preuve verifiee.
+
+**Integration** : le rapport de cout existant
+scripts/audiotel-build-vs-buy-report.mjs comporte maintenant un exemple
+distinct et **fictif** de frais supplementaires de lot, clairement separe
+des totaux de base. L'inventaire scripts/audiotel-telecom-technical-status.mjs
+mentionne les nouveaux composants. Les tests sont ajoutes a la suite
+npm test : tests/audiotel-activation-fee-audit.test.mjs et
+tests/audiotel-bulk-provisioning-plan.test.mjs.
+
+**Rappel obligatoire** : aucun module n'effectue de provisionnement reel,
+d'appel, de collecte, de portabilite, de paiement, de migration Neon ou de
+deploiement Vercel. Les commandes de lot sont des intentions inertes, non
+des instructions executables par un operateur. Aucun droit Arcep n'est cree.
+
+Un prix zero affiche ne constitue pas une garantie contractuelle. Il faut
+verifier les offres completes et eviter tout double comptage des frais avant
+de conclure sur la rentabilite. Aucune marge personnelle apres fiscalite
+ne peut etre garantie aujourd'hui.
+
+**Design public et navigation du site : strictement inchanges.**
