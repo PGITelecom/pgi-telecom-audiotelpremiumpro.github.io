@@ -23,4 +23,16 @@ test("published illustrative report agrees with documented 12-month cost scenari
  assert.equal(price(50,60,"A-EXTERNAL-HYPOTHESIS"),3682000);
  assert.equal(price(500,60,"C-MORE-INTERNAL-HYPOTHESIS"),15762000);
  assert.ok(report.rows.every(r=>r.quote_independently_authenticated===false));
+ const hidden=report.illustrative_incremental_hidden_fees_only;
+ assert.equal(hidden.authenticated_quotes,0);
+ assert.equal(hidden.real_zero_activation_guaranteed,false);
+ assert.equal(hidden.rows.length,3);
+ const external=hidden.rows.find(x=>x.alternative_reference==="A-EXTERNAL-HYPOTHESIS");
+ const hybrid=hidden.rows.find(x=>x.alternative_reference==="B-HYBRID-HYPOTHESIS");
+ assert.equal(external.incremental_upfront_minor,10000);
+ assert.equal(external.total_cost_with_incremental_fees_minor,9496000);
+ assert.equal(hybrid.incremental_total_minor,0);
+ assert.equal(hybrid.total_cost_with_incremental_fees_minor,6938000);
+ assert.ok(hidden.rows.every(x=>x.quote_verified===false));
+
 });
