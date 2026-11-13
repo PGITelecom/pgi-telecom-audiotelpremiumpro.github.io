@@ -15,6 +15,7 @@ import {webauthnConfigured,publicPasskeyOptions,verifyWebAuthnState,validateWebA
 import {customerPermissions,hasCustomerPermission,requireCustomerPermission,scopeCustomerPortalData,scopeCustomerAnnualProgressData} from "./src/customer-access.mjs";
 import {createStaticSiteHandler} from "./src/static-site.mjs";
 import {stripeProviderReadiness,invalidateStripeProviderReadiness,createStripeCheckout,createStripePortalSession,createStripePortabilityPriorityCheckout,verifyStripeWebhook,normalizeStripePortabilityPriorityEvent,normalizeStripeBillingEvent,normalizeStripeRefundEvent} from "./src/stripe-billing.mjs";
+import {readAudiotelStripeInvoices} from "./src/stripe-invoice-readonly.mjs";
 import {STRIPE_CONNECT_APPLICATION_FEE_BPS,stripeConnectState,createStripeConnectedAccount,retrieveStripeConnectedAccount,normalizeStripeConnectedAccount,createStripeConnectOnboardingLink,createStripeCardCheckout,retrieveStripeCardCheckout,normalizeStripeConnectPaymentEvent,hashStripeEventPayload,stripeConnectWebhookSecretForPath,createStripeReferralRecipientAccount,retrieveStripeReferralRecipientAccount,normalizeStripeReferralRecipientAccount,createStripeReferralOnboardingLink} from "./src/stripe-connect.mjs";
 import {runReferralAutomaticPayouts} from "./src/referral-payout-automation.mjs";
 import {expertAccountingSnapshot,refreshExpertAccountingLedger,updateExpertAccountingSettings,createExpertAccountingEntry,validateExpertAccountingEntry,reverseExpertAccountingEntry,setAccountingPeriodState,importAccountingBankTransactions,matchAccountingBankTransaction,expertAccountingFec} from "./src/accounting-expert.mjs";
@@ -2345,6 +2346,22 @@ export function createBackend(options={}){
       if(method==="GET"&&match){
         requireRole(actor,["admin","finance","readonly"]);
         return done(res,metrics,started,"platform.tenant_control_center",200,await store.tenantControlDetail(match.id));
+      }
+
+      // On-demand Stripe GET only, for authorized finance staff.
+      // Customer/subscription IDs are ALWAYS recovered from tenant-scoped DB.
+      match=routeMatch(pathname,"/api/v1/platform/tenants/:id/stripe-invoices");
+      if(method==="GET"&&match){
+        requireRole(actor,["admin","finance"]);
+        if(typeof store.tenantStripeBillingBinding!=="function")
+          throw Object.assign(new Error("STRIPE_INVOICE_READ_UNAVAILABLE"),
+            {code:"STRIPE_INVOICE_READ_UNAVAILABLE",status:503});
+        const binding=await store.tenantStripeBillingBinding(match.id);
+        const result=await readAudiotelStripeInvoices(config,binding,{
+          limit:url.searchParams.get("limit")||25,
+          starting_after:url.searchParams.get("starting_after")||null
+        });
+        return done(res,metrics,started,"platform.tenant_stripe_invoices_read",200,result);
       }
 
       // One-customer history only, for authorized PGI staff.
