@@ -49,7 +49,7 @@ function providers(input){
  }
  return Object.freeze(result);
 }
-function plan(input,roster,minutes,retentionBps){
+function plan(input,roster,minutes,retentionBps,personalTargetMilli){
  if(!plain(input))fail("PLAN_INVALID");
  const id=validId(input.id,"PLAN_ID_INVALID");
  if(typeof input.label!=="string"||!input.label.trim()||input.label.length>100)fail("PLAN_LABEL_INVALID");
@@ -89,6 +89,8 @@ function plan(input,roster,minutes,retentionBps){
  const fixedCost=BigInt(fixed)*10n;
  const operating=revenue-variableCost-fixedCost;
  const personal=retentionBps===null?null:(operating>0n?operating*BigInt(retentionBps)/10000n:0n);
+ const goalMet=personal===null||minutes===0?null:personal>=BigInt(minutes)*BigInt(personalTargetMilli);
+ if(goalMet===false)issues.push("personal_net_below_minimum_target");
  const delegated=SERVICES.filter(s=>assignments[s]!=="audiotel");
  const internally=SERVICES.filter(s=>assignments[s]==="audiotel");
  const evidence=plain(input.evidence)?input.evidence:{};
@@ -123,6 +125,7 @@ function plan(input,roster,minutes,retentionBps){
   one_off_setup_eur:setup/100,
   estimated_personal_monthly_net_eur:personal===null?null:currency(personal),
   estimated_personal_net_eur_per_min:personal===null||minutes===0?null:Number(personal)/1000/minutes,
+  estimated_personal_floor_met:goalMet,
   app_contribution_eur_per_min:(ownRevenue-variable)/1000,
   issues:Object.freeze([...new Set(issues)]),
   preview_contractual_quote_present:flags.commercial_quote_verified,
@@ -133,7 +136,8 @@ function plan(input,roster,minutes,retentionBps){
    "publisher_funds_must_not_transit_audiotel",
    "cdr_cross_provider_reconciliation_not_documented",
    "sip_cross_provider_interconnection_not_documented",
-   "operating_result_not_positive"
+   "operating_result_not_positive",
+   "personal_net_below_minimum_target"
   ].includes(k)),
   bank_or_carrier_api_calls_permitted:false
  });
@@ -153,9 +157,10 @@ export function planAudiotelMultiOperatorStrategy(input={}){
  let retentionBps=null;
  if(input.personal_retention_basis_points!==null&&input.personal_retention_basis_points!==undefined)
   retentionBps=int(input.personal_retention_basis_points,"RETENTION_INVALID",10000);
+ const personalTargetMilli=int(input.minimum_personal_net_millieur_per_min??70,"PERSONAL_TARGET_INVALID",1000000);
  const roster=providers(input.providers);
  if(!Array.isArray(input.plans)||input.plans.length<1||input.plans.length>30)fail("PLANS_INVALID");
- const list=input.plans.map(p=>plan(p,roster,minutes,retentionBps));
+ const list=input.plans.map(p=>plan(p,roster,minutes,retentionBps,personalTargetMilli));
  if(new Set(list.map(p=>p.id)).size!==list.length)fail("PLAN_DUPLICATES");
  const compatible=list.filter(p=>p.compatible_for_scenario_selection);
  const ordered=[...compatible].sort((a,b)=>
@@ -184,6 +189,7 @@ export function planAudiotelMultiOperatorStrategy(input={}){
   objective:input.objective,billable_minutes_month:minutes,
   max_profit_sacrifice_bps:lossBps,
   personal_retention_assumption_bps:retentionBps,
+  minimum_personal_net_eur_per_min:personalTargetMilli/1000,
   providers:roster,plans:Object.freeze(list),
   baseline_max_profit_plan_id:best&&best.monthly_operating_before_tax_eur>0?best.id:null,
   selected_preview_plan_id:validSelected?.id||null,
