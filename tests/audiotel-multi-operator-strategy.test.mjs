@@ -12,6 +12,7 @@ const mixed=()=>({...external(),cdr_reporting:"audiotel",noc_support:"audiotel"}
 const input=()=>({
  business_unit:"audiotel_platform",currency:"EUR",objective:"max_profit",
  billable_minutes_month:100000,max_profit_sacrifice_bps:0,
+ minimum_personal_net_millieur_per_min:40,
  personal_retention_basis_points:7000,
  providers:[{id:"operateur_a",label:"Partenaire hypothétique A",services:same}],
  plans:[
@@ -126,6 +127,20 @@ test("no billable traffic or loss-making scenarios cannot be recommended for act
  r=planAudiotelMultiOperatorStrategy(x);
  assert.equal(r.selected_preview_plan_id,null);
  assert.ok(r.plans.every(x=>x.issues.includes("operating_result_not_positive")));
+});
+
+test("the owner's non-negotiable 0.07 EUR personal floor is enforced when tax is estimated",()=>{
+ const x=input();delete x.minimum_personal_net_millieur_per_min;
+ let r=planAudiotelMultiOperatorStrategy(x);
+ assert.equal(r.minimum_personal_net_eur_per_min,0.07);
+ assert.equal(r.selected_preview_plan_id,null);
+ assert.ok(r.plans.every(p=>p.estimated_personal_floor_met===false));
+ assert.ok(r.plans.every(p=>p.issues.includes("personal_net_below_minimum_target")));
+ x.personal_retention_basis_points=10000;
+ r=planAudiotelMultiOperatorStrategy(x);
+ assert.equal(r.selected_preview_plan_id,"maitrise");
+ assert.equal(r.plans[0].estimated_personal_floor_met,true);
+ assert.equal(r.plans[1].estimated_personal_floor_met,false);
 });
 
 test("missing personal tax assumptions never become verified personal net",()=>{
