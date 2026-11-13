@@ -89,8 +89,7 @@ export function compareAudiotelOperatorModels(input={}){
  }
  const reseller=scenario(input.reseller,minutes,"reseller",personalBps);
  const direct=scenario(input.direct_operator,minutes,"direct",personalBps);
- const incremental=BigInt(Math.round(direct.monthly_operating_result_before_tax_eur*100))-
-  BigInt(Math.round(reseller.monthly_operating_result_before_tax_eur*100));
+ const incremental=direct.monthly_result_milli-reseller.monthly_result_milli;
  // Pure integer comparison on contractual rates, no invented market commission.
  const incrementalContribution=direct.contribution_millieur_per_min-reseller.contribution_millieur_per_min;
  const extraFixed=BigInt(input.direct_operator.app_fixed_monthly_cost_cents)-BigInt(input.reseller.app_fixed_monthly_cost_cents);
@@ -117,7 +116,7 @@ export function compareAudiotelOperatorModels(input={}){
  const target=integer(input.target_personal_net_millieur_per_min??70,"TARGET_PERSONAL",0,1000000);
  const personalEurPerMin=direct.personal_takehome_estimate_eur_per_min;
  const goalProjected=personalEurPerMin===null?null:personalEurPerMin+1e-12>=target/1000;
- const gain=toMoney(incremental*10n);
+ const gain=toMoney(incremental);
  // Deliberate distinction: plausible financial hypothesis != operator clearance.
  return Object.freeze({
   schema_version:"audiotel-operator-autonomy-economics/1",
