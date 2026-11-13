@@ -1,7 +1,8 @@
 import {renderPortabilitySection,runPortabilityAction,portabilityError,renderPayoutTermsSection,runPayoutTermsAction,payoutTermsError} from "./tenant-portability-admin.js";
 import {renderServiceOperations,runServiceOperation} from "./tenant-service-admin.js";
 import {$,esc,nf,money,date,dur,lab,chip,eventText} from "./tenant-control-utils.js";
-import {renderCustomerIdentity,renderCustomerInvoiceAudit,downloadCustomerExport,mountCustomerPayoutHistory} from "./customer-360-detail.js";
+import {renderCustomerIdentity,downloadCustomerExport,mountCustomerPayoutHistory} from "./customer-360-detail.js";
+import {renderCustomerInvoiceAudit} from "./customer-invoice-detail.js";
 let currentId=null,currentData=null,busy=false;
 
 function ensure(){
