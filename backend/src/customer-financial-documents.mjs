@@ -145,8 +145,8 @@ export function createMonthlySettlementPdf(report){
   let logo=null;try{logo=logoRgb();}catch{logo=null;}
   const logoId=logo?w.stream("/Type /XObject /Subtype /Image /Width "+logo.width+" /Height "+logo.height+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode",logo.compressed):null;
   const pagesId=w.add("<< /Type /Pages /Kids [] /Count 0 >>"),pageIds=[];
-  const lines=Array.isArray(report.lines)?report.lines:[],perPage=16,totalPages=Math.max(1,Math.ceil(lines.length/perPage));
-  const statusMap={open:"En attente",reconciled:"Rapproché",invoiced:"Validé",payable:"À régler",paid:"Réglé (registre)",disputed:"Contesté"};
+  const lines=Array.isArray(report.lines)?report.lines:[],perPage=11,totalPages=Math.max(1,Math.ceil(lines.length/perPage));
+  const statusMap={open:"En attente",reconciled:"Rapproché",invoiced:"Facturé (registre)",payable:"À régler",paid:"Réglé (registre)",disputed:"Contesté"};
   for(let page=0;page<totalPages;page++){
     const cmds=[];
     const text=(s,x,y,size=9,strong=false)=>{cmds.push("BT /"+(strong?"F2":"F1")+" "+size+" Tf 1 0 0 1 "+x+" "+y+" Tm ("+pdfText(s)+") Tj ET");};
@@ -170,12 +170,13 @@ export function createMonthlySettlementPdf(report){
     rule(542);
     const first=page*perPage;
     lines.slice(first,first+perPage).forEach((line,i)=>{
-      const y=524-i*25;
+      const y=524-i*34;
       text((line.period_start||"?")+" / "+(line.period_end||"?"),41,y,8);
       text(money(line.net_payout_ht,report.currency),237,y,8,true);
       text(statusMap[line.status]||line.status,327,y,8);
-      text(clean(line.statement_reference,22),420,y,8);
-      rule(y-9);
+      text(clean(line.statement_reference,21),420,y,8);
+      text("Échéance : "+(line.payment_due_date||"Non renseignée")+"    Date de règlement inscrite : "+(line.paid_at||"Non renseignée"),41,y-13,7);
+      rule(y-20);
     });
     cmds.push("0.16 0.21 0.28 rg");
     text("Les statuts reflètent le registre interne. Un paiement ne prouve pas à lui seul le crédit sur l'IBAN.",40,105,8);
