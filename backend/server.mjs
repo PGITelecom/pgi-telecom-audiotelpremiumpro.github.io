@@ -25,6 +25,7 @@ import {applyResendWebhookEvent,acknowledgeResendInboundForward,drainTransaction
 import {submitHubSpotLead,syncHubSpotCommercialLead,syncHubSpotCommercialTenant,syncHubSpotSupportMessage,syncHubSpotInboundEmail,syncHubSpotCustomerIncident,syncHubSpotCardPaymentState} from "./src/hubspot-crm.mjs";
 import {evaluateLaunchReadiness} from "./src/launch-readiness.mjs";
 import {inspectAudiotelReadiness} from "./src/audiotel-order-assurance.mjs";
+import {planAudiotelMultiOperatorStrategy} from "./src/audiotel-multi-operator-strategy.mjs";
 import {audiotelConnectorReadiness} from "./src/audiotel-connection-preflight.mjs";
 import {prioritizeAudiotelOperations} from "./src/audiotel-operational-priorities.mjs";
 import {directSvaBusinessSnapshot,directSvaAccountingExport,createDirectSvaDraft,approveDirectSvaDraft} from "./src/direct-sva-business.mjs";
@@ -1912,6 +1913,14 @@ export function createBackend(options={}){
         });
       }
 
+      // Audiotel multi-operator sandbox: authenticated owner choice only.
+      // This endpoint NEVER persists settings or invokes carriers, Stripe or a bank.
+      if(method==="POST"&&pathname==="/api/v1/platform/audiotel/operator-strategy/preview"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.audiotel_operator_strategy_preview",200,
+          planAudiotelMultiOperatorStrategy(body));
+      }
       if(method==="POST"&&pathname==="/api/v1/platform/performance-lab/runs"){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
