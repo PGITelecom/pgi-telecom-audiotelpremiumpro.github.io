@@ -4,6 +4,7 @@
  * Run: node scripts/audiotel-build-vs-buy-report.mjs
  */
 import {compareAudiotelBuildVsBuy} from "../telephony/prelaunch-not-active/build-vs-buy.mjs";
+import {auditAudiotelActivationOverlays} from "../telephony/prelaunch-not-active/activation-fee-audit.mjs";
 const operator=(overrides={})=>({
  activation_minor_per_number:0,portability_minor_per_number:0,
  deactivation_minor_per_number:0,reactivation_minor_per_number:0,
@@ -62,9 +63,33 @@ const output=compareAudiotelBuildVsBuy({
  annual_arcep_fee_per_block_minor:2000,
  scenarios,alternatives,horizons_months:[12,24,36]
 });
+// Independent stress illustration: these EXTRA charges are invented and
+// NOT in the published baseline TCO table. No claims about any real carrier.
+const hiddenFeeCase=auditAudiotelActivationOverlays({
+ business_unit:"audiotel_platform",mode:"offline_simulation",
+ base_input:{
+  business_unit:"audiotel_platform",mode:"offline_simulation",
+  annual_arcep_fee_per_block_minor:2000,
+  scenarios:scenarios.filter(s=>s.reference==="PROS-150-MIN-60"),
+  alternatives,horizons_months:[12]
+ },
+ fee_schedules:alternatives.map(a=>({
+  alternative_reference:a.reference,completeness:"hypothetical",
+  fees:a.reference==="A-EXTERNAL-HYPOTHESIS"?[{
+   reference:"HYPOTHETICAL-EXTRA-BATCH-ADMIN",
+   category:"manual_activation_admin",basis:"per_batch",
+   amount_minor:5000,amount_micros_per_minute:null,batch_size:100
+  }]:[]
+ }))
+});
 process.stdout.write(JSON.stringify({
  warning:"HYPOTHESES NON CONTRACTUELLES. PAS DE DEVIS AUTHENTIFIE.",
  source:"simulation_offline_only",quote_count_authenticated:0,
  after_tax_margin_establishable:false,all_legal_contractual_gates_validated:false,
+ illustrative_incremental_hidden_fees_only:{
+  warning:"EXTRA FRAIS PUREMENTS FICTIFS, NON COMPRIS DANS LES TABLEAUX TCO DE BASE",
+  authenticated_quotes:0,rows:hiddenFeeCase.rows,
+  real_zero_activation_guaranteed:hiddenFeeCase.can_assert_real_zero_activation_cost
+ },
  ...output
 },null,2)+"\n");
