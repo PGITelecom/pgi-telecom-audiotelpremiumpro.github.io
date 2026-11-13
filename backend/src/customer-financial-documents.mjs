@@ -113,8 +113,8 @@ function logoRgb(){
   return {width,height,compressed:deflateSync(out,{level:9})};
 }
 function pdfText(s){
-  const special={"€":"\x80","’":"\x92","“":"\x93","”":"\x94","œ":"oe","Œ":"OE","–":"-","—":"-"," ":" "," ":" "};
-  let value=clean(s,800).replace(/[€’“”œŒ–—  ]/g,ch=>special[ch]);
+  const special={"€":"\x80","’":"\x92","“":"\x93","”":"\x94","œ":"oe","Œ":"OE","–":"-","\u2014":"-"," ":" "," ":" "};
+  let value=clean(s,800).replace(/[€’“”œŒ–\u2014  ]/g,ch=>special[ch]);
   value=value.replace(/[^\x20-\x7e\x80-\xff]/g,"?");
   return value.replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)");
 }
