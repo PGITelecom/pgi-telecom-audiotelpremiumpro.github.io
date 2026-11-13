@@ -152,12 +152,14 @@ function results(root,data){
  if(!data||!Array.isArray(data.plans))return;
  const rows=data.plans.map(x=>
  '<tr><td>'+esc(x.label)+(x.id===data.selected_preview_plan_id?' <strong class="as-selected">OPTION RETENUE EN SIMULATION</strong>':"")+'</td>'+
+ '<td>'+esc(MODELS.find(xm=>xm[0]===x.operating_profile.mode)?.[1]||x.operating_profile.mode)+
+ ' ; '+esc(x.operating_profile.total_extra_supplier_layers)+' niveau(x) amont</td>'+
  '<td>'+esc(fmt(x.delegation_percent))+' %</td>'+
  '<td>'+esc(currency(x.monthly_operating_before_tax_eur))+'</td>'+
  '<td>'+esc(currency(x.estimated_personal_monthly_net_eur))+'</td>'+
  '<td>'+esc(x.external_provider_count)+'</td>'+
  '<td>'+esc(x.issues.join(", ")||"Devis et contrôles à vérifier")+'</td></tr>').join("");
- area.innerHTML='<div class="as-result"><table><thead><tr><th>Configuration</th><th>Délégation</th><th>Résultat société avant impôts</th><th>Net personnel hypothétique</th><th>Partenaires</th><th>Alertes</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+ area.innerHTML='<div class="as-result"><table><thead><tr><th>Configuration</th><th>Modèle / intermédiaires</th><th>Délégation</th><th>Résultat société avant impôts</th><th>Net personnel hypothétique</th><th>Partenaires</th><th>Alertes</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
  '<p class="as-note">'+(data.selected_preview_plan_id?"Option retenue pour étude : "+esc(data.selected_preview_plan_id)+". Perte de résultat estimée par rapport au maximum : "+esc(currency(data.monthly_company_result_sacrifice_eur))+".":"Aucune configuration financièrement viable et compatible : aucune option retenue.")+
  ' Aucune activation, aucune sauvegarde en base, aucun virement ni changement opérateur.</p>'+
  '<div class="as-actions"><button type="button" data-as-export>Exporter ce rapport JSON</button></div>';
@@ -258,6 +260,16 @@ function wire(root,request){
   if(target)target.innerHTML='<p class="as-note">Paramètres modifiés. Relancez le calcul pour actualiser la comparaison.</p>';
  });
  root.addEventListener("change",ev=>{
+  if(ev.target.matches("[data-as-mode]")){
+   const row=ev.target.closest("[data-as-plan]");
+   if(!row)return;
+   const white=ev.target.value==="partner_contracting_white_label";
+   const contract=row.querySelector("[data-as-contract-holder]");
+   const numbering=row.querySelector("[data-as-numbering-holder]");
+   if(contract)contract.value=white?providers[0]?.id||"audiotel":"audiotel";
+   if(numbering)numbering.value=white?providers[0]?.id||"audiotel":"audiotel";
+   return;
+  }
   if(!ev.target.matches("[data-as-objective]"))return;
   const target=root.querySelector('[data-as-field="sacrifice"]');
   if(target)target.value=ev.target.value==="max_profit"?"0":ev.target.value==="balanced"?"10":"30";
