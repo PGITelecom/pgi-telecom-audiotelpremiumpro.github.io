@@ -7520,65 +7520,19 @@ export class PostgresStore{
       )
     ]);
     // Subscription receipts, strictly TTC, from signed Stripe paid invoice events.
-    // One invoice = one count. Do not merge with SVA commissions in HT.
+    // One invoice = one count. Never add TTC to SVA HT margins.
     let subscriptionCash=null;
     if(tenantId!==null){
       const cash=await this.readSql.unsafe(
         "SELECT count(*)::int AS invoice_count,"+
-        " count(*) FILTER(WHERE COALESCE(p.amount_minor,'')!~'^[0-9]+{upstream_payout_ht:0,margin_booked_ht:0,margin_collected_ht:0,client_net_payout_ht:0,unallocated_amount_ht:0,customers_with_distribution:0};
-    const top5Collected=rankingRows.slice(0,5).reduce((n,x)=>n+Number(x.margin_collected_ht||0),0);
-    const concentration=Number(summary.margin_collected_ht)>0?top5Collected/Number(summary.margin_collected_ht)*100:0;
-    return {
-      schema_version:"audiotel-customer-profitability/1",
-      period,since,currency,currencies:currencies.length?currencies:[currency],
-      accounting_basis:"tenant_revenue_distributions.platform_fee_ht",
-      cash_basis:"carrier paid amount / confirmed amount",
-      excludes:["general_platform_overhead","unconnected_subscription_cash"],
-      tenant:tenant?{public_id:tenant.public_id,display_name:tenant.display_name}:null,
-      summary:{...summary,top5_margin_collected_ht:top5Collected,top5_concentration_percent:concentration},
-      subscription_cash_snapshot:subscriptionCash,
-      ranking:rankingRows,
-      trend:trendRows
-    };
-  }
-)::int AS missing_amount_count,"+
-        " COALESCE(sum(CASE WHEN COALESCE(p.amount_minor,'')~'^[0-9]+{upstream_payout_ht:0,margin_booked_ht:0,margin_collected_ht:0,client_net_payout_ht:0,unallocated_amount_ht:0,customers_with_distribution:0};
-    const top5Collected=rankingRows.slice(0,5).reduce((n,x)=>n+Number(x.margin_collected_ht||0),0);
-    const concentration=Number(summary.margin_collected_ht)>0?top5Collected/Number(summary.margin_collected_ht)*100:0;
-    return {
-      schema_version:"audiotel-customer-profitability/1",
-      period,since,currency,currencies:currencies.length?currencies:[currency],
-      accounting_basis:"tenant_revenue_distributions.platform_fee_ht",
-      cash_basis:"carrier paid amount / confirmed amount",
-      excludes:["general_platform_overhead","unconnected_subscription_cash"],
-      tenant:tenant?{public_id:tenant.public_id,display_name:tenant.display_name}:null,
-      summary:{...summary,top5_margin_collected_ht:top5Collected,top5_concentration_percent:concentration},
-      ranking:rankingRows,
-      trend:trendRows
-    };
-  }
-"+
+        " count(*) FILTER(WHERE COALESCE(p.amount_minor,'')!~'^[0-9]+$')::int AS missing_amount_count,"+
+        " COALESCE(sum(CASE WHEN COALESCE(p.amount_minor,'')~'^[0-9]+$'"+
         " THEN p.amount_minor::bigint ELSE 0 END),0)::bigint AS paid_ttc_minor"+
         " FROM (SELECT DISTINCT ON (be.normalized_details->>'provider_invoice_reference')"+
         " be.normalized_details->>'provider_invoice_amount_paid_minor' AS amount_minor"+
         " FROM subscription_billing_events be"+
         " WHERE be.tenant_id=$1 AND be.provider='stripe' AND be.event_type='invoice.paid'"+
-        " AND COALESCE(be.normalized_details->>'provider_invoice_reference','')~'^in_[A-Za-z0-9]+{upstream_payout_ht:0,margin_booked_ht:0,margin_collected_ht:0,client_net_payout_ht:0,unallocated_amount_ht:0,customers_with_distribution:0};
-    const top5Collected=rankingRows.slice(0,5).reduce((n,x)=>n+Number(x.margin_collected_ht||0),0);
-    const concentration=Number(summary.margin_collected_ht)>0?top5Collected/Number(summary.margin_collected_ht)*100:0;
-    return {
-      schema_version:"audiotel-customer-profitability/1",
-      period,since,currency,currencies:currencies.length?currencies:[currency],
-      accounting_basis:"tenant_revenue_distributions.platform_fee_ht",
-      cash_basis:"carrier paid amount / confirmed amount",
-      excludes:["general_platform_overhead","unconnected_subscription_cash"],
-      tenant:tenant?{public_id:tenant.public_id,display_name:tenant.display_name}:null,
-      summary:{...summary,top5_margin_collected_ht:top5Collected,top5_concentration_percent:concentration},
-      ranking:rankingRows,
-      trend:trendRows
-    };
-  }
-"+
+        " AND COALESCE(be.normalized_details->>'provider_invoice_reference','')~'^in_[A-Za-z0-9]+$'"+
         " AND upper(COALESCE(be.normalized_details->>'provider_invoice_currency',''))=$3"+
         " AND ($2::timestamptz IS NULL OR be.event_time>=$2::timestamptz)"+
         " ORDER BY be.normalized_details->>'provider_invoice_reference',be.event_time DESC,be.id DESC) p",
@@ -7606,6 +7560,7 @@ export class PostgresStore{
       excludes:["general_platform_overhead","unconnected_subscription_cash"],
       tenant:tenant?{public_id:tenant.public_id,display_name:tenant.display_name}:null,
       summary:{...summary,top5_margin_collected_ht:top5Collected,top5_concentration_percent:concentration},
+      subscription_cash_snapshot:subscriptionCash,
       ranking:rankingRows,
       trend:trendRows
     };
