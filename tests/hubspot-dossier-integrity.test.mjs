@@ -12,14 +12,14 @@ const validRef="APP-2026-22222222",otherRef="APP-2026-11111111";
 const response=(status,body)=>({
  ok:status>=200&&status<300,status,text:async()=>JSON.stringify(body)
 });
-function stub({deals=[],contactDossier=otherRef}={}){
+function stub({deals=[],contactDossier=otherRef,contactStatus="Nouveau prospect"}={}){
  const requests=[];
  const fetchImpl=async(url,options={})=>{
   const method=options.method||"GET",body=options.body?JSON.parse(options.body):null;
   requests.push({url,method,body});
   if(url.endsWith("/crm/v3/objects/contacts/search"))
    return response(200,{results:[{id:"123",properties:{
-    email:lead.email,statut_commercial_pgi:"Nouveau prospect",
+    email:lead.email,statut_commercial_pgi:contactStatus,
     lifecyclestage:"lead",hubspot_owner_id:"99851906",
     pgi_dossier_ref:contactDossier,company:"Cabinet A"
    }}]});
@@ -77,4 +77,18 @@ test("does not claim a legacy unlabeled opportunity for a newly referenced dossi
  const result=await syncHubSpotCommercialLead(lead,options(s.fetchImpl));
  assert.equal(result.dealCreated,true);
  assert.equal(s.requests.some(r=>r.url.endsWith("/deals/901")&&r.method==="PATCH"),false);
+});
+
+test("a client-active contact must not incorrectly close a different new dossier",async()=>{
+ const s=stub({contactStatus:"Client actif",deals:[]});
+ const result=await syncHubSpotCommercialLead(lead,{
+  ...options(s.fetchImpl),commercialStatus:"Dossier en préparation"
+ });
+ assert.equal(result.dealCreated,true);
+ const created=s.requests.find(r=>r.url.endsWith("/objects/deals")&&r.method==="POST");
+ assert.equal(created.body.properties.dealstage,"contractsent");
+ assert.equal(created.body.properties.pgi_dossier_ref,validRef);
+ const patched=s.requests.find(r=>r.url.endsWith("/contacts/123")&&r.method==="PATCH");
+ assert.equal(patched.body.properties.statut_commercial_pgi,undefined);
+ assert.equal(patched.body.properties.lifecyclestage,undefined);
 });
