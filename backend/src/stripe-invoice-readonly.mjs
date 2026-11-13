@@ -15,7 +15,7 @@ function cent(n){
  return typeof n==="number"&&Number.isSafeInteger(n)&&n>=0?n:null;
 }
 function iso(n){
- return typeof n==="number"&&Number.isFinite(n)&&n>0?
+ return typeof n==="number"&&Number.isSafeInteger(n)&&n>0&&n<8640000000000?
   new Date(n*1000).toISOString():null;
 }
 function link(v){
@@ -30,8 +30,10 @@ function subscriptionRef(invoice){
  const data=invoice?.parent?.subscription_details?.subscription??invoice?.subscription;
  return typeof data==="string"?data:typeof data?.id==="string"?data.id:null;
 }
-function normalizeInvoice(invoice,allowed){
+function normalizeInvoice(invoice,allowed,customer){
  if(!invoice||!INV.test(String(invoice.id||"")))return null;
+ const linkedCustomer=typeof invoice.customer==="string"?invoice.customer:invoice.customer?.id;
+ if(linkedCustomer!==customer)return null;
  const sub=subscriptionRef(invoice);
  if(!SUB.test(String(sub||""))||!allowed.has(sub))return null;
  const cur=String(invoice.currency||"").toUpperCase();
@@ -99,7 +101,7 @@ export async function readAudiotelStripeInvoices(config,binding,options={}){
  try{payload=await response.json();}catch{fail("APP_INVOICE_STRIPE_PAYLOAD_INVALID",502);}
  if(!Array.isArray(payload?.data)||payload.data.length>limit||
   typeof payload.has_more!=="boolean")fail("APP_INVOICE_STRIPE_PAYLOAD_INVALID",502);
- const filtered=payload.data.map(x=>normalizeInvoice(x,allowed)).filter(Boolean);
+ const filtered=payload.data.map(x=>normalizeInvoice(x,allowed,customer)).filter(Boolean);
  const excluded=payload.data.length-filtered.length;
  const totals=new Map();
  for(const inv of filtered){
