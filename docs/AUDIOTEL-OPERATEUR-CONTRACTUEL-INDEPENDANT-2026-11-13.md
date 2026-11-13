@@ -42,7 +42,7 @@ Les plafonds officiels HT de la **composante service par minute** sont notamment
 
 ## Architecture technique cible : aucun équipement dans les locaux
 
-\`\`\`
+```
 Éditeur du service / client Audiotel
   -> Portail Audiotel, contrat, KYC, service, IBAN approuvé
   -> Registre de numérotation attribuée / portages validés (ARCEP/APNF)
@@ -53,7 +53,7 @@ Les plafonds officiels HT de la **composante service par minute** sont notamment
   -> Tableaux client et contrôle des reversements
   -> Opérateur/PSP verse directement aux éditeurs (IBAN)
   -> Commission Audiotel distincte, preuves bancaires, comptabilité
-\`\`\`
+```
 
 Séparer 3 catégories de données : **trafic et routage**, **rémunération Audiotel**, **dette envers les éditeurs et preuves de versement de l'opérateur**. Ne jamais enregistrer la totalité du flux éditeur comme chiffre d'affaires Audiotel sans base comptable juridiquement validée.
 
