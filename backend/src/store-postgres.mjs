@@ -7786,6 +7786,37 @@ export class PostgresStore{
     };
   }
 
+  /**
+   * Minimal, read-only binding for the external Stripe invoice viewer.
+   * Never trusts customer IDs or subscription IDs supplied by the browser.
+   * Refuses mixed or ambiguous Stripe customers, rather than leaking data.
+   */
+  async tenantStripeBillingBinding(publicId){
+    publicId=String(publicId||"").trim();
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(publicId))
+      throw problem(400,"INVALID_TENANT_PUBLIC_ID");
+    const rows=await this.readSql.unsafe(
+      "SELECT DISTINCT s.provider_customer_reference,s.provider_subscription_reference"+
+      " FROM tenant_subscriptions s JOIN tenants t ON t.id=s.tenant_id"+
+      " WHERE t.public_id=$1::uuid AND t.tenant_type<>'internal'"+
+      " AND s.billing_provider='stripe'"+
+      " AND s.provider_customer_reference IS NOT NULL"+
+      " AND s.provider_subscription_reference IS NOT NULL"+
+      " ORDER BY s.provider_customer_reference,s.provider_subscription_reference LIMIT 52",
+      [publicId]
+    );
+    if(!rows.length)throw problem(409,"STRIPE_CUSTOMER_BINDING_NOT_ESTABLISHED");
+    if(rows.length>50)throw problem(409,"STRIPE_SUBSCRIPTION_BINDING_TOO_LARGE");
+    const customers=new Set(rows.map(r=>String(r.provider_customer_reference||"")));
+    if(customers.size!==1)throw problem(409,"STRIPE_CUSTOMER_BINDING_AMBIGUOUS");
+    const customer_reference=[...customers][0];
+    const subscription_references=rows.map(r=>String(r.provider_subscription_reference||""));
+    if(!/^cus_[A-Za-z0-9]+$/.test(customer_reference)||
+      subscription_references.some(r=>!/^sub_[A-Za-z0-9]+$/.test(r)))
+      throw problem(409,"STRIPE_CUSTOMER_BINDING_INVALID");
+    return {customer_reference,subscription_references};
+  }
+
   async tenantControlDetail(publicId){
     publicId=String(publicId||"").trim();
     if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(publicId))throw problem(400,"INVALID_TENANT_PUBLIC_ID");
