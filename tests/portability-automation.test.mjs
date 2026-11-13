@@ -93,3 +93,33 @@ test("automatic portability fails closed when operator API is unavailable",async
   assert.equal(fetched,false);
   assert.equal(calls.some(x=>x.sql.includes("automation_state=$2")&&x.params[1]==="action_required"&&x.params[3]==="PORTABILITY_OPERATOR_API_NOT_READY"),true);
 });
+
+test("portability never contacts an operator without a wholesale contract, even if the optional flag is false",async()=>{
+ const calls=[];
+ const task={
+  id:77,tenant_id:8,status:"submitted",automation_state:"queued",
+  tenant_status:"active",market_id:1,market_status:"active",
+  active_carrier_id:3,api_connection_id:9,api_connection_state:"active",
+  adapter_key:"generic-portability",carrier_contract_ready:false,
+  kyc_ready:true,access_ready:true,payout_ready:true,
+  country_code:"FR",requested_e164:"+33890123456",
+  rio_validation_status:"verified",
+  source_contract_liability_acknowledged:true,
+  authorization_confirmed:true,number_owner_confirmed:true,
+  ownership_status:"verified",tariff_verification_status:"verified",
+  operator_portability_reference:null,
+  api_settings:{portability_submit_url:"https://carrier.example.test/portability"}
+ };
+ const store={sql:{unsafe:async(sql,params=[])=>{
+  calls.push({sql,params});
+  if(sql.startsWith("SELECT p.*,t.status AS tenant_status"))return [task];
+  return [];
+ }}};
+ let externalCall=false;
+ await processPortabilityWork({payload:{request_id:77}},
+  {store,config:{mode:"production",requireCarrierContract:false},env:{},
+   fetchImpl:async()=>{externalCall=true;throw new Error("not allowed");}});
+ assert.equal(externalCall,false);
+ assert.ok(calls.some(x=>x.sql.includes("UPDATE tenant_portability_requests SET automation_state=$2")&&
+  x.params[1]==="action_required"&&x.params[3]==="PORTABILITY_CARRIER_CONTRACT_REQUIRED"));
+});
