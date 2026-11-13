@@ -1,6 +1,7 @@
 
 import {createHash} from "node:crypto";
 import {normalizeFrenchSvaRio,rioFingerprint,encryptPortabilityCredential} from "./portability-identity.mjs";
+import {summarizeCustomerInvoiceJournal} from "./customer-invoice-audit.mjs";
 import {sanitizeCdrPayload,deriveCallerHash} from "./cdr-privacy.mjs";
 import {computeExpertCost} from "./expert-finance.mjs";
 import {normalizeSettlementPayload} from "./settlement-finance.mjs";
@@ -2440,6 +2441,24 @@ export class PostgresStore{
     const providerInvoicePdfUrl=payload.provider_invoice_pdf_url==null?null:String(payload.provider_invoice_pdf_url).trim();
     const paymentAttemptCount=payload.payment_attempt_count==null?null:Number(payload.payment_attempt_count);
     const nextPaymentAttempt=payload.next_payment_attempt||null;
+    const paidMinor=payload.provider_invoice_amount_paid_minor??null;
+    const dueMinor=payload.provider_invoice_amount_due_minor??null;
+    const remainingMinor=payload.provider_invoice_amount_remaining_minor??null;
+    const invoiceCurrency=payload.provider_invoice_currency??null;
+    const invoiceStatus=payload.provider_invoice_status??null;
+    for(const [key,v] of [["PAID",paidMinor],["DUE",dueMinor],["REMAINING",remainingMinor]]){
+      if(v!==null&&(!Number.isSafeInteger(v)||v<0))throw problem(400,"INVALID_PROVIDER_INVOICE_"+key+"_AMOUNT");
+    }
+    if(invoiceCurrency!==null&&(typeof invoiceCurrency!=="string"||!/^[A-Z]{3}$/.test(invoiceCurrency)))
+      throw problem(400,"INVALID_PROVIDER_INVOICE_CURRENCY");
+    if(invoiceStatus!==null&&!["draft","open","paid","void","uncollectible"].includes(invoiceStatus))
+      throw problem(400,"INVALID_PROVIDER_INVOICE_STATUS");
+    if(invoiceCurrency!==null&&providerPriceCurrency&&invoiceCurrency!==providerPriceCurrency)
+      throw problem(409,"PROVIDER_INVOICE_CURRENCY_MISMATCH");
+    // An older or partially populated signed Stripe event must still be
+    // journaled and deduplicated. Missing monetary fields remain NULL and are
+    // never counted as zero cash in a customer financial statement.
+    // Incomplete evidence is flagged by the read-only reconciler.
     if(!/^[a-z0-9_.-]{2,40}$/.test(provider))throw problem(400,"INVALID_BILLING_PROVIDER");
     if(!eventId||eventId.length>200)throw problem(400,"INVALID_BILLING_EVENT_ID");
     if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(tenantPublicId))throw problem(400,"INVALID_BILLING_TENANT");
@@ -2472,14 +2491,24 @@ export class PostgresStore{
       cancel_at_period_end:!!payload.cancel_at_period_end,last_payment_status:lastPaymentStatus,ends_at:endsAtInput,
       provider_price_reference:providerPriceReference,provider_price_amount_minor:providerPriceAmount,provider_price_currency:providerPriceCurrency,
       provider_billing_interval:providerBillingInterval,provider_interval_count:providerIntervalCount,
-      provider_invoice_reference:providerInvoiceReference,provider_invoice_url:providerInvoiceUrl,provider_invoice_pdf_url:providerInvoicePdfUrl,payment_attempt_count:paymentAttemptCount,next_payment_attempt:nextPaymentAttempt
+      provider_invoice_reference:providerInvoiceReference,provider_invoice_url:providerInvoiceUrl,provider_invoice_pdf_url:providerInvoicePdfUrl,payment_attempt_count:paymentAttemptCount,next_payment_attempt:nextPaymentAttempt,
+      provider_invoice_amount_paid_minor:paidMinor,provider_invoice_amount_due_minor:dueMinor,
+      provider_invoice_amount_remaining_minor:remainingMinor,provider_invoice_currency:invoiceCurrency,
+      provider_invoice_status:invoiceStatus
     };
     const hash=createHash("sha256").update(JSON.stringify(normalized)).digest("hex");
+    // Upgrade compatibility: events journaled before invoice amount capture
+    // must remain idempotent when the exact same Stripe event is redelivered.
+    const legacyNormalized={...normalized};
+    for(const k of ["provider_invoice_amount_paid_minor","provider_invoice_amount_due_minor",
+      "provider_invoice_amount_remaining_minor","provider_invoice_currency","provider_invoice_status"])
+      delete legacyNormalized[k];
+    const legacyHash=createHash("sha256").update(JSON.stringify(legacyNormalized)).digest("hex");
     const result=await this.sql.begin(async tx=>{
       await tx.unsafe("SELECT pg_advisory_xact_lock(hashtext($1))",[provider+":"+eventId]);
       const seen=await tx.unsafe("SELECT id,subscription_id,payload_sha256 FROM subscription_billing_events WHERE provider=$1 AND provider_event_id=$2",[provider,eventId]);
       if(seen.length){
-        if(String(seen[0].payload_sha256)!==hash)throw problem(409,"BILLING_EVENT_ID_COLLISION");
+        if(String(seen[0].payload_sha256)!==hash&&String(seen[0].payload_sha256)!==legacyHash)throw problem(409,"BILLING_EVENT_ID_COLLISION");
         return {duplicate:true,subscription_id:seen[0].subscription_id};
       }
       const tenantRows=await tx.unsafe("SELECT id,tenant_type,status FROM tenants WHERE public_id=$1::uuid LIMIT 1",[tenantPublicId]);
@@ -7490,6 +7519,36 @@ export class PostgresStore{
         [since,currency,tenantId,bucket]
       )
     ]);
+    // Subscription receipts, strictly TTC, from signed Stripe paid invoice events.
+    // One invoice = one count. Never add TTC to SVA HT margins.
+    let subscriptionCash=null;
+    if(tenantId!==null){
+      const cash=await this.readSql.unsafe(
+        "SELECT count(*)::int AS invoice_count,"+
+        " count(*) FILTER(WHERE COALESCE(p.amount_minor,'')!~'^[0-9]+$')::int AS missing_amount_count,"+
+        " COALESCE(sum(CASE WHEN COALESCE(p.amount_minor,'')~'^[0-9]+$'"+
+        " THEN p.amount_minor::bigint ELSE 0 END),0)::bigint AS paid_ttc_minor"+
+        " FROM (SELECT DISTINCT ON (be.normalized_details->>'provider_invoice_reference')"+
+        " be.normalized_details->>'provider_invoice_amount_paid_minor' AS amount_minor"+
+        " FROM subscription_billing_events be"+
+        " WHERE be.tenant_id=$1 AND be.provider='stripe' AND be.event_type='invoice.paid'"+
+        " AND COALESCE(be.normalized_details->>'provider_invoice_reference','')~'^in_[A-Za-z0-9]+$'"+
+        " AND upper(COALESCE(be.normalized_details->>'provider_invoice_currency',''))=$3"+
+        " AND ($2::timestamptz IS NULL OR be.event_time>=$2::timestamptz)"+
+        " ORDER BY be.normalized_details->>'provider_invoice_reference',be.event_time DESC,be.id DESC) p",
+        [tenantId,since,currency]
+      );
+      const row=cash[0]||{};
+      subscriptionCash={
+        currency,paid_invoice_count:Number(row.invoice_count||0),
+        paid_ttc_minor:Number(row.paid_ttc_minor||0),
+        invoice_count_missing_amount:Number(row.missing_amount_count||0),
+        proof:"signed_stripe_invoice_paid_webhook_journal",
+        amounts_are_ttc:true,refunds_and_provider_fees_deducted:false,
+        company_net_profit_after_costs_verified:false,
+        all_stripe_account_transactions_included:false
+      };
+    }
     const summary=summaryRows[0]||{upstream_payout_ht:0,margin_booked_ht:0,margin_collected_ht:0,client_net_payout_ht:0,unallocated_amount_ht:0,customers_with_distribution:0};
     const top5Collected=rankingRows.slice(0,5).reduce((n,x)=>n+Number(x.margin_collected_ht||0),0);
     const concentration=Number(summary.margin_collected_ht)>0?top5Collected/Number(summary.margin_collected_ht)*100:0;
@@ -7501,6 +7560,7 @@ export class PostgresStore{
       excludes:["general_platform_overhead","unconnected_subscription_cash"],
       tenant:tenant?{public_id:tenant.public_id,display_name:tenant.display_name}:null,
       summary:{...summary,top5_margin_collected_ht:top5Collected,top5_concentration_percent:concentration},
+      subscription_cash_snapshot:subscriptionCash,
       ranking:rankingRows,
       trend:trendRows
     };
@@ -7757,6 +7817,37 @@ export class PostgresStore{
     };
   }
 
+  /**
+   * Minimal, read-only binding for the external Stripe invoice viewer.
+   * Never trusts customer IDs or subscription IDs supplied by the browser.
+   * Refuses mixed or ambiguous Stripe customers, rather than leaking data.
+   */
+  async tenantStripeBillingBinding(publicId){
+    publicId=String(publicId||"").trim();
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(publicId))
+      throw problem(400,"INVALID_TENANT_PUBLIC_ID");
+    const rows=await this.readSql.unsafe(
+      "SELECT DISTINCT s.provider_customer_reference,s.provider_subscription_reference"+
+      " FROM tenant_subscriptions s JOIN tenants t ON t.id=s.tenant_id"+
+      " WHERE t.public_id=$1::uuid AND t.tenant_type<>'internal'"+
+      " AND s.billing_provider='stripe'"+
+      " AND s.provider_customer_reference IS NOT NULL"+
+      " AND s.provider_subscription_reference IS NOT NULL"+
+      " ORDER BY s.provider_customer_reference,s.provider_subscription_reference LIMIT 52",
+      [publicId]
+    );
+    if(!rows.length)throw problem(409,"STRIPE_CUSTOMER_BINDING_NOT_ESTABLISHED");
+    if(rows.length>50)throw problem(409,"STRIPE_SUBSCRIPTION_BINDING_TOO_LARGE");
+    const customers=new Set(rows.map(r=>String(r.provider_customer_reference||"")));
+    if(customers.size!==1)throw problem(409,"STRIPE_CUSTOMER_BINDING_AMBIGUOUS");
+    const customer_reference=[...customers][0];
+    const subscription_references=rows.map(r=>String(r.provider_subscription_reference||""));
+    if(!/^cus_[A-Za-z0-9]+$/.test(customer_reference)||
+      subscription_references.some(r=>!/^sub_[A-Za-z0-9]+$/.test(r)))
+      throw problem(409,"STRIPE_CUSTOMER_BINDING_INVALID");
+    return {customer_reference,subscription_references};
+  }
+
   async tenantControlDetail(publicId){
     publicId=String(publicId||"").trim();
     if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(publicId))throw problem(400,"INVALID_TENANT_PUBLIC_ID");
@@ -7775,6 +7866,7 @@ export class PostgresStore{
       this.readSql.unsafe(
         "SELECT s.id,s.status,s.billing_currency,s.starts_at,s.current_period_start,s.current_period_end,s.ends_at,"+
         " s.billing_provider,s.provider_customer_reference,s.provider_subscription_reference,s.cancel_at_period_end,s.last_payment_status,s.last_event_at,"+
+        " s.recovery_stage,s.payment_attempt_count,s.next_payment_attempt,s.dunning_deadline_at,s.last_invoice_reference,"+
         " p.plan_key,p.display_name AS plan_name,v.amount_minor,v.currency AS price_currency"+
         " FROM tenant_subscriptions s JOIN service_plans p ON p.id=s.service_plan_id"+
         " LEFT JOIN service_plan_price_versions v ON v.id=s.price_version_id WHERE s.tenant_id=$1 ORDER BY s.created_at DESC,s.id DESC LIMIT 10",[id]
@@ -7884,10 +7976,18 @@ export class PostgresStore{
         [id]
       )
     ]);
+    // Read-only, tenant-scoped Stripe invoice journal, not a live Stripe balance.
+    // The source contains signed webhook evidence, no payment operation occurs.
+    const invoiceEvents=await this.readSql.unsafe(
+      "SELECT event_type,event_time,normalized_details FROM subscription_billing_events"+
+      " WHERE tenant_id=$1 AND provider='stripe' AND event_type LIKE 'invoice.%'"+
+      " ORDER BY event_time DESC,id DESC LIMIT 300",[id]
+    );
+    const invoiceAudit=summarizeCustomerInvoiceJournal(invoiceEvents,{maxInvoices:50,sourceLimit:300});
     const access=await this.readSql.unsafe("SELECT pgi_tenant_has_premium_call_access($1,NULL,now()) AS allowed",[id]);
     return {
       tenant:{...tenant,dossier_ref:dossierReference(id,tenant.created_at),premium_call_access:Boolean(access[0]?.allowed)},
-      subscriptions:subs,lines,portability,destinations,experts,alerts,settlements,payout_terms:payoutTerms,controls,audit,service_incidents:serviceIncidents,operational_alerts:operationalAlerts,users,invitations,line_performance:linePerformance,
+      subscriptions:subs,invoice_audit:invoiceAudit,lines,portability,destinations,experts,alerts,settlements,payout_terms:payoutTerms,controls,audit,service_incidents:serviceIncidents,operational_alerts:operationalAlerts,users,invitations,line_performance:linePerformance,
       activity:activity[0]||{calls_30d:0,connected_30d:0,billable_seconds_30d:0,revenue_ttc_30d:0,margin_ht_30d:0,last_call_at:null}
     };
   }

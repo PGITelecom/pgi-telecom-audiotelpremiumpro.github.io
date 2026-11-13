@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   normalizeFrenchSvaRio,
+  rioChecksum,
   rioFingerprint,
   encryptPortabilityCredential,
   decryptPortabilityCredential
@@ -23,4 +24,18 @@ test("RIO is encrypted at rest and can be recovered only with the portability se
   assert.equal(encrypted.includes(Buffer.from(rio)),false);
   assert.equal(decryptPortabilityCredential(encrypted,secret),rio);
   assert.match(rioFingerprint(rio,"+33890123456",secret),/^[0-9a-f]{64}$/);
+});
+
+test("2026 Arcep F0-ZZ RIO prefixes are recognized without breaking legacy RIO",()=>{
+  const number="+33890123456";
+  for(const prefix of ["F0AABC123","GZAABC123","ZZAABC123"]){
+    const rio=prefix+rioChecksum(prefix,"0890123456");
+    assert.equal(normalizeFrenchSvaRio(rio,number),rio);
+  }
+  const wrong="F0AABC123"+"AAA";
+  assert.throws(()=>normalizeFrenchSvaRio(wrong,number),
+    {code:"INVALID_PORTABILITY_RIO"});
+  assert.throws(()=>normalizeFrenchSvaRio("E0AABC123"+rioChecksum("E0AABC123","0890123456"),number),
+    {code:"INVALID_PORTABILITY_RIO"});
+  assert.equal(normalizeFrenchSvaRio("01AABC1235CI",number),"01AABC1235CI");
 });

@@ -13,8 +13,8 @@ const csvCell=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
 export function downloadCustomerExport(data){
   const rows=[["Section","Champ","Valeur"]],add=(section,field,value)=>rows.push([section,field,value??""]);
   Object.entries(data.tenant||{}).forEach(([k,v])=>add("Client",k,v));
-  for(const [key,label] of [["users","Utilisateur"],["invitations","Invitation"],["subscriptions","Abonnement"],["lines","Ligne"],["portability","Portabilité"],["settlements","Reversement"]]){
-    (data[key]||[]).forEach((row,i)=>Object.entries(row).forEach(([k,v])=>add(label+" "+(i+1),k,v)));
+  for(const [key,label] of [["users","Utilisateur"],["invitations","Invitation"],["subscriptions","Abonnement"],["lines","Ligne"],["portability","Portabilité"],["settlements","Reversement"],["invoice_audit.invoices","Facture Stripe"]]){
+    (key==="invoice_audit.invoices"?(data.invoice_audit?.invoices||[]):(data[key]||[])).forEach((row,i)=>Object.entries(row).forEach(([k,v])=>add(label+" "+(i+1),k,v)));
   }
   Object.entries(data.activity||{}).forEach(([k,v])=>add("Activité",k,v));
   const csv="\ufeff"+rows.map(r=>r.map(csvCell).join(";")).join("\r\n"),blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a"),safe=String(data.tenant?.display_name||"client").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/gi,"-").replace(/^-|-$/g,"").toLowerCase()||"client";
@@ -24,6 +24,7 @@ export function downloadCustomerExport(data){
 // Each payout stays linked to the selected customer, never to the global payout overview.
 // Real receipt timestamp/reference are displayed only when the provider-backed state is paid.
 const payoutNumber=(v,c)=>{try{return new Intl.NumberFormat("fr-FR",{style:"currency",currency:c||"EUR"}).format(Number(v)||0);}catch{return esc(v)+" "+esc(c||"");}};
+
 function customerPayoutRows(rows){
   return (rows||[]).map(x=>{
     const paid=x.status==="paid"&&x.paid_at&&x.payment_reference;

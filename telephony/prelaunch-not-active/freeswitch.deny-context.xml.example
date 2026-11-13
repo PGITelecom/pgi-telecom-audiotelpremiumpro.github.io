@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Audiotel Premium Pro, OFFLINE-ONLY; no bridge and no operator gateway.
+     This context must not be confused with an operating SVA dialplan.
+     Production SIP profiles, MGIT and billing require a separate approval. -->
+<include>
+  <context name="audiotel_prelaunch_disabled">
+    <extension name="deny_all_traffic">
+      <condition>
+        <action application="hangup" data="CALL_REJECTED"/>
+      </condition>
+    </extension>
+  </context>
+</include>

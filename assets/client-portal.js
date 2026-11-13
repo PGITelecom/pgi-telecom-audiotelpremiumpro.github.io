@@ -163,7 +163,7 @@ function render(data){
   $("kpi-minutes").textContent=nf(a.billable/60,1);$("kpi-revenue").textContent=money(a.revenue,a.currency);$("kpi-payout").textContent=money(a.payout,a.currency);
   $("portal-sync").textContent="Dernière consolidation : "+(a.updated?dt(a.updated):dt(data.server_time));
   $("traffic-total").textContent=nf(a.calls)+" appels";
-  renderAnalytics(data);renderNumbers(data);renderCalls(data);renderSettlements(data);renderSubscriptions(data);renderOnboarding(data);renderDestinations(data);renderPortabilitySummary(data);renderVoiceStudio(data);renderServiceCenter(data);if(I.apply)I.apply(document.body);
+  renderAnalytics(data);renderNumbers(data);renderCalls(data);renderSettlements(data);renderSubscriptions(data);renderOnboarding(data);renderDestinations(data);renderPortabilitySummary(data);renderVoiceStudio(data);renderServiceCenter(data);if(window.PGI_CONFIG?.mode==="simulator"&&!state.demo)import("./client-prelaunch-preview.js").then(m=>m.refreshPrelaunchClientPreview({api:window.PGICustomerApi,canEdit:["owner","admin"].includes(String(state.user?.role||"").toLowerCase()),active:()=>!$("customer-app")?.hidden})).catch(()=>{});if(I.apply)I.apply(document.body);
 }
 async function loadPortal(){
   var range=rangeFor(state.range),data;
@@ -252,6 +252,7 @@ function hideAuthPanels(){
   ["login-panel","forgot-panel","reset-panel","register-panel","activation-panel"].forEach(function(id){var el=$(id);if(el)el.hidden=true;});
 }
 function showLogin(){
+  if(window.PGI_CONFIG?.mode==="simulator")import("./client-prelaunch-preview.js").then(m=>m.clearPrelaunchClientPreview()).catch(()=>{});
   $("customer-app").hidden=true;$("customer-auth").hidden=false;hideAuthPanels();$("login-panel").hidden=false;releaseInitialTopLock();
 }
 function showForgot(){

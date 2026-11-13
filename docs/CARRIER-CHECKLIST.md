@@ -2,6 +2,24 @@
 
 À remplir avant toute mise en production réelle.
 
+## Grille de négociation permanente d'Audiotel Premium Pro
+
+**Référence Arcep 2026 vérifiée :** **20 EUR de taxe par AN pour l'attribution directe de 1 000 numéros standards à dix chiffres** (1 000 × 0,02 EUR/numéro/an). La précédente hypothèse de **20 EUR/mois en location auprès d'un tiers est dépassée** : les nouvelles mises à disposition de numéros en 08 entre opérateurs sont normalement interdites depuis 2018. Le coût de 20 EUR/an concerne la ressource réglementaire, **pas** l'interconnexion, la collecte, le support, le routage, la conformité ni le reversement. Vérifier éligibilité Arcep, disponibilité des blocs, accès aux numéros, capacité de l'opérateur exploitant, conditions d'utilisation à 80 % par sous-bloc et frais additionnels des fournisseurs de gros. Source : https://www.arcep.fr/la-regulation/grands-dossiers-thematiques-transverses/la-numerotation/taxes-de-numerotation.html
+
+
+
+- Tous professionnels éligibles et secteurs légalement autorisés : ouverture possible sans volume minimum et sans engagement pour chaque professionnel.
+- Marge contributive cible **au moins 0,07 EUR/min éligible après tous les coûts variables**, y compris frais opérateur, PSP, fraude/impayés, reversements, et la rémunération due au professionnel : demander les éléments de calcul par palier et par origine d'appel.
+- Aucun forfait de minutes obligatoire par professionnel, aucune pénalité d'inactivité ; coût d'une ligne à zéro minute explicitement chiffré.
+- Frais d'attribution, portabilité, hébergement, maintenance, résiliation et frais par virement **minimisés et détaillés**.
+- Mutualisation des volumes de **tous les clients Audiotel** pour négocier les tarifs de gros : modalités, paliers d'agrégation, engagements éventuels **au niveau Audiotel** et risques chiffrés.
+- **Priorité absolue** au versement direct par l'opérateur ou un PSP habilité sur l'IBAN de chaque professionnel, sans transit bancaire chez Audiotel ; sa rémunération est versée séparément.
+- API ou fichiers pour CDR, portabilités, calcul, rapprochement et confirmations de versement, avec automatisation à faibles coûts de gestion.
+- Conformité Arcep, RGPD, AF2M, règles des opérateurs et du prestataire de paiement ; ne jamais confondre reversement direct et qualification automatique du chiffre d'affaires.
+- Aucun changement aux fonctionnalités et à la présentation des sites existants.
+- Pour chaque offre : comparer **marge réelle/minute**, **coût fixe par numéro**, **coût à zéro minute**, **absence de minimum individuel**, **volume agrégé**, **délais/frais de versement** et conformité juridique.
+- Tout refus : obtenir une trace écrite, analyser les alternatives et leur coût, puis soumettre la décision au dirigeant. Aucun engagement signé automatiquement.
+
 ## Numéro
 
 - 089 exact ;
@@ -12,6 +30,19 @@
 - conservation du palier lors du portage.
 
 ## Reversement
+
+
+**Priorité absolue avant toute négociation finalisée** : demander et archiver une réponse écrite sur le **reversement direct aux professionnels sur leurs IBAN**, sans transit de leurs fonds sur le compte Audiotel Premium Pro. L'opérateur ou le PSP habilité rémunère les professionnels et verse séparément à Audiotel sa commission contractuelle. Si refus : conserver l'offre/le refus, les alternatives, leur comparaison de coûts et les avis juridiques/fiscaux avant décision expresse du dirigeant.
+
+Points obligatoires de l'offre écrite :
+- Qui est juridiquement le collecteur, le débiteur et le payeur de chaque professionnel ;
+- Exécution automatique des paiements par opérateur ou PSP habilité, fréquence et preuve bancaire ;
+- Compatibilité avec Audiotel comme interlocuteur commercial principal et contrats transparents ;
+- Rémunération propre d'Audiotel versée séparément ;
+- API ou fichiers CDR + états de paiement + références de réconciliation ;
+- Frais par virement, frais fixes, seuils, incidents, chargebacks et SLA ;
+- Qualification fiscale et sociale à vérifier indépendamment, sans inférence à partir du flux bancaire ;
+- Refus explicite et alternatives documentées, coûts et risques, aucune signature automatique.
 
 - taux HT/min ;
 - paliers de volume ;

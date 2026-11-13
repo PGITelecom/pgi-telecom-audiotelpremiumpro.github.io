@@ -281,8 +281,16 @@ export async function syncHubSpotCommercialLead(input={},options={}){
   let effectiveStatus=requestedStatus;
   if(contact){
     const current=contact.properties||{};
-    effectiveStatus=advanceCommercialStatus(current.statut_commercial_pgi,requestedStatus);
+    // Commercial status is dossier-specific; do not inherit the status of a
+    // different dossier that happens to share this contact email.
+    effectiveStatus=requestedStatus;
     const preserveReferral=/Parrainage\s*:/i.test(String(current.besoin__projet_audiotel||""))&&!/Parrainage\s*:/i.test(String(baseProps.besoin__projet_audiotel||""));
+    // A contact can represent several commercial dossiers. Do not overwrite
+    // identity of its prior dossier when the new request has another one.
+    const previousDossier=String(current.pgi_dossier_ref||"").trim().toUpperCase();
+    const nextDossier=String(baseProps.pgi_dossier_ref||"").trim().toUpperCase();
+    const anotherDossier=Boolean(previousDossier&&nextDossier&&previousDossier!==nextDossier);
+    if(!anotherDossier)effectiveStatus=advanceCommercialStatus(current.statut_commercial_pgi,requestedStatus);
     const update={
       firstname:baseProps.firstname,
       lastname:baseProps.lastname,
@@ -293,10 +301,14 @@ export async function syncHubSpotCommercialLead(input={},options={}){
       besoin__projet_audiotel:preserveReferral?current.besoin__projet_audiotel:baseProps.besoin__projet_audiotel,
       pgi_dossier_ref:baseProps.pgi_dossier_ref
     };
+    if(anotherDossier){
+      for(const prop of ["company","type_de_client","type_de_demande",
+        "besoin__projet_audiotel","pgi_dossier_ref"])delete update[prop];
+    }
     if(!current.hubspot_owner_id)update.hubspot_owner_id=HUBSPOT_OWNER_ID;
     const lifecycle=commercialLifecycle(effectiveStatus,current.lifecyclestage);
-    if(lifecycle&&lifecycle!==current.lifecyclestage)update.lifecyclestage=lifecycle;
-    if(effectiveStatus&&effectiveStatus!==current.statut_commercial_pgi)update.statut_commercial_pgi=effectiveStatus;
+    if(!anotherDossier&&lifecycle&&lifecycle!==current.lifecyclestage)update.lifecyclestage=lifecycle;
+    if(!anotherDossier&&effectiveStatus&&effectiveStatus!==current.statut_commercial_pgi)update.statut_commercial_pgi=effectiveStatus;
     contact=await hubSpotPrivateRequest("/crm/v3/objects/contacts/"+encodeURIComponent(contact.id),{
       token,fetchImpl,method:"PATCH",body:{properties:compactProperties(update)}
     });
@@ -497,7 +509,12 @@ async function ensureCommercialDeal(contact,input,{token,fetchImpl,status}){
       token,fetchImpl,method:"GET"
     });
     const p=candidate?.properties||{};
-    if(p.pipeline===HUBSPOT_PIPELINE_ID&&!["closedwon","closedlost"].includes(p.dealstage)){openDeal=candidate;break;}
+    if(p.pipeline!==HUBSPOT_PIPELINE_ID||["closedwon","closedlost"].includes(p.dealstage))continue;
+    // Never hijack a different dossier's open deal for this client. Without
+    // a dossier reference, only legacy unlabelled deals can be reused.
+    const existingRef=String(p.pgi_dossier_ref||"").trim().toUpperCase();
+    if(dossierRef?(existingRef!==dossierRef):Boolean(existingRef))continue;
+    openDeal=candidate;break;
   }
   const targetStage=HUBSPOT_STAGE_BY_STATUS[status]||HUBSPOT_STAGE_BY_STATUS["Nouveau prospect"];
   if(openDeal){

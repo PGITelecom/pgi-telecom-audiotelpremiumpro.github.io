@@ -330,6 +330,7 @@ function invoiceAttemptCount(invoice){
   return Number.isInteger(n)&&n>=0?n:null;
 }
 function invoiceNextPaymentAttempt(invoice){return periodIso(invoice?.next_payment_attempt);}
+function safeStripeMoney(v){return typeof v==="number"&&Number.isSafeInteger(v)&&v>=0?v:null;}
 function invoiceReference(invoice){
   const id=idValue(invoice);
   return id&&/^in_[A-Za-z0-9]+$/.test(id)?id:null;
@@ -371,8 +372,11 @@ export async function normalizeStripeBillingEvent(event,config){
   const analyticsMeta=subscriptionMeta(subscription);
   normalized.ga_client_id=/^\d{1,20}\.\d{1,20}$/.test(String(analyticsMeta.ga_client_id||""))?String(analyticsMeta.ga_client_id):null;
   normalized.ga_session_id=/^\d{1,20}$/.test(String(analyticsMeta.ga_session_id||""))?String(analyticsMeta.ga_session_id):null;
-  normalized.provider_invoice_amount_paid_minor=Number.isInteger(Number(invoice?.amount_paid))?Number(invoice.amount_paid):null;
+  normalized.provider_invoice_amount_paid_minor=safeStripeMoney(invoice?.amount_paid);
+  normalized.provider_invoice_amount_due_minor=safeStripeMoney(invoice?.amount_due);
+  normalized.provider_invoice_amount_remaining_minor=safeStripeMoney(invoice?.amount_remaining);
   normalized.provider_invoice_currency=invoice?.currency?String(invoice.currency).toUpperCase():null;
+  normalized.provider_invoice_status=["draft","open","paid","void","uncollectible"].includes(String(invoice?.status||""))?String(invoice.status):null;
   normalized.provider_invoice_billing_reason=invoice?.billing_reason?String(invoice.billing_reason):null;
   if(type==="invoice.paid"){
     if(["active","trialing"].includes(String(subscription?.status||"").toLowerCase()))normalized.status="active";

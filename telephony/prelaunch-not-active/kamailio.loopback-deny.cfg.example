@@ -1,0 +1,30 @@
+#!KAMAILIO
+# Audiotel Premium Pro: LOCAL-ONLY / PRELAUNCH / DENY ALL CALLS
+# THIS IS NOT A LIVE SBC CONFIG. NEVER EXPOSE ON A PUBLIC INTERFACE.
+# Carrier IP allowlists, TLS certificates, topology hiding, SIP dialog
+# accounting, anti-fraud and dispatcher must be engineered and validated
+# against real contracts BEFORE creating an operator-facing configuration.
+debug=2
+fork=no
+children=1
+auto_aliases=no
+listen=udp:127.0.0.1:5099
+
+loadmodule "sl.so"
+loadmodule "maxfwd.so"
+loadmodule "sanity.so"
+
+request_route {
+    if (!mf_process_maxfwd_header("10")) {
+        sl_send_reply("483", "Too Many Hops");
+        exit;
+    }
+    if (!sanity_check("1511", "7")) {
+        sl_send_reply("400", "Bad Request");
+        exit;
+    }
+    # No REGISTER, no relay, no PSTN gateway and no call acceptance.
+    # This configuration never transmits a SIP call to a client.
+    sl_send_reply("503", "Audiotel Prelaunch Disabled");
+    exit;
+}
