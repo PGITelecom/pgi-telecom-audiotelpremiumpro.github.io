@@ -860,3 +860,19 @@ test("daily report snapshot executes against migrated PostgreSQL schema", {skip:
     await store.close();
   }
 });
+
+test("platform Business Live reset and snapshot use the real audit timestamp", {skip:!run}, async()=>{
+  const store=await PostgresStore.connect(config(),new EventBus());
+  try{
+    const baseline=await store.platformJackpotSnapshot();
+    assert.equal(baseline.accounting_impact,"none");
+    const reset=await store.createPlatformJackpotReset({sub:"admin"});
+    assert.equal(reset.accounting_impact,"none");
+    assert.equal(reset.reporting_impact,"none");
+    const snapshot=await store.platformJackpotSnapshot();
+    assert.equal(new Date(snapshot.reset_at).getTime(),new Date(reset.jackpot_reset_at).getTime());
+    assert.equal(snapshot.accounting_impact,"none");
+  }finally{
+    await store.close();
+  }
+});
