@@ -808,6 +808,7 @@ test("les surfaces espace client restent sans tiret cadratin",()=>{
 });
 
 test("platform Business Live reset reads real audit timestamp without changing accounting",()=>{
+  const store=read("backend/src/store-postgres.mjs");
   const auditSchema=read("database/schema.sql").match(/CREATE TABLE audit_log\s*\(([\s\S]*?)\n\);/)?.[1];
   assert.ok(auditSchema);
   assert.match(auditSchema,/\boccurred_at\s+timestamptz\b/);
