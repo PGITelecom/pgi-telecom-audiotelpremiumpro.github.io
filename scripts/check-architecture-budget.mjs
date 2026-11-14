@@ -14,7 +14,8 @@ const limits=Object.freeze([
  ["backend/src/store-postgres.mjs",709399],
  ["backend/src/store-postgres-financial-insights.mjs",14156],
  ["backend/src/store-postgres-network-insights.mjs",31423],
- ["backend/server.mjs",243783],
+ ["backend/server.mjs",237832],
+ ["backend/src/http-observability.mjs",6266],
  ["assets/app.js",84780],
  ["assets/client-portal.js",54805]
 ]);
