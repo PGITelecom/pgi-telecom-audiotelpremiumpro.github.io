@@ -403,7 +403,7 @@ export class PostgresStore{
   }
 
   async platformJackpotSnapshot(){
-    const resetRows=await this.readSql.unsafe("SELECT created_at AS effective_from FROM audit_log WHERE action='platform.jackpot.reset' ORDER BY id DESC LIMIT 1");
+    const resetRows=await this.readSql.unsafe("SELECT occurred_at AS effective_from FROM audit_log WHERE action='platform.jackpot.reset' ORDER BY id DESC LIMIT 1");
     const resetAt=new Date(resetRows[0]?.effective_from||0).toISOString();
     const rows=await this.readSql.unsafe(
       "SELECT currency,count(*) FILTER(WHERE status='active')::int AS active_calls,count(*) FILTER(WHERE status='ended')::int AS completed_calls,"+
@@ -1614,7 +1614,7 @@ export class PostgresStore{
 
   async createPlatformJackpotReset(actor){
     const userId=numericActor(actor);
-    const rows=await this.sql.unsafe("INSERT INTO audit_log(user_id,action,entity_type,entity_id,details) VALUES($1,'platform.jackpot.reset','business_live','platform',$2::jsonb) RETURNING id,created_at AS effective_from",[userId,JSON.stringify({metric_key:"business_live",accounting_impact:"none",reporting_impact:"none"})]);
+    const rows=await this.sql.unsafe("INSERT INTO audit_log(user_id,action,entity_type,entity_id,details) VALUES($1,'platform.jackpot.reset','business_live','platform',$2::jsonb) RETURNING id,occurred_at AS effective_from",[userId,JSON.stringify({metric_key:"business_live",accounting_impact:"none",reporting_impact:"none"})]);
     const row=rows[0];
     this.eventBus.publish("platform.jackpot.reset",{reset_at:row.effective_from});
     return {jackpot_reset_at:row.effective_from,accounting_impact:"none",reporting_impact:"none"};
