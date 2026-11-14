@@ -112,9 +112,19 @@ function bind(){
   $("client-export-analytics")?.addEventListener("click",()=>{if(!current)return;closeExport();download("audiotel-analyses-"+new Date().toISOString().slice(0,10)+".csv","text/csv;charset=utf-8",analyticsCsv(current))});
   $("client-export-snapshot")?.addEventListener("click",()=>{if(!current)return;closeExport();download("audiotel-instantane-"+new Date().toISOString().slice(0,10)+".json","application/json;charset=utf-8",JSON.stringify(safeSnapshot(current),null,2))});
 }
-document.addEventListener("pgi:portal-loaded",e=>render(e.detail?.data||{}));
+let authenticatedExtrasLoaded=false;
+function loadAuthenticatedExtras(){
+  if(authenticatedExtrasLoaded)return;
+  authenticatedExtrasLoaded=true;
+  void import("./client-account-proof.js").catch(()=>{});
+  void import("./yearly-progress.js").then(m=>m.mountClientAnnualProgress()).catch(()=>{});
+}
+document.addEventListener("pgi:portal-loaded",e=>{
+  render(e.detail?.data||{});
+  loadAuthenticatedExtras();
+});
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bind,{once:true});else bind();
-if(window.PGIClientPortalData)render(window.PGIClientPortalData);
-
-void import("./client-account-proof.js").catch(()=>{});
-void import("./yearly-progress.js").then(m=>m.mountClientAnnualProgress()).catch(()=>{});
+if(window.PGIClientPortalData){
+  render(window.PGIClientPortalData);
+  loadAuthenticatedExtras();
+}
