@@ -8,6 +8,8 @@ function stubbedStore(){
  const sql={
   async unsafe(query,values){
    queries.push({query,values});
+   if(query.includes("FROM combined"))return [{calls_total:0,calls_connected:0,calls_abandoned:0,calls_failed:0,currency_count:0}];
+   if(query.includes("FROM experts"))return [{active_experts:0,live_calls:0}];
    if(query.startsWith("SELECT id,default_currency,created_at FROM tenants"))
     return [{id:7,default_currency:"EUR",created_at:"2026-01-01T00:00:00.000Z"}];
    return [];
