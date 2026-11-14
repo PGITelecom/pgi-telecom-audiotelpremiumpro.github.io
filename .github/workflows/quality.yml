@@ -72,6 +72,33 @@ jobs:
           npm run perf:synthetic
           npm run resilience:drill
 
+
+      - name: Compare CI-only simulator concurrency profiles
+        env:
+          PGI_BACKEND_MODE: simulator
+          PGI_BACKEND_HOST: 127.0.0.1
+          PGI_BACKEND_PORT: 18081
+          PGI_PERF_TARGET: http://127.0.0.1:18081
+          PGI_RATE_LIMIT_PER_MINUTE: 10000
+          PGI_HEAVY_READ_RATE_LIMIT_PER_MINUTE: 5000
+          PGI_WRITE_RATE_LIMIT_PER_MINUTE: 5000
+          PGI_PERF_PATHS: /api/v1/health,/api/v1/ready
+          PGI_PERF_P95_MS: 1500
+          PGI_PERF_ERROR_RATE: 0
+        run: |
+          mkdir -p .ci-perf
+          node backend/server.mjs > /tmp/pgi-ci-load-backend.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:18081/api/v1/ready >/dev/null; then break; fi
+            sleep 0.2
+          done
+          curl -fsS http://127.0.0.1:18081/api/v1/ready >/dev/null
+          PGI_PERF_SCENARIO=load PGI_PERF_DURATION_SECONDS=4 PGI_PERF_CONCURRENCY=12 PGI_PERF_MAX_RPS=30 npm run perf:load > .ci-perf/simulator-load.json
+          PGI_PERF_SCENARIO=stress PGI_PERF_DURATION_SECONDS=5 PGI_PERF_CONCURRENCY=30 PGI_PERF_MAX_RPS=75 npm run perf:load > .ci-perf/simulator-stress.json
+          PGI_PERF_SCENARIO=spike PGI_PERF_DURATION_SECONDS=4 PGI_PERF_CONCURRENCY=60 PGI_PERF_MAX_RPS=150 npm run perf:load > .ci-perf/simulator-spike.json
+
       - name: Validate PostgreSQL schema and smoke tests
         env:
           PGPASSWORD: pgi_test
@@ -119,5 +146,43 @@ jobs:
         run: |
           node --test tests/postgres.integration.test.mjs
           node --test tests/critical-journeys.postgres.integration.test.mjs
+
+      - name: Benchmark read-only PostgreSQL methods in isolated CI database
+        env:
+          PGI_TEST_DATABASE_URL: postgresql://pgi_test:pgi_test@127.0.0.1:5432/pgi_test
+        run: |
+          mkdir -p .ci-perf
+          npm run perf:postgres-ci > .ci-perf/postgres.json
+
+      - name: Summarize CI-only performance evidence
+        if: always()
+        run: |
+          node --input-type=module - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          import fs from "node:fs";
+          console.log("### Isolated CI performance comparison\n");
+          console.log("| Environment | Scenario | Virtual users | RPS target cap | Requests | p95 (ms) | Errors |");
+          console.log("|---|---|---:|---:|---:|---:|---:|");
+          for(const file of ["simulator-load.json","simulator-stress.json","simulator-spike.json","postgres.json"]){
+            const path=".ci-perf/"+file;
+            if(!fs.existsSync(path))continue;
+            const r=JSON.parse(fs.readFileSync(path,"utf8"));
+            if(file!=="postgres.json"){
+              console.log("| Simulator | "+r.run_type+" | "+r.virtual_users+" | "+r.details.max_rps+" | "+r.requests_total+" | "+r.p95_ms.toFixed(1)+" | "+r.errors_total+" |");
+            }else for(const x of r.results){
+              console.log("| CI PostgreSQL | "+x.scenario+" | "+x.virtual_users+" | "+x.max_rps+" | "+x.samples+" | "+x.p95_ms.toFixed(1)+" | "+x.errors+" |");
+            }
+          }
+          console.log("\nSynthetic CI traffic and fixture, not a production-capacity guarantee.");
+          NODE
+
+      - name: Archive CI-only performance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-performance-evidence
+          path: .ci-perf/
+          if-no-files-found: ignore
+          retention-days: 14
+
 
 
