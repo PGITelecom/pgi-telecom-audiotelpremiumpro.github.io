@@ -131,8 +131,24 @@ const resilienceDoc=fs.readFileSync("docs/RESILIENCE.md","utf8");
 const prometheusAlerts=fs.readFileSync("infra/observability/prometheus-alerts.example.yml","utf8");
 const hyperscaleDoc=fs.readFileSync("docs/HYPERSCALE.md","utf8");
 const scaleHpa=fs.readFileSync("infra/scale/api-hpa.example.yaml","utf8");
-const postgresStore=fs.readFileSync("backend/src/store-postgres.mjs","utf8");
-const backendServer=fs.readFileSync("backend/server.mjs","utf8");
+// Static contracts follow extracted modules as a unit, not just the wrapper file.
+// A disconnected module must still fail the checks below.
+const postgresStoreCore=fs.readFileSync("backend/src/store-postgres.mjs","utf8");
+const postgresFinance=fs.readFileSync("backend/src/store-postgres-financial-insights.mjs","utf8");
+const postgresNetwork=fs.readFileSync("backend/src/store-postgres-network-insights.mjs","utf8");
+const postgresStore=[postgresStoreCore,postgresFinance,postgresNetwork].join("\n");
+const backendServerCore=fs.readFileSync("backend/server.mjs","utf8");
+const httpObservability=fs.readFileSync("backend/src/http-observability.mjs","utf8");
+const backendServer=[backendServerCore,httpObservability].join("\n");
+if(!/from "\.\/store-postgres-financial-insights\.mjs"/.test(postgresStoreCore)||
+   !/from "\.\/store-postgres-network-insights\.mjs"/.test(postgresStoreCore)||
+   !/financialInsights\.summary\.apply\(this,arguments\)/.test(postgresStoreCore)||
+   !/networkInsights\.dashboardAnalytics\.apply\(this,arguments\)/.test(postgresStoreCore))
+  failures.push("Postgres analytics module wiring must stay connected to the public store interface");
+if(!/from "\.\/src\/http-observability\.mjs"/.test(backendServerCore)||
+   !/\bmetricsResponse\(/.test(backendServerCore)||
+   !/\bobserveLatency\(/.test(backendServerCore))
+  failures.push("HTTP observability module must remain wired to the live HTTP runtime");
 const hubspotCrm=fs.readFileSync("backend/src/hubspot-crm.mjs","utf8");
 const resendEmailSource=fs.readFileSync("backend/src/resend-email.mjs","utf8");
 const dailyReportSource=fs.readFileSync("backend/src/daily-report.mjs","utf8");

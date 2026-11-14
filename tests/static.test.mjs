@@ -95,7 +95,9 @@ test("la marque client reste Audiotel Premium Pro et la plateforme reste multise
 });
 
 test("Business Live reste cumulatif, programmable et isolé des bilans officiels",()=>{
-  const server=read("backend/server.mjs"),store=read("backend/src/store-postgres.mjs"),site=read("site/index.html");
+  const server=read("backend/server.mjs")+"\n"+read("backend/src/http-observability.mjs"),
+    store=read("backend/src/store-postgres.mjs")+"\n"+read("backend/src/store-postgres-financial-insights.mjs"),
+    site=read("site/index.html");
   assert.match(clientPortal,/client-live-finance\.js/);
   assert.match(index,/live-finance\.js/);
   for(const asset of ["client-live-finance.js","client-live-finance.css","live-finance.js","live-finance.css","business-live-reset-schedule.js","business-live-reset-schedule.css"])assert.ok(buildStatic.includes('"assets/'+asset+'"'),"production build missing "+asset);

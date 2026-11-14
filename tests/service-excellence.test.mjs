@@ -8,7 +8,8 @@ const [migration,opsMigration,integrityMigration,store,workers,server,resendEmai
   readFile(new URL("../database/migrations/034_service_incident_tenant_integrity.sql",import.meta.url),"utf8"),
   readFile(new URL("../backend/src/store-postgres.mjs",import.meta.url),"utf8"),
   readFile(new URL("../backend/src/workers.mjs",import.meta.url),"utf8"),
-  readFile(new URL("../backend/server.mjs",import.meta.url),"utf8"),
+  readFile(new URL("../backend/server.mjs",import.meta.url),"utf8").then(async runtime=>
+    runtime+"\n"+await readFile(new URL("../backend/src/http-observability.mjs",import.meta.url),"utf8")),
   readFile(new URL("../backend/src/resend-email.mjs",import.meta.url),"utf8"),
   readFile(new URL("../assets/client-portal-api.js",import.meta.url),"utf8"),
   readFile(new URL("../assets/api-client.js",import.meta.url),"utf8"),
