@@ -95,9 +95,9 @@ jobs:
             sleep 0.2
           done
           curl -fsS http://127.0.0.1:18081/api/v1/ready >/dev/null
-          PGI_PERF_SCENARIO=load PGI_PERF_DURATION_SECONDS=4 PGI_PERF_CONCURRENCY=12 PGI_PERF_MAX_RPS=30 npm run perf:load > .ci-perf/simulator-load.json
-          PGI_PERF_SCENARIO=stress PGI_PERF_DURATION_SECONDS=5 PGI_PERF_CONCURRENCY=30 PGI_PERF_MAX_RPS=75 npm run perf:load > .ci-perf/simulator-stress.json
-          PGI_PERF_SCENARIO=spike PGI_PERF_DURATION_SECONDS=4 PGI_PERF_CONCURRENCY=60 PGI_PERF_MAX_RPS=150 npm run perf:load > .ci-perf/simulator-spike.json
+          PGI_PERF_SCENARIO=load PGI_PERF_DURATION_SECONDS=4 PGI_PERF_CONCURRENCY=12 PGI_PERF_MAX_RPS=30 node scripts/performance-load.mjs > .ci-perf/simulator-load.json
+          PGI_PERF_SCENARIO=stress PGI_PERF_DURATION_SECONDS=5 PGI_PERF_CONCURRENCY=30 PGI_PERF_MAX_RPS=75 node scripts/performance-load.mjs > .ci-perf/simulator-stress.json
+          PGI_PERF_SCENARIO=spike PGI_PERF_DURATION_SECONDS=4 PGI_PERF_CONCURRENCY=60 PGI_PERF_MAX_RPS=150 node scripts/performance-load.mjs > .ci-perf/simulator-spike.json
 
       - name: Validate PostgreSQL schema and smoke tests
         env:
@@ -152,7 +152,7 @@ jobs:
           PGI_TEST_DATABASE_URL: postgresql://pgi_test:pgi_test@127.0.0.1:5432/pgi_test
         run: |
           mkdir -p .ci-perf
-          npm run perf:postgres-ci > .ci-perf/postgres.json
+          node scripts/performance-postgres-ci.mjs > .ci-perf/postgres.json
 
       - name: Summarize CI-only performance evidence
         if: always()
