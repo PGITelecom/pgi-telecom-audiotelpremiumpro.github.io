@@ -159,8 +159,15 @@ function results(root,data){
  '<td>'+esc(currency(x.estimated_personal_monthly_net_eur))+'</td>'+
  '<td>'+esc(x.external_provider_count)+'</td>'+
  '<td>'+esc(x.issues.join(", ")||"Devis et contrôles à vérifier")+'</td></tr>').join("");
- area.innerHTML='<div class="as-result"><table><thead><tr><th>Configuration</th><th>Modèle / intermédiaires</th><th>Délégation</th><th>Résultat société avant impôts</th><th>Net personnel hypothétique</th><th>Partenaires</th><th>Alertes</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
- '<p class="as-note">'+(data.selected_preview_plan_id?"Option retenue pour étude : "+esc(data.selected_preview_plan_id)+". Perte de résultat estimée par rapport au maximum : "+esc(currency(data.monthly_company_result_sacrifice_eur))+".":"Aucune configuration financièrement viable et compatible : aucune option retenue.")+
+ const picked=data.plans.find(p=>p.id===data.selected_preview_plan_id);
+ const personalStatus=picked?.estimated_personal_floor_met===true?
+  "Seuil personnel atteint selon des hypothèses non vérifiées.":
+  "Seuil personnel après impôts non établi pour cette configuration.";
+ area.innerHTML='<p class="as-note as-bad" role="alert"><strong>SIMULATION NON VALIDÉE.</strong> '+
+ 'Les éléments déclarés par l’utilisateur ne remplacent ni contrat opérateur signé, ni droits de numérotation, ni recette technique, ni étude fiscale. '+
+ 'Aucune mise en service n’est autorisée par cet écran.</p>'+
+ '<div class="as-result"><table><thead><tr><th>Configuration</th><th>Modèle / intermédiaires</th><th>Délégation</th><th>Résultat société avant impôts</th><th>Net personnel hypothétique</th><th>Partenaires</th><th>Alertes</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+ '<p class="as-note">'+(data.selected_preview_plan_id?"Option retenue pour étude : "+esc(data.selected_preview_plan_id)+". Perte de résultat estimée par rapport au maximum : "+esc(currency(data.monthly_company_result_sacrifice_eur))+". "+esc(personalStatus):"Aucune configuration financièrement viable et compatible : aucune option retenue.")+
  ' Aucune activation, aucune sauvegarde en base, aucun virement ni changement opérateur.</p>'+
  '<div class="as-actions"><button type="button" data-as-export>Exporter ce rapport JSON</button></div>';
  generated=data;
