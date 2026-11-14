@@ -4,14 +4,16 @@
  * Changes exceeding 5% of their original size require a deliberate
  * modularization plan and an explicit baseline review.
  *
- * Baselines captured on the 2026-11-15 draft hardening branch.
+ * Baselines refreshed after the verified domain extraction; every domain is bounded.
  */
 import {statSync} from "node:fs";
 import {fileURLToPath} from "node:url";
 
 const root=new URL("../",import.meta.url);
 const limits=Object.freeze([
- ["backend/src/store-postgres.mjs",752809],
+ ["backend/src/store-postgres.mjs",709399],
+ ["backend/src/store-postgres-financial-insights.mjs",14156],
+ ["backend/src/store-postgres-network-insights.mjs",31423],
  ["backend/server.mjs",243783],
  ["assets/app.js",84780],
  ["assets/client-portal.js",54805]
