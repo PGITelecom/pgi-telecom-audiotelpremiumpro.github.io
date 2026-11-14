@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const migration=fs.readFileSync("database/migrations/050_performance_resilience_lab.sql","utf8");
-const server=fs.readFileSync("backend/server.mjs","utf8");
+const serverRuntime=fs.readFileSync("backend/server.mjs","utf8");
+const server=serverRuntime+"\n"+fs.readFileSync("backend/src/http-observability.mjs","utf8");
 const store=fs.readFileSync("backend/src/store-postgres.mjs","utf8");
 const ui=fs.readFileSync("assets/performance-resilience-lab.js","utf8");
 const load=fs.readFileSync("scripts/performance-load.mjs","utf8");
