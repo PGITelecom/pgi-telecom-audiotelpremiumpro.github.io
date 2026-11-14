@@ -47,3 +47,22 @@ La CI execute `npm run verify`, qui inclut maintenant le budget d'architecture e
 - Tests end-to-end sur un environnement de recette autorise, puis decision d'exploitation distincte.
 
 **Interdiction maintenue** : pas de fusion `main`, de redeploiement Vercel, de migration ou d'ecriture Neon sans autorisation explicite du proprietaire.
+
+
+## 5. Watermarks Remover : controle conservateur dans le pipeline GitHub
+
+L'outil \`scripts/scan-source-hygiene.mjs\` applique les regles d'inspection Unicode conservatrices documentees dans le plugin prive \`Watermarks Remover\`. La CI GitHub execute maintenant \`npm run check:source-hygiene\` a chaque verification de PR :
+
+- fichiers texte suivis par Git : detection des caracteres reellement invisibles U+200B, U+2060, U+FEFF, U+00AD, U+034F, du NUL et des controles bidi suspects dans le code executable ;
+- preservation explicite des jonctions Unicode U+200C/U+200D, des espaces insécables et des sequences JavaScript legitimes \`\\uFEFF\` utilisees pour les exportations CSV ;
+- inspection en lecture seule des conteneurs EXIF/XMP/C2PA connus des images PNG/JPEG/WebP et du noeud metadata des SVG ;
+- detection des fichiers source au mauvais encodage UTF-8, et compte rendu avec nom de fichier, ligne et point de code ;
+- tests automatises pour empecher des faux positifs et verifier l'absence de reecriture des fichiers.
+
+Les caracteres suspects ou les fichiers illisibles bloquent la CI. Les conteneurs de metadonnees sont **signales pour revue**, mais pas supprimes automatiquement : ils peuvent contenir de la provenance, des attributions ou des informations techniques legitimes.
+
+Cette implementation n'est pas une execution du service HTTP de watermarks-remover ; elle transpose les controles compatibles dans un script local Node.js sans abonnement supplementaire.
+
+**Limites** : l'absence de ces caracteres ne prouve pas l'absence de filigranes statistiques \`textGrain\`, \`SynthID\`, de marques dans les pixels ou d'attestations C2PA liees a des registres distants. La modification de la redaction de textes pour des raisons de qualite editoriale reste distincte de toute certification de suppression d'un filigrane.
+
+Interdit sans accord separe : modification automatique de signatures, titres de propriete, credits, declarations legales, metadata protectrices ou originaux d'images.
