@@ -9,6 +9,7 @@
  * APP's rate is the contractually DUE APP revenue after publishers' shares,
  * operator retention and any upstream deductions, not retail call revenue.
  */
+import {calculateAudiotelStrategyFinance,euroFromMillieur,atLeastShareOfBest} from "./audiotel-strategy-finance.mjs";
 const UNIT="audiotel_platform";
 const SERVICES=Object.freeze([
  "collection","portability","sip_routing","cdr_reporting","publisher_payout","noc_support"
@@ -23,11 +24,7 @@ function int(v,k,max,min=0){
  return v;
 }
 function validId(id,k){if(typeof id!=="string"||!ID.test(id))fail(k);return id;}
-function currency(milli){
- const abs=milli<0n?-milli:milli;
- const cents=(abs+5n)/10n;
- return Number(milli<0n?-cents:cents)/100;
-}
+const currency=euroFromMillieur;
 const isValidService=x=>SERVICES.includes(x);
 const compare=(a,b)=>a>b?1:a<b?-1:0;
 export const APP_MULTI_OPERATOR_WORKSTREAMS=SERVICES;
@@ -151,12 +148,14 @@ function plan(input,roster,minutes,retentionBps,personalTargetMilli){
  const variable=int(q.app_variable_cost_millieur_per_min,"APP_VARIABLE_COST_INVALID",1000000);
  const fixed=int(q.monthly_fixed_cost_cents,"FIXED_COST_INVALID",1000000000000);
  const setup=int(q.one_off_setup_cost_cents??0,"SETUP_COST_INVALID",1000000000000);
- const revenue=BigInt(minutes)*BigInt(ownRevenue);
- const variableCost=BigInt(minutes)*BigInt(variable);
- const fixedCost=BigInt(fixed)*10n;
- const operating=revenue-variableCost-fixedCost;
- const personal=retentionBps===null?null:(operating>0n?operating*BigInt(retentionBps)/10000n:0n);
- const goalMet=personal===null||minutes===0?null:personal>=BigInt(minutes)*BigInt(personalTargetMilli);
+ const money=calculateAudiotelStrategyFinance({
+  minutes,appOwnRevenueMillieurPerMin:ownRevenue,
+  appVariableCostMillieurPerMin:variable,
+  monthlyFixedCostCents:fixed,oneOffSetupCostCents:setup,
+  personalRetentionBps:retentionBps,minimumPersonalNetMillieurPerMin:personalTargetMilli
+ });
+ const operating=money.operating_millieur;
+ const goalMet=money.personal_floor_met;
  if(goalMet===false)issues.push("personal_net_below_minimum_target");
  const delegated=SERVICES.filter(s=>assignments[s]!=="audiotel");
  const internally=SERVICES.filter(s=>assignments[s]==="audiotel");
@@ -186,17 +185,23 @@ function plan(input,roster,minutes,retentionBps,personalTargetMilli){
   delegated_services:Object.freeze(delegated),
   internally_managed_services:Object.freeze(internally),
   delegation_percent:Math.round(100*delegated.length/SERVICES.length),
-  monthly_app_own_revenue_eur:currency(revenue),
-  monthly_app_variable_costs_eur:currency(variableCost),
-  monthly_app_fixed_costs_eur:fixed/100,
-  monthly_operating_before_tax_eur:currency(operating),
-  one_off_setup_eur:setup/100,
-  estimated_personal_monthly_net_eur:personal===null?null:currency(personal),
-  estimated_personal_net_eur_per_min:personal===null||minutes===0?null:Number(personal)/1000/minutes,
+  monthly_app_own_revenue_eur:money.monthly_app_own_revenue_eur,
+  monthly_app_variable_costs_eur:money.monthly_app_variable_costs_eur,
+  monthly_app_fixed_costs_eur:money.monthly_app_fixed_costs_eur,
+  monthly_operating_before_tax_eur:money.monthly_operating_before_tax_eur,
+  one_off_setup_eur:money.one_off_setup_eur,
+  estimated_personal_monthly_net_eur:money.estimated_personal_monthly_net_eur,
+  estimated_personal_net_eur_per_min:money.estimated_personal_net_eur_per_min,
+  // Exact integer valuation for decision ordering; EUR display is rounded separately.
+  company_result_millieur_exact:operating.toString(),
   estimated_personal_floor_met:goalMet,
   app_contribution_eur_per_min:(ownRevenue-variable)/1000,
   issues:Object.freeze([...new Set(issues)]),
   preview_contractual_quote_present:flags.commercial_quote_verified,
+  // User-entered checkboxes are claims, not validated carrier or tax evidence.
+  evidence_is_owner_declared_only:true,
+  launch_readiness_independently_verified:false,
+  release_requires_separate_owner_authorization:true,
   // A validated quote and contract are separate from acceptance and release.
   preview_has_all_owner_claimed_evidence:
    Object.values(flags).every(Boolean)&&issues.length===0,
@@ -236,27 +241,26 @@ export function planAudiotelMultiOperatorStrategy(input={}){
  const list=input.plans.map(p=>plan(p,roster,minutes,retentionBps,personalTargetMilli));
  if(new Set(list.map(p=>p.id)).size!==list.length)fail("PLAN_DUPLICATES");
  const compatible=list.filter(p=>p.compatible_for_scenario_selection);
+ const exact=p=>BigInt(p.company_result_millieur_exact);
  const ordered=[...compatible].sort((a,b)=>
-  b.monthly_operating_before_tax_eur-a.monthly_operating_before_tax_eur||
+  compare(exact(b),exact(a))||
   b.delegation_percent-a.delegation_percent||
   a.external_provider_count-b.external_provider_count||a.id.localeCompare(b.id));
  const best=ordered[0]||null;
  let eligible=[];
- if(best&&best.monthly_operating_before_tax_eur>0){
-  const max=BigInt(Math.round(best.monthly_operating_before_tax_eur*100));
-  const allowed= input.objective==="max_profit"?0:lossBps;
-  const lowerBound=max*BigInt(10000-allowed)/10000n;
-  eligible=ordered.filter(p=>BigInt(Math.round(p.monthly_operating_before_tax_eur*100))>=lowerBound);
+ if(best&&exact(best)>0n){
+  const allowed=input.objective==="max_profit"?0:lossBps;
+  eligible=ordered.filter(p=>atLeastShareOfBest(exact(p),exact(best),allowed));
  }
  // Preference for fewer suppliers at equal delegation and financial outcome:
  // it reduces handover complexity without forcing single-carrier lock-in.
  const chosen=(input.objective==="max_profit"?ordered:eligible.sort((a,b)=>
   b.delegation_percent-a.delegation_percent||
-  b.monthly_operating_before_tax_eur-a.monthly_operating_before_tax_eur||
+  compare(exact(b),exact(a))||
   a.external_provider_count-b.external_provider_count||
   a.id.localeCompare(b.id)))[0]||null;
- const validSelected=chosen&&chosen.monthly_operating_before_tax_eur>0?chosen:null;
- const other=best&&validSelected?best.monthly_operating_before_tax_eur-validSelected.monthly_operating_before_tax_eur:null;
+ const validSelected=chosen&&exact(chosen)>0n?chosen:null;
+ const other=best&&validSelected?currency(exact(best)-exact(validSelected)):null;
  return Object.freeze({
   schema_version:"app-multi-operator-strategy/1",business_unit:UNIT,currency:"EUR",
   objective:input.objective,billable_minutes_month:minutes,
@@ -264,9 +268,12 @@ export function planAudiotelMultiOperatorStrategy(input={}){
   personal_retention_assumption_bps:retentionBps,
   minimum_personal_net_eur_per_min:personalTargetMilli/1000,
   providers:roster,plans:Object.freeze(list),
-  baseline_max_profit_plan_id:best&&best.monthly_operating_before_tax_eur>0?best.id:null,
+  baseline_max_profit_plan_id:best&&exact(best)>0n?best.id:null,
   selected_preview_plan_id:validSelected?.id||null,
   selected_preview_reason:validSelected?"highest_delegation_within_owners_profit_limit":"no_viable_or_compatible_offer",
+  preview_is_not_a_release_decision:true,
+  owner_entered_evidence_not_independently_verified:true,
+  activation_approval_status:"blocked_pending_external_acceptance_and_explicit_owner_release",
   monthly_company_result_sacrifice_eur:other,
   personal_net_verified:false,
   external_operator_contract_verified:false,
