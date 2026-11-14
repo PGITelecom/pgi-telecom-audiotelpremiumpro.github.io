@@ -66,3 +66,23 @@ Cette implementation n'est pas une execution du service HTTP de watermarks-remov
 **Limites** : l'absence de ces caracteres ne prouve pas l'absence de filigranes statistiques `textGrain`, `SynthID`, de marques dans les pixels ou d'attestations C2PA liees a des registres distants. La modification de la redaction de textes pour des raisons de qualite editoriale reste distincte de toute certification de suppression d'un filigrane.
 
 Interdit sans accord separe : modification automatique de signatures, titres de propriete, credits, declarations legales, metadata protectrices ou originaux d'images.
+
+
+## 6. Extraction de domaines et controle de non-regression
+
+Date : 2026-11-15, branche de preparation, sans deploiement.
+
+**Reduction effective de la taille des fichiers les plus volumineux :**
+
+- `backend/src/store-postgres.mjs` : 752 809 octets sur `main`, 709 399 octets sur cette branche, soit **-43 410 octets** environ (-5,8 %). Les huit methodes finance, jackpot, synthese, tableau de bord, qualite reseau et incidents ont ete extraites, sans modification des requetes SQL ni des signatures publiques.
+- `backend/server.mjs` : 243 154 octets sur `main`, 237 832 octets sur cette branche, soit **-5 322 octets** environ (-2,2 % par rapport a la production). La generation Prometheus et les histogrammes sont desormais dans `backend/src/http-observability.mjs`.
+- Extraction dans `backend/src/store-postgres-financial-insights.mjs`, `backend/src/store-postgres-network-insights.mjs` et `backend/src/http-observability.mjs`.
+- Les seuils CI `scripts/check-architecture-budget.mjs` ont ete abaisses : ils surveillent les nouveaux modules et evitent que les monolithes reprennent leur ancien volume sans revue explicite.
+
+**Controle de compatibilite :**
+- Wrappers des methodes publiques conserves sur `PostgresStore`, meme nombre de parametres, delegation vers les domaines extraits.
+- Assertions de contrat et tests statiques adaptes pour suivre les imports effectifs. Les exigences d'origine, notamment SQL, Business Live, incidents, prometheus et controle d'acces restent verifiees.
+- Ajout de tests SQL factices en lecture seule `tests/postgres-analytics-modules.test.mjs` et d'observabilite `tests/http-observability-modules.test.mjs`.
+- Aucun nouveau branchement d'operateur, aucune modification de schema, aucun flux financier reel.
+
+**Precision :** le projet complet ne devient pas necessairement plus petit en octets : les fonctions deplacees restent necessaires. Le benefice est une reduction du couplage et de la taille des modules centraux, pas un gain de vitesse ou une superiorite sur les concurrents deja prouvee. Les tests en CI ne remplacent pas un audit de production.
