@@ -845,3 +845,18 @@ test("PostgreSQL relay propagates realtime events across independent processes",
     await storeB.close();
   }
 });
+
+
+test("daily report snapshot executes against migrated PostgreSQL schema", {skip:!run}, async()=>{
+  const store=await PostgresStore.connect(config(),new EventBus());
+  try{
+    const snapshot=await store.dailyReportSnapshot({date:"2026-11-14"});
+    assert.ok(snapshot&&typeof snapshot==="object");
+    assert.ok(snapshot.mail&&typeof snapshot.mail==="object");
+    assert.ok(Number.isInteger(Number(snapshot.mail.inbound_resolved)));
+    assert.ok(Number.isInteger(Number(snapshot.service.created_today)));
+    assert.ok(Array.isArray(snapshot.categories));
+  }finally{
+    await store.close();
+  }
+});
