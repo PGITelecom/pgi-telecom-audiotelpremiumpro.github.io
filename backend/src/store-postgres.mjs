@@ -5212,12 +5212,14 @@ export class PostgresStore{
 
   async completeAutomaticReferralPayout(rewardId,transfer={}){
     const id=Number(rewardId),reference=String(transfer.provider_transfer_reference||"").trim(),destination=String(transfer.destination_account||"").trim();
+    const attempt=Number(transfer.expected_attempt_count);
+    if(!Number.isInteger(attempt)||attempt<1)throw problem(400,"REFERRAL_PAYOUT_ATTEMPT_REQUIRED");
     if(!Number.isInteger(id)||id<=0)throw problem(400,"INVALID_REFERRAL_REWARD");
     if(!/^tr_[A-Za-z0-9]+$/.test(reference))throw problem(400,"INVALID_REFERRAL_TRANSFER_REFERENCE");
     if(!/^acct_[A-Za-z0-9]+$/.test(destination))throw problem(400,"INVALID_REFERRAL_PAYOUT_DESTINATION");
     return this.sql.begin(async tx=>{
       const existing=(await tx.unsafe(
-        "SELECT id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,provider_transfer_reference FROM customer_referral_rewards WHERE id=$1 FOR UPDATE",
+        "SELECT id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,payout_state,payout_attempt_count,provider_transfer_reference FROM customer_referral_rewards WHERE id=$1 FOR UPDATE",
         [id]
       ))[0];
       if(!existing)throw problem(404,"REFERRAL_REWARD_NOT_FOUND");
@@ -5226,11 +5228,12 @@ export class PostgresStore{
         return {...existing,amount_minor:Number(existing.amount_minor),already_paid:true};
       }
       if(existing.status!=="earned")throw problem(409,"REFERRAL_REWARD_NOT_PAYABLE");
+      if(existing.payout_state!=="processing"||Number(existing.payout_attempt_count)!==attempt)throw problem(409,"REFERRAL_PAYOUT_ATTEMPT_STALE");
       if(Number(transfer.amount_minor)!==Number(existing.amount_minor)||String(transfer.currency||"").toUpperCase()!==String(existing.currency||"").toUpperCase())throw problem(409,"REFERRAL_TRANSFER_AMOUNT_MISMATCH");
       const row=(await tx.unsafe(
         "UPDATE customer_referral_rewards SET status='paid',paid_at=COALESCE($4::timestamptz,now()),paid_reference=$2,payout_state='transferred',payout_destination_reference=$3,provider_transfer_reference=$2,payout_completed_at=COALESCE($4::timestamptz,now()),payout_next_attempt_at=NULL,payout_last_error=NULL"+
-        " WHERE id=$1 AND status='earned' RETURNING id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,earned_at,paid_at,paid_reference,payout_state,provider_transfer_reference,payout_destination_reference,payout_attempt_count",
-        [id,reference,destination,transfer.created_at||null]
+        " WHERE id=$1 AND status='earned' AND payout_state='processing' AND payout_attempt_count=$5::int RETURNING id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,earned_at,paid_at,paid_reference,payout_state,provider_transfer_reference,payout_destination_reference,payout_attempt_count",
+        [id,reference,destination,transfer.created_at||null,attempt]
       ))[0];
       if(!row)throw problem(409,"REFERRAL_REWARD_STATE_CHANGED");
       await tx.unsafe(
@@ -5247,13 +5250,15 @@ export class PostgresStore{
 
   async failAutomaticReferralPayout(rewardId,input={}){
     const id=Number(rewardId),state=String(input.state||"retry"),code=String(input.error_code||"REFERRAL_PAYOUT_FAILED").trim().slice(0,160);
+    const attempt=Number(input.expected_attempt_count);
     if(!Number.isInteger(id)||id<=0)throw problem(400,"INVALID_REFERRAL_REWARD");
+    if(!Number.isInteger(attempt)||attempt<1)throw problem(400,"REFERRAL_PAYOUT_ATTEMPT_REQUIRED");
     if(!["retry","waiting_account"].includes(state))throw problem(400,"INVALID_REFERRAL_PAYOUT_STATE");
     const nextAt=input.next_attempt_at&&Number.isFinite(Date.parse(input.next_attempt_at))?new Date(input.next_attempt_at).toISOString():new Date(Date.now()+3600000).toISOString();
     const rows=await this.sql.unsafe(
-      "UPDATE customer_referral_rewards SET payout_state=$2,payout_last_error=$3,payout_next_attempt_at=$4::timestamptz WHERE id=$1 AND status='earned'"+
+      "UPDATE customer_referral_rewards SET payout_state=$2,payout_last_error=$3,payout_next_attempt_at=$4::timestamptz WHERE id=$1 AND status='earned' AND payout_state='processing' AND payout_attempt_count=$5::int"+
       " RETURNING id,tenant_id,status,payout_state,payout_attempt_count,payout_last_error,payout_next_attempt_at",
-      [id,state,code,nextAt]
+      [id,state,code,nextAt,attempt]
     );
     if(rows[0])await this.sql.unsafe(
       "INSERT INTO audit_log(tenant_id,user_id,action,entity_type,entity_id,details) VALUES($1,NULL,'referral.reward.payout_retry','customer_referral_reward',$2,$3::jsonb)",
