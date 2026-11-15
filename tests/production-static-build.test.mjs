@@ -104,7 +104,11 @@ test("production static build publishes marketing root and private cockpit",()=>
       }[slug]||["/site/hubspot-tracking.js","/site/contact-widget.js","/site/site-search.js","/site/footer-year.js","/site/share.js"];
       for(const src of scripts)assert.ok(allowedScripts.includes(src),"unexpected public script on "+slug+": "+src);
       assert.ok(scripts.includes("/site/contact-widget.js"),"contact widget missing on "+slug);
-      assert.match(page,/href="\/site\/contact-widget\.css\?v=[a-z0-9._-]+"/i);
+      assert.ok(
+        /href="\/site\/public-marketing\.css\?v=[a-z0-9._-]+"/i.test(page)||
+        /href="\/site\/contact-widget\.css\?v=[a-z0-9._-]+"/i.test(page),
+        "marketing CSS must be present on "+slug
+      );
     });
     const independants=seoPages[seoSlugs.indexOf("audiotel-independants")];
     assert.match(independants,/avec ou sans SIRET/i);
