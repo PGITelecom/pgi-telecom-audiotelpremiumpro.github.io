@@ -1,4 +1,5 @@
 
+import {writeExperienceRollup,writeTenantDailyRollup,writeVoiceCarrierHealthRollup,writeTenantVoiceDailyRollup,writeSipCodeRollup,writeQualityRollup,writeDashboardDimensionRollups,writeHourlyRollup,refreshHourlyRollupsForCalls} from "./store-postgres-rollups.mjs";
 import {createHash} from "node:crypto";
 import {normalizeFrenchSvaRio,rioFingerprint,encryptPortabilityCredential} from "./portability-identity.mjs";
 import {sanitizeCdrPayload,deriveCallerHash} from "./cdr-privacy.mjs";
@@ -403,7 +404,7 @@ export class PostgresStore{
   }
 
   async platformJackpotSnapshot(){
-    const resetRows=await this.readSql.unsafe("SELECT created_at AS effective_from FROM audit_log WHERE action='platform.jackpot.reset' ORDER BY id DESC LIMIT 1");
+    const resetRows=await this.readSql.unsafe("SELECT occurred_at AS effective_from FROM audit_log WHERE action='platform.jackpot.reset' ORDER BY id DESC LIMIT 1");
     const resetAt=new Date(resetRows[0]?.effective_from||0).toISOString();
     const rows=await this.readSql.unsafe(
       "SELECT currency,count(*) FILTER(WHERE status='active')::int AS active_calls,count(*) FILTER(WHERE status='ended')::int AS completed_calls,"+
@@ -1614,7 +1615,7 @@ export class PostgresStore{
 
   async createPlatformJackpotReset(actor){
     const userId=numericActor(actor);
-    const rows=await this.sql.unsafe("INSERT INTO audit_log(user_id,action,entity_type,entity_id,details) VALUES($1,'platform.jackpot.reset','business_live','platform',$2::jsonb) RETURNING id,created_at AS effective_from",[userId,JSON.stringify({metric_key:"business_live",accounting_impact:"none",reporting_impact:"none"})]);
+    const rows=await this.sql.unsafe("INSERT INTO audit_log(user_id,action,entity_type,entity_id,details) VALUES($1,'platform.jackpot.reset','business_live','platform',$2::jsonb) RETURNING id,occurred_at AS effective_from",[userId,JSON.stringify({metric_key:"business_live",accounting_impact:"none",reporting_impact:"none"})]);
     const row=rows[0];
     this.eventBus.publish("platform.jackpot.reset",{reset_at:row.effective_from});
     return {jackpot_reset_at:row.effective_from,accounting_impact:"none",reporting_impact:"none"};
@@ -2231,7 +2232,7 @@ export class PostgresStore{
     const ttl=clampInt(leaseSeconds,60,15,900);
     const rows=await this.sql.unsafe(
       "UPDATE work_queue SET lease_expires_at=now()+make_interval(secs=>$3)"+
-      " WHERE id=$1 AND locked_by=$2 AND completed_at IS NULL AND failed_at IS NULL AND dead_lettered_at IS NULL"+
+      " WHERE id=$1 AND locked_by=$2 AND lease_expires_at>now() AND completed_at IS NULL AND failed_at IS NULL AND dead_lettered_at IS NULL"+
       " RETURNING id,lease_expires_at",
       [Number(id),String(workerId||""),ttl]
     );
@@ -2242,7 +2243,7 @@ export class PostgresStore{
   async completeWork(id,workerId){
     const rows=await this.sql.unsafe(
       "UPDATE work_queue SET completed_at=now(),locked_at=NULL,locked_by=NULL,lease_expires_at=NULL,last_error=NULL"+
-      " WHERE id=$1 AND locked_by=$2 AND completed_at IS NULL AND failed_at IS NULL AND dead_lettered_at IS NULL"+
+      " WHERE id=$1 AND locked_by=$2 AND lease_expires_at>now() AND completed_at IS NULL AND failed_at IS NULL AND dead_lettered_at IS NULL"+
       " RETURNING id,queue_name,completed_at",
       [Number(id),String(workerId||"")]
     );
@@ -2258,7 +2259,7 @@ export class PostgresStore{
       const rows=await tx.unsafe(
         "SELECT id,queue_name,tenant_id,correlation_id,trace_id,payload,attempts,max_attempts"+
         " FROM work_queue WHERE id=$1 AND locked_by=$2 AND completed_at IS NULL"+
-        " AND failed_at IS NULL AND dead_lettered_at IS NULL FOR UPDATE",
+        " AND failed_at IS NULL AND dead_lettered_at IS NULL AND lease_expires_at>now() FOR UPDATE",
         [Number(id),owner]
       );
       const work=rows[0];
@@ -5211,25 +5212,35 @@ export class PostgresStore{
 
   async completeAutomaticReferralPayout(rewardId,transfer={}){
     const id=Number(rewardId),reference=String(transfer.provider_transfer_reference||"").trim(),destination=String(transfer.destination_account||"").trim();
+    const attempt=Number(transfer.expected_attempt_count);
+    if(!Number.isInteger(attempt)||attempt<1)throw problem(400,"REFERRAL_PAYOUT_ATTEMPT_REQUIRED");
     if(!Number.isInteger(id)||id<=0)throw problem(400,"INVALID_REFERRAL_REWARD");
     if(!/^tr_[A-Za-z0-9]+$/.test(reference))throw problem(400,"INVALID_REFERRAL_TRANSFER_REFERENCE");
     if(!/^acct_[A-Za-z0-9]+$/.test(destination))throw problem(400,"INVALID_REFERRAL_PAYOUT_DESTINATION");
     return this.sql.begin(async tx=>{
       const existing=(await tx.unsafe(
-        "SELECT id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,provider_transfer_reference FROM customer_referral_rewards WHERE id=$1 FOR UPDATE",
+        "SELECT id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,payout_state,payout_attempt_count,provider_transfer_reference,payout_destination_reference FROM customer_referral_rewards WHERE id=$1 FOR UPDATE",
         [id]
       ))[0];
       if(!existing)throw problem(404,"REFERRAL_REWARD_NOT_FOUND");
       if(existing.status==="paid"){
-        if(existing.provider_transfer_reference&&existing.provider_transfer_reference!==reference)throw problem(409,"REFERRAL_TRANSFER_REFERENCE_MISMATCH");
+        // A replay is valid only for the same confirmed transfer, not a manual payment.
+        if(existing.payout_state!=="transferred"||existing.provider_transfer_reference!==reference)
+          throw problem(409,"REFERRAL_TRANSFER_REFERENCE_MISMATCH");
+        if(Number(transfer.amount_minor)!==Number(existing.amount_minor)||
+           String(transfer.currency||"").toUpperCase()!==String(existing.currency||"").toUpperCase())
+          throw problem(409,"REFERRAL_TRANSFER_AMOUNT_MISMATCH");
+        if(existing.payout_destination_reference!==destination)
+          throw problem(409,"REFERRAL_PAYOUT_DESTINATION_MISMATCH");
         return {...existing,amount_minor:Number(existing.amount_minor),already_paid:true};
       }
       if(existing.status!=="earned")throw problem(409,"REFERRAL_REWARD_NOT_PAYABLE");
+      if(existing.payout_state!=="processing"||Number(existing.payout_attempt_count)!==attempt)throw problem(409,"REFERRAL_PAYOUT_ATTEMPT_STALE");
       if(Number(transfer.amount_minor)!==Number(existing.amount_minor)||String(transfer.currency||"").toUpperCase()!==String(existing.currency||"").toUpperCase())throw problem(409,"REFERRAL_TRANSFER_AMOUNT_MISMATCH");
       const row=(await tx.unsafe(
         "UPDATE customer_referral_rewards SET status='paid',paid_at=COALESCE($4::timestamptz,now()),paid_reference=$2,payout_state='transferred',payout_destination_reference=$3,provider_transfer_reference=$2,payout_completed_at=COALESCE($4::timestamptz,now()),payout_next_attempt_at=NULL,payout_last_error=NULL"+
-        " WHERE id=$1 AND status='earned' RETURNING id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,earned_at,paid_at,paid_reference,payout_state,provider_transfer_reference,payout_destination_reference,payout_attempt_count",
-        [id,reference,destination,transfer.created_at||null]
+        " WHERE id=$1 AND status='earned' AND payout_state='processing' AND payout_attempt_count=$5::int RETURNING id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,earned_at,paid_at,paid_reference,payout_state,provider_transfer_reference,payout_destination_reference,payout_attempt_count",
+        [id,reference,destination,transfer.created_at||null,attempt]
       ))[0];
       if(!row)throw problem(409,"REFERRAL_REWARD_STATE_CHANGED");
       await tx.unsafe(
@@ -5246,13 +5257,15 @@ export class PostgresStore{
 
   async failAutomaticReferralPayout(rewardId,input={}){
     const id=Number(rewardId),state=String(input.state||"retry"),code=String(input.error_code||"REFERRAL_PAYOUT_FAILED").trim().slice(0,160);
+    const attempt=Number(input.expected_attempt_count);
     if(!Number.isInteger(id)||id<=0)throw problem(400,"INVALID_REFERRAL_REWARD");
+    if(!Number.isInteger(attempt)||attempt<1)throw problem(400,"REFERRAL_PAYOUT_ATTEMPT_REQUIRED");
     if(!["retry","waiting_account"].includes(state))throw problem(400,"INVALID_REFERRAL_PAYOUT_STATE");
     const nextAt=input.next_attempt_at&&Number.isFinite(Date.parse(input.next_attempt_at))?new Date(input.next_attempt_at).toISOString():new Date(Date.now()+3600000).toISOString();
     const rows=await this.sql.unsafe(
-      "UPDATE customer_referral_rewards SET payout_state=$2,payout_last_error=$3,payout_next_attempt_at=$4::timestamptz WHERE id=$1 AND status='earned'"+
+      "UPDATE customer_referral_rewards SET payout_state=$2,payout_last_error=$3,payout_next_attempt_at=$4::timestamptz WHERE id=$1 AND status='earned' AND payout_state='processing' AND payout_attempt_count=$5::int"+
       " RETURNING id,tenant_id,status,payout_state,payout_attempt_count,payout_last_error,payout_next_attempt_at",
-      [id,state,code,nextAt]
+      [id,state,code,nextAt,attempt]
     );
     if(rows[0])await this.sql.unsafe(
       "INSERT INTO audit_log(tenant_id,user_id,action,entity_type,entity_id,details) VALUES($1,NULL,'referral.reward.payout_retry','customer_referral_reward',$2,$3::jsonb)",
@@ -5265,24 +5278,34 @@ export class PostgresStore{
     const id=Number(rewardId),reference=String(paidReference||"").trim().slice(0,180),actorId=numericActor(actor);
     if(!Number.isInteger(id)||id<=0)throw problem(400,"INVALID_REFERRAL_REWARD");
     if(reference.length<3)throw problem(400,"REFERRAL_PAYMENT_REFERENCE_REQUIRED");
-    const existing=(await this.sql.unsafe(
-      "SELECT id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,earned_at,paid_at,paid_reference,payout_state FROM customer_referral_rewards WHERE id=$1 LIMIT 1",
-      [id]
-    ))[0];
-    if(!existing)throw problem(404,"REFERRAL_REWARD_NOT_FOUND");
-    if(existing.status==="paid")return {...existing,amount_minor:Number(existing.amount_minor),already_paid:true};
-    if(existing.status!=="earned")throw problem(409,"REFERRAL_REWARD_NOT_PAYABLE");
-    if(existing.payout_state==="processing")throw problem(409,"REFERRAL_PAYOUT_IN_PROGRESS");
-    const row=(await this.sql.unsafe(
-      "UPDATE customer_referral_rewards SET status='paid',paid_at=now(),paid_reference=$2,payout_state='manual',payout_completed_at=now(),payout_next_attempt_at=NULL,payout_last_error=NULL WHERE id=$1 AND status='earned' RETURNING id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,earned_at,paid_at,paid_reference,payout_state",
-      [id,reference]
-    ))[0];
-    if(!row)throw problem(409,"REFERRAL_REWARD_STATE_CHANGED");
-    await this.sql.unsafe(
-      "INSERT INTO audit_log(tenant_id,user_id,action,entity_type,entity_id,details) VALUES($1,$2,'referral.reward.paid','customer_referral_reward',$3,$4::jsonb)",
-      [row.tenant_id,actorId,String(row.id),JSON.stringify({amount_minor:Number(row.amount_minor),currency:row.currency,paid_reference:row.paid_reference,payout_state:"manual"})]
-    );
-    return {...row,amount_minor:Number(row.amount_minor),already_paid:false};
+    // Row locking serializes manual settlement with automated payout claims.
+    // The payment and its audit record commit atomically or both roll back.
+    return this.sql.begin(async tx=>{
+      const existing=(await tx.unsafe(
+        "SELECT id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,earned_at,paid_at,paid_reference,payout_state FROM customer_referral_rewards WHERE id=$1 FOR UPDATE",
+        [id]
+      ))[0];
+      if(!existing)throw problem(404,"REFERRAL_REWARD_NOT_FOUND");
+      if(existing.status==="paid"){
+        // Never acknowledge an unrelated reference or an automatic transfer as a manual replay.
+        if(existing.payout_state!=="manual"||existing.paid_reference!==reference)
+          throw problem(409,"REFERRAL_PAYMENT_REFERENCE_MISMATCH");
+        return {...existing,amount_minor:Number(existing.amount_minor),already_paid:true};
+      }
+      if(existing.status!=="earned")throw problem(409,"REFERRAL_REWARD_NOT_PAYABLE");
+      if(existing.payout_state==="processing")throw problem(409,"REFERRAL_PAYOUT_IN_PROGRESS");
+      if(!["pending","retry","waiting_account"].includes(existing.payout_state))throw problem(409,"REFERRAL_PAYOUT_STATE_INVALID");
+      const row=(await tx.unsafe(
+        "UPDATE customer_referral_rewards SET status='paid',paid_at=now(),paid_reference=$2,payout_state='manual',payout_completed_at=now(),payout_next_attempt_at=NULL,payout_last_error=NULL WHERE id=$1 AND status='earned' AND payout_state IN ('pending','retry','waiting_account') RETURNING id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,earned_at,paid_at,paid_reference,payout_state",
+        [id,reference]
+      ))[0];
+      if(!row)throw problem(409,"REFERRAL_REWARD_STATE_CHANGED");
+      await tx.unsafe(
+        "INSERT INTO audit_log(tenant_id,user_id,action,entity_type,entity_id,details) VALUES($1,$2,'referral.reward.paid','customer_referral_reward',$3,$4::jsonb)",
+        [row.tenant_id,actorId,String(row.id),JSON.stringify({amount_minor:Number(row.amount_minor),currency:row.currency,paid_reference:row.paid_reference,payout_state:"manual"})]
+      );
+      return {...row,amount_minor:Number(row.amount_minor),already_paid:false};
+    });
   }
 
   async customerPortabilityRequests(tenantId){
@@ -6858,7 +6881,7 @@ export class PostgresStore{
         " (SELECT count(*)::int FROM tenant_service_incidents i JOIN tenants t ON t.id=i.tenant_id WHERE t.tenant_type<>'internal' AND i.status NOT IN ('resolved','closed') AND i.severity='critical') AS critical_open,"+
         " (SELECT count(*)::int FROM tenant_service_incidents i JOIN tenants t ON t.id=i.tenant_id WHERE t.tenant_type<>'internal' AND i.status NOT IN ('resolved','closed') AND i.first_responded_at IS NULL AND i.first_response_due_at<now()) AS first_response_overdue,"+
         " (SELECT count(*)::int FROM tenant_service_incidents i JOIN tenants t ON t.id=i.tenant_id WHERE t.tenant_type<>'internal' AND i.status NOT IN ('resolved','closed') AND i.target_resolution_at<now()) AS resolution_overdue,"+
-        " (SELECT count(*)::int FROM audit_log WHERE action='customer.email.inbound_resolved' AND occurred_at>="+bounds+" AND created_at<"+end+") AS inbound_resolved,"+
+        " (SELECT count(*)::int FROM audit_log WHERE action='customer.email.inbound_resolved' AND occurred_at>="+bounds+" AND occurred_at<"+end+") AS inbound_resolved,"+
         " (SELECT count(*)::int FROM transactional_email_deliveries WHERE created_at>="+bounds+" AND created_at<"+end+") AS email_created,"+
         " (SELECT count(*)::int FROM transactional_email_deliveries WHERE created_at>="+bounds+" AND created_at<"+end+" AND state IN ('accepted','sent','delivered','clicked')) AS email_accepted_or_sent,"+
         " (SELECT count(*)::int FROM transactional_email_deliveries WHERE created_at>="+bounds+" AND created_at<"+end+" AND state IN ('delivered','clicked')) AS email_delivered,"+
@@ -8532,318 +8555,6 @@ export class PostgresStore{
     ]);
     return {...calls[0],...outbox[0],...serviceHealth,event_subscribers:this.eventBus.size};
   }
-}
-
-async function writeExperienceRollup(tx,callId){
-  await tx.unsafe(
-    "INSERT INTO experience_rollups_hourly_sharded("+
-    " bucket_start,market_id,rollup_shard,calls_total,calls_connected,calls_abandoned,wait_seconds_sum,"+
-    " wait_connected_seconds_sum,wait_abandoned_seconds_sum,answered_le_20s,abandoned_le_10s,ivr_seconds_sum,ivr_samples,"+
-    " queue_seconds_sum,queue_samples,wait_le_10s,wait_10_20s,wait_20_30s,wait_30_60s,wait_60_120s,wait_gt_120s)"+
-    " SELECT date_trunc('hour',c.started_at),c.market_id,(c.tenant_bucket%64)::smallint,1,"+
-    " (c.call_status='connected')::int,(c.call_status='abandoned')::int,c.wait_seconds,"+
-    " CASE WHEN c.call_status='connected' THEN c.wait_seconds ELSE 0 END,"+
-    " CASE WHEN c.call_status='abandoned' THEN c.wait_seconds ELSE 0 END,"+
-    " (c.call_status='connected' AND c.wait_seconds<=20)::int,(c.call_status='abandoned' AND c.wait_seconds<=10)::int,"+
-    " CASE WHEN c.queued_at IS NOT NULL AND c.ivr_started_at IS NOT NULL THEN GREATEST(0,EXTRACT(EPOCH FROM (c.queued_at-c.ivr_started_at)))::bigint ELSE 0 END,"+
-    " (c.queued_at IS NOT NULL AND c.ivr_started_at IS NOT NULL)::int,"+
-    " CASE WHEN c.queued_at IS NOT NULL THEN GREATEST(0,EXTRACT(EPOCH FROM (COALESCE(c.bridged_at,c.ended_at)-c.queued_at)))::bigint ELSE 0 END,"+
-    " (c.queued_at IS NOT NULL)::int,(c.wait_seconds<=10)::int,(c.wait_seconds>10 AND c.wait_seconds<=20)::int,"+
-    " (c.wait_seconds>20 AND c.wait_seconds<=30)::int,(c.wait_seconds>30 AND c.wait_seconds<=60)::int,"+
-    " (c.wait_seconds>60 AND c.wait_seconds<=120)::int,(c.wait_seconds>120)::int"+
-    " FROM calls c WHERE c.id=$1 AND c.market_id IS NOT NULL"+
-    " ON CONFLICT(bucket_start,market_id,rollup_shard) DO UPDATE SET"+
-    " calls_total=experience_rollups_hourly_sharded.calls_total+1,"+
-    " calls_connected=experience_rollups_hourly_sharded.calls_connected+EXCLUDED.calls_connected,"+
-    " calls_abandoned=experience_rollups_hourly_sharded.calls_abandoned+EXCLUDED.calls_abandoned,"+
-    " wait_seconds_sum=experience_rollups_hourly_sharded.wait_seconds_sum+EXCLUDED.wait_seconds_sum,"+
-    " wait_connected_seconds_sum=experience_rollups_hourly_sharded.wait_connected_seconds_sum+EXCLUDED.wait_connected_seconds_sum,"+
-    " wait_abandoned_seconds_sum=experience_rollups_hourly_sharded.wait_abandoned_seconds_sum+EXCLUDED.wait_abandoned_seconds_sum,"+
-    " answered_le_20s=experience_rollups_hourly_sharded.answered_le_20s+EXCLUDED.answered_le_20s,"+
-    " abandoned_le_10s=experience_rollups_hourly_sharded.abandoned_le_10s+EXCLUDED.abandoned_le_10s,"+
-    " ivr_seconds_sum=experience_rollups_hourly_sharded.ivr_seconds_sum+EXCLUDED.ivr_seconds_sum,"+
-    " ivr_samples=experience_rollups_hourly_sharded.ivr_samples+EXCLUDED.ivr_samples,"+
-    " queue_seconds_sum=experience_rollups_hourly_sharded.queue_seconds_sum+EXCLUDED.queue_seconds_sum,"+
-    " queue_samples=experience_rollups_hourly_sharded.queue_samples+EXCLUDED.queue_samples,"+
-    " wait_le_10s=experience_rollups_hourly_sharded.wait_le_10s+EXCLUDED.wait_le_10s,"+
-    " wait_10_20s=experience_rollups_hourly_sharded.wait_10_20s+EXCLUDED.wait_10_20s,"+
-    " wait_20_30s=experience_rollups_hourly_sharded.wait_20_30s+EXCLUDED.wait_20_30s,"+
-    " wait_30_60s=experience_rollups_hourly_sharded.wait_30_60s+EXCLUDED.wait_30_60s,"+
-    " wait_60_120s=experience_rollups_hourly_sharded.wait_60_120s+EXCLUDED.wait_60_120s,"+
-    " wait_gt_120s=experience_rollups_hourly_sharded.wait_gt_120s+EXCLUDED.wait_gt_120s,updated_at=now()",
-    [callId]
-  );
-}
-
-async function writeTenantDailyRollup(tx,callId){
-  await tx.unsafe(
-    "INSERT INTO metric_rollups_daily_v2("+
-    " tenant_bucket,bucket_date,tenant_id,market_id,currency,calls_total,calls_connected,calls_abandoned,calls_failed,"+
-    " conversation_seconds,billable_seconds,payout_eligible_seconds,generated_revenue_ttc,expected_payout_ht,confirmed_payout_ht,"+
-    " paid_payout_ht,expert_cost_ht,technical_cost_ht,estimated_margin_ht,reconciliation_variance_ht,source_generation)"+
-    " SELECT f.tenant_bucket,f.started_at::date,f.tenant_id,f.market_id,f.currency,1,"+
-    " (f.call_status='connected')::int,(f.call_status='abandoned')::int,(f.call_status NOT IN ('connected','abandoned'))::int,"+
-    " f.conversation_seconds,f.billable_seconds,f.payout_eligible_seconds,f.retail_service_amount_ttc,f.expected_payout_ht,"+
-    " f.confirmed_payout_ht,f.paid_payout_ht,f.expert_cost_ht,f.technical_cost_ht,f.estimated_margin_ht,f.reconciliation_variance_ht,1"+
-    " FROM call_facts f WHERE f.call_id=$1 AND f.tenant_id IS NOT NULL AND f.market_id IS NOT NULL"+
-    " ON CONFLICT(tenant_bucket,bucket_date,tenant_id,market_id,currency) DO UPDATE SET"+
-    " calls_total=metric_rollups_daily_v2.calls_total+1,"+
-    " calls_connected=metric_rollups_daily_v2.calls_connected+EXCLUDED.calls_connected,"+
-    " calls_abandoned=metric_rollups_daily_v2.calls_abandoned+EXCLUDED.calls_abandoned,"+
-    " calls_failed=metric_rollups_daily_v2.calls_failed+EXCLUDED.calls_failed,"+
-    " conversation_seconds=metric_rollups_daily_v2.conversation_seconds+EXCLUDED.conversation_seconds,"+
-    " billable_seconds=metric_rollups_daily_v2.billable_seconds+EXCLUDED.billable_seconds,"+
-    " payout_eligible_seconds=metric_rollups_daily_v2.payout_eligible_seconds+EXCLUDED.payout_eligible_seconds,"+
-    " generated_revenue_ttc=metric_rollups_daily_v2.generated_revenue_ttc+EXCLUDED.generated_revenue_ttc,"+
-    " expected_payout_ht=metric_rollups_daily_v2.expected_payout_ht+EXCLUDED.expected_payout_ht,"+
-    " confirmed_payout_ht=metric_rollups_daily_v2.confirmed_payout_ht+EXCLUDED.confirmed_payout_ht,"+
-    " paid_payout_ht=metric_rollups_daily_v2.paid_payout_ht+EXCLUDED.paid_payout_ht,"+
-    " expert_cost_ht=metric_rollups_daily_v2.expert_cost_ht+EXCLUDED.expert_cost_ht,"+
-    " technical_cost_ht=metric_rollups_daily_v2.technical_cost_ht+EXCLUDED.technical_cost_ht,"+
-    " estimated_margin_ht=metric_rollups_daily_v2.estimated_margin_ht+EXCLUDED.estimated_margin_ht,"+
-    " reconciliation_variance_ht=metric_rollups_daily_v2.reconciliation_variance_ht+EXCLUDED.reconciliation_variance_ht,"+
-    " source_generation=metric_rollups_daily_v2.source_generation+1,updated_at=now()",
-    [callId]
-  );
-}
-
-async function writeVoiceCarrierHealthRollup(tx,callId){
-  await tx.unsafe(
-    "INSERT INTO voice_carrier_health_hourly_sharded("+
-    " bucket_start,market_id,carrier_role,carrier_id,rollup_shard,calls_total,calls_connected,calls_failed,pdd_samples,pdd_ms_sum,high_pdd_calls,"+
-    " quality_samples,network_affected_calls,low_mos_calls,mos_sum,packet_loss_sum,jitter_ms_sum,latency_ms_sum,rtt_ms_sum,"+
-    " sip_4xx_calls,sip_5xx_calls,caller_hangups,callee_hangups,network_hangups)"+
-    " SELECT date_trunc('hour',c.started_at),c.market_id,r.carrier_role,r.carrier_id,(c.tenant_bucket%64)::smallint,1,"+
-    " (c.call_status='connected')::int,(c.call_status NOT IN ('connected','abandoned'))::int,"+
-    " (c.post_dial_delay_ms IS NOT NULL)::int,COALESCE(c.post_dial_delay_ms,0),(COALESCE(c.post_dial_delay_ms,0)>8000)::int,"+
-    " (q.call_id IS NOT NULL)::int,"+
-    " (q.call_id IS NOT NULL AND (COALESCE(q.rtp_packet_loss_percent,0)>=5 OR COALESCE(q.jitter_ms,0)>5 OR COALESCE(q.latency_ms,0)>150))::int,"+
-    " (q.call_id IS NOT NULL AND q.mos IS NOT NULL AND q.mos<3.5)::int,"+
-    " COALESCE(q.mos,0),COALESCE(q.rtp_packet_loss_percent,0),COALESCE(q.jitter_ms,0),COALESCE(q.latency_ms,0),COALESCE(q.rtt_ms,0),"+
-    " (c.sip_final_code BETWEEN 400 AND 499)::int,(c.sip_final_code BETWEEN 500 AND 599)::int,"+
-    " (c.hangup_party='caller')::int,(c.hangup_party='callee')::int,(c.hangup_party='network')::int"+
-    " FROM calls c LEFT JOIN call_quality q ON q.call_id=c.id"+
-    " CROSS JOIN LATERAL (VALUES ('origin'::text,c.origin_carrier_id),('host'::text,c.host_carrier_id)) AS r(carrier_role,carrier_id)"+
-    " WHERE c.id=$1 AND c.market_id IS NOT NULL AND r.carrier_id IS NOT NULL"+
-    " ON CONFLICT(bucket_start,market_id,carrier_role,carrier_id,rollup_shard) DO UPDATE SET"+
-    " calls_total=voice_carrier_health_hourly_sharded.calls_total+1,"+
-    " calls_connected=voice_carrier_health_hourly_sharded.calls_connected+EXCLUDED.calls_connected,"+
-    " calls_failed=voice_carrier_health_hourly_sharded.calls_failed+EXCLUDED.calls_failed,"+
-    " pdd_samples=voice_carrier_health_hourly_sharded.pdd_samples+EXCLUDED.pdd_samples,"+
-    " pdd_ms_sum=voice_carrier_health_hourly_sharded.pdd_ms_sum+EXCLUDED.pdd_ms_sum,"+
-    " high_pdd_calls=voice_carrier_health_hourly_sharded.high_pdd_calls+EXCLUDED.high_pdd_calls,"+
-    " quality_samples=voice_carrier_health_hourly_sharded.quality_samples+EXCLUDED.quality_samples,"+
-    " network_affected_calls=voice_carrier_health_hourly_sharded.network_affected_calls+EXCLUDED.network_affected_calls,"+
-    " low_mos_calls=voice_carrier_health_hourly_sharded.low_mos_calls+EXCLUDED.low_mos_calls,"+
-    " mos_sum=voice_carrier_health_hourly_sharded.mos_sum+EXCLUDED.mos_sum,"+
-    " packet_loss_sum=voice_carrier_health_hourly_sharded.packet_loss_sum+EXCLUDED.packet_loss_sum,"+
-    " jitter_ms_sum=voice_carrier_health_hourly_sharded.jitter_ms_sum+EXCLUDED.jitter_ms_sum,"+
-    " latency_ms_sum=voice_carrier_health_hourly_sharded.latency_ms_sum+EXCLUDED.latency_ms_sum,"+
-    " rtt_ms_sum=voice_carrier_health_hourly_sharded.rtt_ms_sum+EXCLUDED.rtt_ms_sum,"+
-    " sip_4xx_calls=voice_carrier_health_hourly_sharded.sip_4xx_calls+EXCLUDED.sip_4xx_calls,"+
-    " sip_5xx_calls=voice_carrier_health_hourly_sharded.sip_5xx_calls+EXCLUDED.sip_5xx_calls,"+
-    " caller_hangups=voice_carrier_health_hourly_sharded.caller_hangups+EXCLUDED.caller_hangups,"+
-    " callee_hangups=voice_carrier_health_hourly_sharded.callee_hangups+EXCLUDED.callee_hangups,"+
-    " network_hangups=voice_carrier_health_hourly_sharded.network_hangups+EXCLUDED.network_hangups,updated_at=now()",
-    [callId]
-  );
-}
-
-async function writeTenantVoiceDailyRollup(tx,callId){
-  await tx.unsafe(
-    "INSERT INTO tenant_voice_daily_sharded("+
-    " tenant_bucket,bucket_date,tenant_id,market_id,calls_total,calls_connected,pdd_samples,pdd_ms_sum,high_pdd_calls,"+
-    " quality_samples,network_affected_calls,low_mos_calls,mos_sum,packet_loss_sum,jitter_ms_sum,latency_ms_sum,rtt_ms_sum,"+
-    " sip_5xx_calls,caller_hangups,callee_hangups,network_hangups)"+
-    " SELECT c.tenant_bucket,c.started_at::date,c.tenant_id,c.market_id,1,(c.call_status='connected')::int,"+
-    " (c.post_dial_delay_ms IS NOT NULL)::int,COALESCE(c.post_dial_delay_ms,0),(COALESCE(c.post_dial_delay_ms,0)>8000)::int,"+
-    " (q.call_id IS NOT NULL)::int,"+
-    " (q.call_id IS NOT NULL AND (COALESCE(q.rtp_packet_loss_percent,0)>=5 OR COALESCE(q.jitter_ms,0)>5 OR COALESCE(q.latency_ms,0)>150))::int,"+
-    " (q.call_id IS NOT NULL AND q.mos IS NOT NULL AND q.mos<3.5)::int,COALESCE(q.mos,0),COALESCE(q.rtp_packet_loss_percent,0),"+
-    " COALESCE(q.jitter_ms,0),COALESCE(q.latency_ms,0),COALESCE(q.rtt_ms,0),(c.sip_final_code BETWEEN 500 AND 599)::int,"+
-    " (c.hangup_party='caller')::int,(c.hangup_party='callee')::int,(c.hangup_party='network')::int"+
-    " FROM calls c LEFT JOIN call_quality q ON q.call_id=c.id WHERE c.id=$1 AND c.tenant_id IS NOT NULL AND c.market_id IS NOT NULL"+
-    " ON CONFLICT(tenant_bucket,bucket_date,tenant_id,market_id) DO UPDATE SET"+
-    " calls_total=tenant_voice_daily_sharded.calls_total+1,"+
-    " calls_connected=tenant_voice_daily_sharded.calls_connected+EXCLUDED.calls_connected,"+
-    " pdd_samples=tenant_voice_daily_sharded.pdd_samples+EXCLUDED.pdd_samples,pdd_ms_sum=tenant_voice_daily_sharded.pdd_ms_sum+EXCLUDED.pdd_ms_sum,"+
-    " high_pdd_calls=tenant_voice_daily_sharded.high_pdd_calls+EXCLUDED.high_pdd_calls,"+
-    " quality_samples=tenant_voice_daily_sharded.quality_samples+EXCLUDED.quality_samples,"+
-    " network_affected_calls=tenant_voice_daily_sharded.network_affected_calls+EXCLUDED.network_affected_calls,"+
-    " low_mos_calls=tenant_voice_daily_sharded.low_mos_calls+EXCLUDED.low_mos_calls,"+
-    " mos_sum=tenant_voice_daily_sharded.mos_sum+EXCLUDED.mos_sum,packet_loss_sum=tenant_voice_daily_sharded.packet_loss_sum+EXCLUDED.packet_loss_sum,"+
-    " jitter_ms_sum=tenant_voice_daily_sharded.jitter_ms_sum+EXCLUDED.jitter_ms_sum,latency_ms_sum=tenant_voice_daily_sharded.latency_ms_sum+EXCLUDED.latency_ms_sum,"+
-    " rtt_ms_sum=tenant_voice_daily_sharded.rtt_ms_sum+EXCLUDED.rtt_ms_sum,sip_5xx_calls=tenant_voice_daily_sharded.sip_5xx_calls+EXCLUDED.sip_5xx_calls,"+
-    " caller_hangups=tenant_voice_daily_sharded.caller_hangups+EXCLUDED.caller_hangups,callee_hangups=tenant_voice_daily_sharded.callee_hangups+EXCLUDED.callee_hangups,"+
-    " network_hangups=tenant_voice_daily_sharded.network_hangups+EXCLUDED.network_hangups,updated_at=now()",
-    [callId]
-  );
-}
-
-async function writeSipCodeRollup(tx,callId){
-  await tx.unsafe(
-    "INSERT INTO voice_sip_code_hourly_sharded(bucket_start,market_id,host_carrier_id,sip_final_code,rollup_shard,calls_total)"+
-    " SELECT date_trunc('hour',started_at),market_id,host_carrier_id,sip_final_code,(tenant_bucket%64)::smallint,1"+
-    " FROM calls WHERE id=$1 AND market_id IS NOT NULL AND host_carrier_id IS NOT NULL AND sip_final_code BETWEEN 100 AND 699"+
-    " ON CONFLICT(bucket_start,market_id,host_carrier_id,sip_final_code,rollup_shard) DO UPDATE SET"+
-    " calls_total=voice_sip_code_hourly_sharded.calls_total+1,updated_at=now()",
-    [callId]
-  );
-}
-
-async function writeQualityRollup(tx,callId){
-  await tx.unsafe(
-    "INSERT INTO quality_rollups_hourly_sharded("+
-    " bucket_start,market_id,rollup_shard,quality_samples,mos_sum,packet_loss_sum,jitter_ms_sum,latency_ms_sum,dtmf_errors,affected_samples,low_mos_samples)"+
-    " SELECT date_trunc('hour',c.started_at),c.market_id,(c.tenant_bucket%64)::smallint,1,"+
-    " COALESCE(q.mos,0),COALESCE(q.rtp_packet_loss_percent,0),COALESCE(q.jitter_ms,0),COALESCE(q.latency_ms,0),COALESCE(q.dtmf_errors,0),"+
-    " (COALESCE(q.rtp_packet_loss_percent,0)>=5 OR COALESCE(q.jitter_ms,0)>5 OR COALESCE(q.latency_ms,0)>150)::int,"+
-    " (q.mos IS NOT NULL AND q.mos<3.5)::int"+
-    " FROM calls c JOIN call_quality q ON q.call_id=c.id"+
-    " WHERE c.id=$1 AND c.market_id IS NOT NULL"+
-    " ON CONFLICT(bucket_start,market_id,rollup_shard) DO UPDATE SET"+
-    " quality_samples=quality_rollups_hourly_sharded.quality_samples+1,"+
-    " mos_sum=quality_rollups_hourly_sharded.mos_sum+EXCLUDED.mos_sum,"+
-    " packet_loss_sum=quality_rollups_hourly_sharded.packet_loss_sum+EXCLUDED.packet_loss_sum,"+
-    " jitter_ms_sum=quality_rollups_hourly_sharded.jitter_ms_sum+EXCLUDED.jitter_ms_sum,"+
-    " latency_ms_sum=quality_rollups_hourly_sharded.latency_ms_sum+EXCLUDED.latency_ms_sum,"+
-    " dtmf_errors=quality_rollups_hourly_sharded.dtmf_errors+EXCLUDED.dtmf_errors,"+
-    " affected_samples=quality_rollups_hourly_sharded.affected_samples+EXCLUDED.affected_samples,"+
-    " low_mos_samples=quality_rollups_hourly_sharded.low_mos_samples+EXCLUDED.low_mos_samples,updated_at=now()",
-    [callId]
-  );
-}
-
-async function writeDashboardDimensionRollups(tx,callId){
-  const common=
-    " INSERT INTO dashboard_dimension_rollups_daily("+
-    " bucket_date,market_id,currency,dimension_type,dimension_key,dimension_label,calls_total,calls_connected,"+
-    " conversation_seconds,billable_seconds,generated_revenue_ttc,expected_payout_ht,estimated_margin_ht) ";
-  const conflict=
-    " ON CONFLICT(bucket_date,market_id,currency,dimension_type,dimension_key) DO UPDATE SET"+
-    " dimension_label=EXCLUDED.dimension_label,"+
-    " calls_total=dashboard_dimension_rollups_daily.calls_total+EXCLUDED.calls_total,"+
-    " calls_connected=dashboard_dimension_rollups_daily.calls_connected+EXCLUDED.calls_connected,"+
-    " conversation_seconds=dashboard_dimension_rollups_daily.conversation_seconds+EXCLUDED.conversation_seconds,"+
-    " billable_seconds=dashboard_dimension_rollups_daily.billable_seconds+EXCLUDED.billable_seconds,"+
-    " generated_revenue_ttc=dashboard_dimension_rollups_daily.generated_revenue_ttc+EXCLUDED.generated_revenue_ttc,"+
-    " expected_payout_ht=dashboard_dimension_rollups_daily.expected_payout_ht+EXCLUDED.expected_payout_ht,"+
-    " estimated_margin_ht=dashboard_dimension_rollups_daily.estimated_margin_ht+EXCLUDED.estimated_margin_ht,updated_at=now()";
-
-  await tx.unsafe(
-    common+
-    " SELECT f.started_at::date,f.market_id,f.currency,'expert',COALESCE(f.expert_id::text,'unassigned'),"+
-    " COALESCE(e.display_name,'Non affecté'),1,(f.call_status='connected')::int,f.conversation_seconds,f.billable_seconds,"+
-    " f.retail_service_amount_ttc,f.expected_payout_ht,f.estimated_margin_ht"+
-    " FROM call_facts f LEFT JOIN experts e ON e.id=f.expert_id WHERE f.call_id=$1 AND f.market_id IS NOT NULL"+
-    conflict,[callId]
-  );
-  await tx.unsafe(
-    common+
-    " SELECT f.started_at::date,f.market_id,f.currency,'carrier',COALESCE(f.origin_carrier_id::text,'unknown'),"+
-    " COALESCE(c.name,'Inconnu'),1,(f.call_status='connected')::int,f.conversation_seconds,f.billable_seconds,"+
-    " f.retail_service_amount_ttc,f.expected_payout_ht,f.estimated_margin_ht"+
-    " FROM call_facts f LEFT JOIN carriers c ON c.id=f.origin_carrier_id WHERE f.call_id=$1 AND f.market_id IS NOT NULL"+
-    conflict,[callId]
-  );
-  await tx.unsafe(
-    common+
-    " SELECT f.started_at::date,f.market_id,f.currency,'duration',"+
-    " CASE WHEN f.call_status<>'connected' THEN 'not_connected' WHEN f.conversation_seconds<60 THEN 'lt_1m'"+
-    " WHEN f.conversation_seconds<300 THEN '1_5m' WHEN f.conversation_seconds<600 THEN '5_10m'"+
-    " WHEN f.conversation_seconds<1200 THEN '10_20m' WHEN f.conversation_seconds<1800 THEN '20_30m' ELSE 'gte_30m' END,"+
-    " CASE WHEN f.call_status<>'connected' THEN 'Non aboutis' WHEN f.conversation_seconds<60 THEN '< 1 min'"+
-    " WHEN f.conversation_seconds<300 THEN '1–5 min' WHEN f.conversation_seconds<600 THEN '5–10 min'"+
-    " WHEN f.conversation_seconds<1200 THEN '10–20 min' WHEN f.conversation_seconds<1800 THEN '20–30 min' ELSE '30 min +' END,"+
-    " 1,(f.call_status='connected')::int,f.conversation_seconds,f.billable_seconds,"+
-    " f.retail_service_amount_ttc,f.expected_payout_ht,f.estimated_margin_ht"+
-    " FROM call_facts f WHERE f.call_id=$1 AND f.market_id IS NOT NULL"+
-    conflict,[callId]
-  );
-}
-
-async function writeHourlyRollup(tx,callId){
-  await tx.unsafe(
-    "INSERT INTO platform_rollups_hourly_sharded("+
-    " bucket_start,market_id,currency,rollup_shard,calls_total,calls_connected,calls_abandoned,calls_failed,"+
-    " conversation_seconds,billable_seconds,payout_eligible_seconds,generated_revenue_ttc,expected_payout_ht,"+
-    " confirmed_payout_ht,paid_payout_ht,expert_cost_ht,technical_cost_ht,estimated_margin_ht,reconciliation_variance_ht)"+
-    " SELECT date_trunc('hour',f.started_at),f.market_id,f.currency,(f.tenant_bucket%64)::smallint,1,"+
-    " (f.call_status='connected')::int,(f.call_status='abandoned')::int,"+
-    " (f.call_status NOT IN ('connected','abandoned'))::int,f.conversation_seconds,f.billable_seconds,"+
-    " f.payout_eligible_seconds,f.retail_service_amount_ttc,f.expected_payout_ht,f.confirmed_payout_ht,f.paid_payout_ht,"+
-    " f.expert_cost_ht,f.technical_cost_ht,f.estimated_margin_ht,f.reconciliation_variance_ht"+
-    " FROM call_facts f WHERE f.call_id=$1 AND f.market_id IS NOT NULL"+
-    " ON CONFLICT(bucket_start,market_id,currency,rollup_shard) DO UPDATE SET"+
-    " calls_total=platform_rollups_hourly_sharded.calls_total+EXCLUDED.calls_total,"+
-    " calls_connected=platform_rollups_hourly_sharded.calls_connected+EXCLUDED.calls_connected,"+
-    " calls_abandoned=platform_rollups_hourly_sharded.calls_abandoned+EXCLUDED.calls_abandoned,"+
-    " calls_failed=platform_rollups_hourly_sharded.calls_failed+EXCLUDED.calls_failed,"+
-    " conversation_seconds=platform_rollups_hourly_sharded.conversation_seconds+EXCLUDED.conversation_seconds,"+
-    " billable_seconds=platform_rollups_hourly_sharded.billable_seconds+EXCLUDED.billable_seconds,"+
-    " payout_eligible_seconds=platform_rollups_hourly_sharded.payout_eligible_seconds+EXCLUDED.payout_eligible_seconds,"+
-    " generated_revenue_ttc=platform_rollups_hourly_sharded.generated_revenue_ttc+EXCLUDED.generated_revenue_ttc,"+
-    " expected_payout_ht=platform_rollups_hourly_sharded.expected_payout_ht+EXCLUDED.expected_payout_ht,"+
-    " confirmed_payout_ht=platform_rollups_hourly_sharded.confirmed_payout_ht+EXCLUDED.confirmed_payout_ht,"+
-    " paid_payout_ht=platform_rollups_hourly_sharded.paid_payout_ht+EXCLUDED.paid_payout_ht,"+
-    " expert_cost_ht=platform_rollups_hourly_sharded.expert_cost_ht+EXCLUDED.expert_cost_ht,"+
-    " technical_cost_ht=platform_rollups_hourly_sharded.technical_cost_ht+EXCLUDED.technical_cost_ht,"+
-    " estimated_margin_ht=platform_rollups_hourly_sharded.estimated_margin_ht+EXCLUDED.estimated_margin_ht,"+
-    " reconciliation_variance_ht=platform_rollups_hourly_sharded.reconciliation_variance_ht+EXCLUDED.reconciliation_variance_ht,"+
-    " updated_at=now()",
-    [callId]
-  );
-}
-
-async function refreshHourlyRollupsForCalls(tx,matchJson){
-  await tx.unsafe(
-    "WITH input AS ("+
-    " SELECT * FROM jsonb_to_recordset($1::jsonb) AS x(call_id bigint,tenant_bucket smallint,amount numeric)"+
-    "), affected AS ("+
-    " SELECT DISTINCT date_trunc('hour',f.started_at) AS bucket_start,f.market_id,f.currency,"+
-    " (f.tenant_bucket%64)::smallint AS rollup_shard"+
-    " FROM call_facts f JOIN input i ON i.call_id=f.call_id AND i.tenant_bucket=f.tenant_bucket"+
-    " WHERE f.market_id IS NOT NULL"+
-    "), aggregated AS ("+
-    " SELECT a.bucket_start,a.market_id,a.currency,a.rollup_shard,"+
-    " count(*)::bigint AS calls_total,"+
-    " count(*) FILTER(WHERE f.call_status='connected')::bigint AS calls_connected,"+
-    " count(*) FILTER(WHERE f.call_status='abandoned')::bigint AS calls_abandoned,"+
-    " count(*) FILTER(WHERE f.call_status NOT IN ('connected','abandoned'))::bigint AS calls_failed,"+
-    " COALESCE(sum(f.conversation_seconds),0)::bigint AS conversation_seconds,"+
-    " COALESCE(sum(f.billable_seconds),0)::bigint AS billable_seconds,"+
-    " COALESCE(sum(f.payout_eligible_seconds),0)::bigint AS payout_eligible_seconds,"+
-    " COALESCE(sum(f.retail_service_amount_ttc),0) AS generated_revenue_ttc,"+
-    " COALESCE(sum(f.expected_payout_ht),0) AS expected_payout_ht,"+
-    " COALESCE(sum(f.confirmed_payout_ht),0) AS confirmed_payout_ht,"+
-    " COALESCE(sum(f.paid_payout_ht),0) AS paid_payout_ht,"+
-    " COALESCE(sum(f.expert_cost_ht),0) AS expert_cost_ht,"+
-    " COALESCE(sum(f.technical_cost_ht),0) AS technical_cost_ht,"+
-    " COALESCE(sum(f.estimated_margin_ht),0) AS estimated_margin_ht,"+
-    " COALESCE(sum(f.reconciliation_variance_ht),0) AS reconciliation_variance_ht"+
-    " FROM affected a JOIN call_facts f ON f.market_id=a.market_id AND f.currency=a.currency"+
-    " AND (f.tenant_bucket%64)::smallint=a.rollup_shard"+
-    " AND f.started_at>=a.bucket_start AND f.started_at<a.bucket_start+interval '1 hour'"+
-    " GROUP BY a.bucket_start,a.market_id,a.currency,a.rollup_shard"+
-    ") INSERT INTO platform_rollups_hourly_sharded("+
-    " bucket_start,market_id,currency,rollup_shard,calls_total,calls_connected,calls_abandoned,calls_failed,"+
-    " conversation_seconds,billable_seconds,payout_eligible_seconds,generated_revenue_ttc,expected_payout_ht,"+
-    " confirmed_payout_ht,paid_payout_ht,expert_cost_ht,technical_cost_ht,estimated_margin_ht,reconciliation_variance_ht,updated_at)"+
-    " SELECT bucket_start,market_id,currency,rollup_shard,calls_total,calls_connected,calls_abandoned,calls_failed,"+
-    " conversation_seconds,billable_seconds,payout_eligible_seconds,generated_revenue_ttc,expected_payout_ht,"+
-    " confirmed_payout_ht,paid_payout_ht,expert_cost_ht,technical_cost_ht,estimated_margin_ht,reconciliation_variance_ht,now()"+
-    " FROM aggregated"+
-    " ON CONFLICT(bucket_start,market_id,currency,rollup_shard) DO UPDATE SET"+
-    " calls_total=EXCLUDED.calls_total,calls_connected=EXCLUDED.calls_connected,"+
-    " calls_abandoned=EXCLUDED.calls_abandoned,calls_failed=EXCLUDED.calls_failed,"+
-    " conversation_seconds=EXCLUDED.conversation_seconds,billable_seconds=EXCLUDED.billable_seconds,"+
-    " payout_eligible_seconds=EXCLUDED.payout_eligible_seconds,generated_revenue_ttc=EXCLUDED.generated_revenue_ttc,"+
-    " expected_payout_ht=EXCLUDED.expected_payout_ht,confirmed_payout_ht=EXCLUDED.confirmed_payout_ht,"+
-    " paid_payout_ht=EXCLUDED.paid_payout_ht,expert_cost_ht=EXCLUDED.expert_cost_ht,"+
-    " technical_cost_ht=EXCLUDED.technical_cost_ht,estimated_margin_ht=EXCLUDED.estimated_margin_ht,"+
-    " reconciliation_variance_ht=EXCLUDED.reconciliation_variance_ht,updated_at=now()",
-    [matchJson]
-  );
 }
 
 async function ledger(tx,callId,tenantId,marketId,currency,type,amount,envelope){

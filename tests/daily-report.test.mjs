@@ -35,7 +35,16 @@ test("daily report backend uses protected cron and one native idempotency key",(
 });
 
 
-test("daily report snapshot uses the real audit timestamp column",()=>{
-  assert.match(store,/audit_log WHERE action='customer\.email\.inbound_resolved' AND occurred_at>=/);
-  assert.doesNotMatch(store,/audit_log WHERE action='customer\.email\.inbound_resolved' AND created_at>=/);
+test("daily report audit filters use the real timestamp column for both day boundaries",()=>{
+  const auditLog=fs.readFileSync(new URL("../database/schema.sql",import.meta.url),"utf8");
+  const auditSchema=auditLog.match(/CREATE TABLE audit_log\s*\(([\s\S]*?)\n\);/)?.[1];
+  assert.ok(auditSchema,"audit_log schema must be available");
+  assert.match(auditSchema,/\boccurred_at\s+timestamptz\b/);
+  assert.doesNotMatch(auditSchema,/\bcreated_at\b/);
+  const filter=store.match(/FROM audit_log WHERE action='customer\.email\.inbound_resolved'[^\n]*?AS inbound_resolved/)?.[0];
+  assert.ok(filter,"daily report audit count query must be present");
+  assert.match(filter,/\boccurred_at>=/);
+  assert.match(filter,/\boccurred_at</);
+  assert.doesNotMatch(filter,/\bcreated_at\b/);
+  assert.match(store,/AT TIME ZONE 'Europe\/Paris'/);
 });

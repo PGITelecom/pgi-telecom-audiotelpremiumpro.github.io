@@ -64,6 +64,12 @@ function initSectionNav(){
     if(section)observer.observe(section);
   });
 }
+var commandCenterRequested=false;
+function loadCommandCenter(){
+  if(commandCenterRequested)return;
+  commandCenterRequested=true;
+  import("./client-experience-command-center.js").catch(function(){});
+}
 function init(){
   refresh=$("client-refresh");
   status=$("client-data-status");
@@ -90,7 +96,8 @@ function init(){
   initSectionNav();
   networkState();
   setTimeout(function(){import("./client-premium-plus.js").catch(function(){});},700);
-  setTimeout(function(){import("./client-experience-command-center.js").catch(function(){});},900);
+  document.addEventListener("pgi:portal-loaded",loadCommandCenter,{once:true});
+  if(window.PGIClientPortalData)loadCommandCenter();
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 })();
