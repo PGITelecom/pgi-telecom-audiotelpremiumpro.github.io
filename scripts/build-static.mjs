@@ -774,6 +774,11 @@ function injectContactWidget(html){
   // public base stylesheet to remove a render-blocking network round trip.
   const baseStylesheet=/<link\s+rel="stylesheet"\s+href="(?:site\.css|\/?site\/site\.css)">/;
   if(!baseStylesheet.test(html))throw new Error("PUBLIC_MARKETING_CSS_SOURCE_MISSING");
+  const stylesheets=[...html.matchAll(/<link\s+rel="stylesheet"\s+href="[^"]+"[^>]*>/g)];
+  // Some legal/form pages have additional CSS between the two original links.
+  // Keep them untouched so their cascade precedence is byte-for-byte identical.
+  if(stylesheets.length!==1)return html.replace("</head>",
+    '<link rel="stylesheet" href="/site/contact-widget.css">\n<script src="/site/contact-widget.js" defer></script>\n</head>');
   return html.replace(baseStylesheet,'<link rel="stylesheet" href="/site/public-marketing.css">')
     .replace("</head>",'<script src="/site/contact-widget.js" defer></script>\n</head>');
 }
