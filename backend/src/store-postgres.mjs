@@ -404,7 +404,7 @@ export class PostgresStore{
   }
 
   async platformJackpotSnapshot(){
-    const resetRows=await this.readSql.unsafe("SELECT created_at AS effective_from FROM audit_log WHERE action='platform.jackpot.reset' ORDER BY id DESC LIMIT 1");
+    const resetRows=await this.readSql.unsafe("SELECT occurred_at AS effective_from FROM audit_log WHERE action='platform.jackpot.reset' ORDER BY id DESC LIMIT 1");
     const resetAt=new Date(resetRows[0]?.effective_from||0).toISOString();
     const rows=await this.readSql.unsafe(
       "SELECT currency,count(*) FILTER(WHERE status='active')::int AS active_calls,count(*) FILTER(WHERE status='ended')::int AS completed_calls,"+
@@ -1615,7 +1615,7 @@ export class PostgresStore{
 
   async createPlatformJackpotReset(actor){
     const userId=numericActor(actor);
-    const rows=await this.sql.unsafe("INSERT INTO audit_log(user_id,action,entity_type,entity_id,details) VALUES($1,'platform.jackpot.reset','business_live','platform',$2::jsonb) RETURNING id,created_at AS effective_from",[userId,JSON.stringify({metric_key:"business_live",accounting_impact:"none",reporting_impact:"none"})]);
+    const rows=await this.sql.unsafe("INSERT INTO audit_log(user_id,action,entity_type,entity_id,details) VALUES($1,'platform.jackpot.reset','business_live','platform',$2::jsonb) RETURNING id,occurred_at AS effective_from",[userId,JSON.stringify({metric_key:"business_live",accounting_impact:"none",reporting_impact:"none"})]);
     const row=rows[0];
     this.eventBus.publish("platform.jackpot.reset",{reset_at:row.effective_from});
     return {jackpot_reset_at:row.effective_from,accounting_impact:"none",reporting_impact:"none"};
@@ -6859,7 +6859,7 @@ export class PostgresStore{
         " (SELECT count(*)::int FROM tenant_service_incidents i JOIN tenants t ON t.id=i.tenant_id WHERE t.tenant_type<>'internal' AND i.status NOT IN ('resolved','closed') AND i.severity='critical') AS critical_open,"+
         " (SELECT count(*)::int FROM tenant_service_incidents i JOIN tenants t ON t.id=i.tenant_id WHERE t.tenant_type<>'internal' AND i.status NOT IN ('resolved','closed') AND i.first_responded_at IS NULL AND i.first_response_due_at<now()) AS first_response_overdue,"+
         " (SELECT count(*)::int FROM tenant_service_incidents i JOIN tenants t ON t.id=i.tenant_id WHERE t.tenant_type<>'internal' AND i.status NOT IN ('resolved','closed') AND i.target_resolution_at<now()) AS resolution_overdue,"+
-        " (SELECT count(*)::int FROM audit_log WHERE action='customer.email.inbound_resolved' AND occurred_at>="+bounds+" AND created_at<"+end+") AS inbound_resolved,"+
+        " (SELECT count(*)::int FROM audit_log WHERE action='customer.email.inbound_resolved' AND occurred_at>="+bounds+" AND occurred_at<"+end+") AS inbound_resolved,"+
         " (SELECT count(*)::int FROM transactional_email_deliveries WHERE created_at>="+bounds+" AND created_at<"+end+") AS email_created,"+
         " (SELECT count(*)::int FROM transactional_email_deliveries WHERE created_at>="+bounds+" AND created_at<"+end+" AND state IN ('accepted','sent','delivered','clicked')) AS email_accepted_or_sent,"+
         " (SELECT count(*)::int FROM transactional_email_deliveries WHERE created_at>="+bounds+" AND created_at<"+end+" AND state IN ('delivered','clicked')) AS email_delivered,"+
