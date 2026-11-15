@@ -152,6 +152,15 @@ for(const file of files){
   fs.copyFileSync(src,dst);
 }
 
+// Build one public CSS response without modifying any CSS declarations, selectors,
+// specificity or relative URLs. Both source stylesheets live in the same directory.
+// Public landing pages keep their widget and all footer/legal styles.
+const publicMarketingCssOrder=["site/site.css","site/contact-widget.css"];
+const publicMarketingCss=publicMarketingCssOrder.map(file=>
+  "/* "+file+" */\n"+fs.readFileSync(path.join(root,file),"utf8")+"\n"
+).join("\n");
+fs.writeFileSync(path.join(dist,"site","public-marketing.css"),publicMarketingCss,"utf8");
+
 // Package future telecom pages as inert sources. The HTTP server denies them
 // until a separately reviewed publication migration; the cockpit switch only
 // controls navigation after that release, never deletion from the sitemap.
@@ -761,7 +770,12 @@ function injectPublicSearch(html){
 
 function injectContactWidget(html){
   if(html.includes('/site/contact-widget.js'))return html;
-  return html.replace("</head>",'<link rel="stylesheet" href="/site/contact-widget.css">\n<script src="/site/contact-widget.js" defer></script>\n</head>');
+  // The contact widget remains available. Only combine its CSS with the existing
+  // public base stylesheet to remove a render-blocking network round trip.
+  const baseStylesheet=/<link\s+rel="stylesheet"\s+href="(?:site\.css|\/?site\/site\.css)">/;
+  if(!baseStylesheet.test(html))throw new Error("PUBLIC_MARKETING_CSS_SOURCE_MISSING");
+  return html.replace(baseStylesheet,'<link rel="stylesheet" href="/site/public-marketing.css">')
+    .replace("</head>",'<script src="/site/contact-widget.js" defer></script>\n</head>');
 }
 
 function injectLegalNavigation(html){
