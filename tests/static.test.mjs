@@ -806,3 +806,16 @@ test("Business Live stays centered and highlights active money flow",()=>{
 test("les surfaces espace client restent sans tiret cadratin",()=>{
   for(const [name,source] of [["client.html",read("client.html")],["client-i18n.js",read("assets/client-i18n.js")],["client-premium-plus.js",read("assets/client-premium-plus.js")],["manifest.webmanifest",read("manifest.webmanifest")],["site/manifest.webmanifest",read("site/manifest.webmanifest")]])assert.equal(source.includes(String.fromCodePoint(0x2014)),false,name);
 });
+
+test("platform Business Live reset reads real audit timestamp without changing accounting",()=>{
+  const store=read("backend/src/store-postgres.mjs");
+  const auditSchema=read("database/schema.sql").match(/CREATE TABLE audit_log\s*\(([\s\S]*?)\n\);/)?.[1];
+  assert.ok(auditSchema);
+  assert.match(auditSchema,/\boccurred_at\s+timestamptz\b/);
+  assert.doesNotMatch(auditSchema,/\bcreated_at\b/);
+  assert.match(store,/SELECT occurred_at AS effective_from FROM audit_log WHERE action='platform\.jackpot\.reset'/);
+  assert.match(store,/INSERT INTO audit_log\(user_id,action,entity_type,entity_id,details\)[^\n]*RETURNING id,occurred_at AS effective_from/);
+  assert.doesNotMatch(store,/SELECT created_at AS effective_from FROM audit_log/);
+  assert.doesNotMatch(store,/RETURNING id,created_at AS effective_from/);
+  assert.match(store,/accounting_impact:"none",reporting_impact:"none"/);
+});
