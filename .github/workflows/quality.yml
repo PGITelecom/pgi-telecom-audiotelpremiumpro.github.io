@@ -157,7 +157,7 @@ jobs:
       - name: Summarize CI-only performance evidence
         if: always()
         run: |
-          node --input-type=module - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          node --input-type=module - <<'NODE' | tee -a "$GITHUB_STEP_SUMMARY"
           import fs from "node:fs";
           console.log("### Isolated CI performance comparison\n");
           console.log("| Environment | Scenario | Virtual users | RPS target cap | Requests | p95 (ms) | Errors |");
@@ -183,6 +183,7 @@ jobs:
           path: .ci-perf/
           if-no-files-found: ignore
           retention-days: 14
+          include-hidden-files: true
 
 
 
