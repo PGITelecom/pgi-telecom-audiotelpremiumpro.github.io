@@ -5219,12 +5219,19 @@ export class PostgresStore{
     if(!/^acct_[A-Za-z0-9]+$/.test(destination))throw problem(400,"INVALID_REFERRAL_PAYOUT_DESTINATION");
     return this.sql.begin(async tx=>{
       const existing=(await tx.unsafe(
-        "SELECT id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,payout_state,payout_attempt_count,provider_transfer_reference FROM customer_referral_rewards WHERE id=$1 FOR UPDATE",
+        "SELECT id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,payout_state,payout_attempt_count,provider_transfer_reference,payout_destination_reference FROM customer_referral_rewards WHERE id=$1 FOR UPDATE",
         [id]
       ))[0];
       if(!existing)throw problem(404,"REFERRAL_REWARD_NOT_FOUND");
       if(existing.status==="paid"){
-        if(existing.provider_transfer_reference&&existing.provider_transfer_reference!==reference)throw problem(409,"REFERRAL_TRANSFER_REFERENCE_MISMATCH");
+        // A replay is valid only for the same confirmed transfer, not a manual payment.
+        if(existing.payout_state!=="transferred"||existing.provider_transfer_reference!==reference)
+          throw problem(409,"REFERRAL_TRANSFER_REFERENCE_MISMATCH");
+        if(Number(transfer.amount_minor)!==Number(existing.amount_minor)||
+           String(transfer.currency||"").toUpperCase()!==String(existing.currency||"").toUpperCase())
+          throw problem(409,"REFERRAL_TRANSFER_AMOUNT_MISMATCH");
+        if(existing.payout_destination_reference!==destination)
+          throw problem(409,"REFERRAL_PAYOUT_DESTINATION_MISMATCH");
         return {...existing,amount_minor:Number(existing.amount_minor),already_paid:true};
       }
       if(existing.status!=="earned")throw problem(409,"REFERRAL_REWARD_NOT_PAYABLE");
@@ -5279,7 +5286,12 @@ export class PostgresStore{
         [id]
       ))[0];
       if(!existing)throw problem(404,"REFERRAL_REWARD_NOT_FOUND");
-      if(existing.status==="paid")return {...existing,amount_minor:Number(existing.amount_minor),already_paid:true};
+      if(existing.status==="paid"){
+        // Never acknowledge an unrelated reference or an automatic transfer as a manual replay.
+        if(existing.payout_state!=="manual"||existing.paid_reference!==reference)
+          throw problem(409,"REFERRAL_PAYMENT_REFERENCE_MISMATCH");
+        return {...existing,amount_minor:Number(existing.amount_minor),already_paid:true};
+      }
       if(existing.status!=="earned")throw problem(409,"REFERRAL_REWARD_NOT_PAYABLE");
       if(existing.payout_state==="processing")throw problem(409,"REFERRAL_PAYOUT_IN_PROGRESS");
       if(!["pending","retry","waiting_account"].includes(existing.payout_state))throw problem(409,"REFERRAL_PAYOUT_STATE_INVALID");
