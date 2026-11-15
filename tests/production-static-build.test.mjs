@@ -35,10 +35,27 @@ test("production static build publishes marketing root and private cockpit",()=>
     assert.match(root,/href="\/numero-sva\//);
     assert.match(root,/max-snippet:-1/);
     assert.doesNotMatch(root,/Cockpit \/ PGI Telecom/);
-    assert.match(root,/href="site\/site\.css\?v=[a-z0-9._-]+"/i);
+    assert.match(root,/href="\/site\/public-marketing\.css\?v=[a-z0-9._-]+"/i);
     assert.match(root,/src="site\/site\.js\?v=[a-z0-9._-]+"/i);
-    assert.match(root,/href="\/site\/contact-widget\.css\?v=[a-z0-9._-]+"/i);
+    assert.doesNotMatch(root,/href="\/site\/contact-widget\.css\?v=[a-z0-9._-]+"/i);
     assert.match(root,/src="\/site\/contact-widget\.js\?v=[a-z0-9._-]+"/i);
+
+    // Exact CSS concatenation conserves specificity, precedence, appearance and accessibility.
+    const marketingCss=fs.readFileSync("dist/site/public-marketing.css","utf8");
+    const expectedCss=["site/site.css","site/contact-widget.css"].map(file=>
+      "/* "+file+" */\n"+fs.readFileSync(file,"utf8")+"\n"
+    ).join("\n");
+    assert.equal(marketingCss,expectedCss);
+    assert.match(seoPages[0],/href="\/site\/public-marketing\.css\?v=[a-z0-9._-]+"/i);
+    assert.doesNotMatch(seoPages[0],/href="\/site\/contact-widget\.css/i);
+    assert.match(seoPages[seoSlugs.indexOf("demande-ouverture")],/href="\/site\/contact-widget\.css\?v=[a-z0-9._-]+"/i,
+      "pages with separate form CSS keep the original cascade");
+    assert.match(seoPages[seoSlugs.indexOf("demande-ouverture")],/href="\/site\/site\.css\?v=[a-z0-9._-]+"/i);
+    for(const page of seoPages){
+      assert.match(page,/src="\/site\/contact-widget\.js\?v=[a-z0-9._-]+"/i);
+      assert.ok(page.includes("public-marketing.css")||page.includes("contact-widget.css"));
+    }
+
     assert.doesNotMatch(root,/\.\.\/assets\//);
     assert.match(root,/rel="canonical" href="https:\/\/audiotel-premium-pro\.com\/"/);
     assert.match(root,/property="og:url" content="https:\/\/audiotel-premium-pro\.com\/"/);
@@ -87,7 +104,11 @@ test("production static build publishes marketing root and private cockpit",()=>
       }[slug]||["/site/hubspot-tracking.js","/site/contact-widget.js","/site/site-search.js","/site/footer-year.js","/site/share.js"];
       for(const src of scripts)assert.ok(allowedScripts.includes(src),"unexpected public script on "+slug+": "+src);
       assert.ok(scripts.includes("/site/contact-widget.js"),"contact widget missing on "+slug);
-      assert.match(page,/href="\/site\/contact-widget\.css\?v=[a-z0-9._-]+"/i);
+      assert.ok(
+        /href="\/site\/public-marketing\.css\?v=[a-z0-9._-]+"/i.test(page)||
+        /href="\/site\/contact-widget\.css\?v=[a-z0-9._-]+"/i.test(page),
+        "marketing CSS must be present on "+slug
+      );
     });
     const independants=seoPages[seoSlugs.indexOf("audiotel-independants")];
     assert.match(independants,/avec ou sans SIRET/i);
