@@ -80,6 +80,52 @@ test("one financial reward cannot be paid twice under 24 concurrent manual reque
     assert.equal(paid[0].status,"paid");
     assert.equal(paid[0].payout_state,"manual");
     assert.equal(paid[0].paid_reference,"manual-test-payment");
+    const manualReplay=await store.settleCustomerReferralReward(reward.id,"manual-test-payment",{sub:1});
+    assert.equal(manualReplay.already_paid,true);
+    await assert.rejects(
+      ()=>store.settleCustomerReferralReward(reward.id,"different-payment-reference",{sub:1}),
+      rejectedCode("REFERRAL_PAYMENT_REFERENCE_MISMATCH")
+    );
+    await assert.rejects(
+      ()=>store.completeAutomaticReferralPayout(reward.id,{
+        expected_attempt_count:2,provider_transfer_reference:"tr_NotManual123",
+        destination_account:"acct_TestCI123",amount_minor:100,currency:"EUR"
+      }),
+      rejectedCode("REFERRAL_TRANSFER_REFERENCE_MISMATCH")
+    );
+    const anotherTenant=(await store.sql.unsafe(
+      "INSERT INTO tenants(slug,display_name,legal_name,tenant_type,status,country_code,billing_email) VALUES($1,'Replay Referred CI','Replay Referred CI','customer','active','FR',$2) RETURNING id",
+      ["finreplay-"+unique,"replay-"+unique+"@example.test"]
+    ))[0];
+    const anotherReferral=(await store.sql.unsafe(
+      "INSERT INTO customer_referrals(referral_code_id,referrer_tenant_id,referred_tenant_id,status,reward_minor,reward_currency) VALUES($1,$2,$3,'rewarded',100,'EUR') RETURNING id",
+      [code.id,referrer.id,anotherTenant.id]
+    ))[0];
+    const transferReference="tr_CI"+unique.toUpperCase(),destination="acct_CI"+unique.toUpperCase();
+    const transferred=(await store.sql.unsafe(
+      "INSERT INTO customer_referral_rewards(referral_id,tenant_id,amount_minor,currency,status,payout_state,payout_attempt_count,paid_reference,provider_transfer_reference,payout_destination_reference,paid_at)"+
+      " VALUES($1,$2,100,'EUR','paid','transferred',2,$3,$3,$4,now()) RETURNING id",
+      [anotherReferral.id,referrer.id,transferReference,destination]
+    ))[0];
+    const sameTransfer={expected_attempt_count:2,provider_transfer_reference:transferReference,
+      destination_account:destination,amount_minor:100,currency:"EUR"};
+    assert.equal((await store.completeAutomaticReferralPayout(transferred.id,sameTransfer)).already_paid,true);
+    await assert.rejects(
+      ()=>store.completeAutomaticReferralPayout(transferred.id,{...sameTransfer,amount_minor:101}),
+      rejectedCode("REFERRAL_TRANSFER_AMOUNT_MISMATCH")
+    );
+    await assert.rejects(
+      ()=>store.completeAutomaticReferralPayout(transferred.id,{...sameTransfer,destination_account:"acct_OtherCI123"}),
+      rejectedCode("REFERRAL_PAYOUT_DESTINATION_MISMATCH")
+    );
+    await assert.rejects(
+      ()=>store.completeAutomaticReferralPayout(transferred.id,{...sameTransfer,provider_transfer_reference:"tr_OtherCI123"}),
+      rejectedCode("REFERRAL_TRANSFER_REFERENCE_MISMATCH")
+    );
+    await assert.rejects(
+      ()=>store.settleCustomerReferralReward(transferred.id,"manual-test-payment",{sub:1}),
+      rejectedCode("REFERRAL_PAYMENT_REFERENCE_MISMATCH")
+    );
   }finally{
     await store.close();
   }
