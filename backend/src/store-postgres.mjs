@@ -2232,7 +2232,7 @@ export class PostgresStore{
     const ttl=clampInt(leaseSeconds,60,15,900);
     const rows=await this.sql.unsafe(
       "UPDATE work_queue SET lease_expires_at=now()+make_interval(secs=>$3)"+
-      " WHERE id=$1 AND locked_by=$2 AND completed_at IS NULL AND failed_at IS NULL AND dead_lettered_at IS NULL"+
+      " WHERE id=$1 AND locked_by=$2 AND lease_expires_at>now() AND completed_at IS NULL AND failed_at IS NULL AND dead_lettered_at IS NULL"+
       " RETURNING id,lease_expires_at",
       [Number(id),String(workerId||""),ttl]
     );
@@ -2243,7 +2243,7 @@ export class PostgresStore{
   async completeWork(id,workerId){
     const rows=await this.sql.unsafe(
       "UPDATE work_queue SET completed_at=now(),locked_at=NULL,locked_by=NULL,lease_expires_at=NULL,last_error=NULL"+
-      " WHERE id=$1 AND locked_by=$2 AND completed_at IS NULL AND failed_at IS NULL AND dead_lettered_at IS NULL"+
+      " WHERE id=$1 AND locked_by=$2 AND lease_expires_at>now() AND completed_at IS NULL AND failed_at IS NULL AND dead_lettered_at IS NULL"+
       " RETURNING id,queue_name,completed_at",
       [Number(id),String(workerId||"")]
     );
@@ -2259,7 +2259,7 @@ export class PostgresStore{
       const rows=await tx.unsafe(
         "SELECT id,queue_name,tenant_id,correlation_id,trace_id,payload,attempts,max_attempts"+
         " FROM work_queue WHERE id=$1 AND locked_by=$2 AND completed_at IS NULL"+
-        " AND failed_at IS NULL AND dead_lettered_at IS NULL FOR UPDATE",
+        " AND failed_at IS NULL AND dead_lettered_at IS NULL AND lease_expires_at>now() FOR UPDATE",
         [Number(id),owner]
       );
       const work=rows[0];
@@ -5266,24 +5266,29 @@ export class PostgresStore{
     const id=Number(rewardId),reference=String(paidReference||"").trim().slice(0,180),actorId=numericActor(actor);
     if(!Number.isInteger(id)||id<=0)throw problem(400,"INVALID_REFERRAL_REWARD");
     if(reference.length<3)throw problem(400,"REFERRAL_PAYMENT_REFERENCE_REQUIRED");
-    const existing=(await this.sql.unsafe(
-      "SELECT id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,earned_at,paid_at,paid_reference,payout_state FROM customer_referral_rewards WHERE id=$1 LIMIT 1",
-      [id]
-    ))[0];
-    if(!existing)throw problem(404,"REFERRAL_REWARD_NOT_FOUND");
-    if(existing.status==="paid")return {...existing,amount_minor:Number(existing.amount_minor),already_paid:true};
-    if(existing.status!=="earned")throw problem(409,"REFERRAL_REWARD_NOT_PAYABLE");
-    if(existing.payout_state==="processing")throw problem(409,"REFERRAL_PAYOUT_IN_PROGRESS");
-    const row=(await this.sql.unsafe(
-      "UPDATE customer_referral_rewards SET status='paid',paid_at=now(),paid_reference=$2,payout_state='manual',payout_completed_at=now(),payout_next_attempt_at=NULL,payout_last_error=NULL WHERE id=$1 AND status='earned' RETURNING id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,earned_at,paid_at,paid_reference,payout_state",
-      [id,reference]
-    ))[0];
-    if(!row)throw problem(409,"REFERRAL_REWARD_STATE_CHANGED");
-    await this.sql.unsafe(
-      "INSERT INTO audit_log(tenant_id,user_id,action,entity_type,entity_id,details) VALUES($1,$2,'referral.reward.paid','customer_referral_reward',$3,$4::jsonb)",
-      [row.tenant_id,actorId,String(row.id),JSON.stringify({amount_minor:Number(row.amount_minor),currency:row.currency,paid_reference:row.paid_reference,payout_state:"manual"})]
-    );
-    return {...row,amount_minor:Number(row.amount_minor),already_paid:false};
+    // Row locking serializes manual settlement with automated payout claims.
+    // The payment and its audit record commit atomically or both roll back.
+    return this.sql.begin(async tx=>{
+      const existing=(await tx.unsafe(
+        "SELECT id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,earned_at,paid_at,paid_reference,payout_state FROM customer_referral_rewards WHERE id=$1 FOR UPDATE",
+        [id]
+      ))[0];
+      if(!existing)throw problem(404,"REFERRAL_REWARD_NOT_FOUND");
+      if(existing.status==="paid")return {...existing,amount_minor:Number(existing.amount_minor),already_paid:true};
+      if(existing.status!=="earned")throw problem(409,"REFERRAL_REWARD_NOT_PAYABLE");
+      if(existing.payout_state==="processing")throw problem(409,"REFERRAL_PAYOUT_IN_PROGRESS");
+      if(!["pending","retry","waiting_account"].includes(existing.payout_state))throw problem(409,"REFERRAL_PAYOUT_STATE_INVALID");
+      const row=(await tx.unsafe(
+        "UPDATE customer_referral_rewards SET status='paid',paid_at=now(),paid_reference=$2,payout_state='manual',payout_completed_at=now(),payout_next_attempt_at=NULL,payout_last_error=NULL WHERE id=$1 AND status='earned' AND payout_state IN ('pending','retry','waiting_account') RETURNING id,public_id::text AS public_id,tenant_id,amount_minor::bigint AS amount_minor,currency,status,earned_at,paid_at,paid_reference,payout_state",
+        [id,reference]
+      ))[0];
+      if(!row)throw problem(409,"REFERRAL_REWARD_STATE_CHANGED");
+      await tx.unsafe(
+        "INSERT INTO audit_log(tenant_id,user_id,action,entity_type,entity_id,details) VALUES($1,$2,'referral.reward.paid','customer_referral_reward',$3,$4::jsonb)",
+        [row.tenant_id,actorId,String(row.id),JSON.stringify({amount_minor:Number(row.amount_minor),currency:row.currency,paid_reference:row.paid_reference,payout_state:"manual"})]
+      );
+      return {...row,amount_minor:Number(row.amount_minor),already_paid:false};
+    });
   }
 
   async customerPortabilityRequests(tenantId){
