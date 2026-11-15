@@ -25,7 +25,7 @@ export async function runReferralAutomaticPayouts({store,config,limit=25}={}){
     try{
       if(!item.provider_account_reference){
         const next=nextIso(12*60*60*1000);
-        await store.failAutomaticReferralPayout(item.id,{state:"waiting_account",error_code:"REFERRAL_PAYOUT_ACCOUNT_REQUIRED",next_attempt_at:next});
+        await store.failAutomaticReferralPayout(item.id,{expected_attempt_count:item.payout_attempt_count,state:"waiting_account",error_code:"REFERRAL_PAYOUT_ACCOUNT_REQUIRED",next_attempt_at:next});
         waiting++;results.push({id:item.id,state:"waiting_account",next_attempt_at:next});continue;
       }
       let normalized;
@@ -36,13 +36,13 @@ export async function runReferralAutomaticPayouts({store,config,limit=25}={}){
       }catch(error){
         const code=String(error?.code||"STRIPE_REFERRAL_ACCOUNT_STATUS_UNAVAILABLE");
         const next=nextIso(retryDelayMs(item.payout_attempt_count,code));
-        await store.failAutomaticReferralPayout(item.id,{state:waitingCode(code)?"waiting_account":"retry",error_code:code,next_attempt_at:next});
+        await store.failAutomaticReferralPayout(item.id,{expected_attempt_count:item.payout_attempt_count,state:waitingCode(code)?"waiting_account":"retry",error_code:code,next_attempt_at:next});
         if(waitingCode(code))waiting++;else retry++;
         results.push({id:item.id,state:waitingCode(code)?"waiting_account":"retry",error_code:code,next_attempt_at:next});continue;
       }
       if(normalized.transfers_enabled!==true){
         const next=nextIso(6*60*60*1000);
-        await store.failAutomaticReferralPayout(item.id,{state:"waiting_account",error_code:"REFERRAL_PAYOUT_ACCOUNT_NOT_READY",next_attempt_at:next});
+        await store.failAutomaticReferralPayout(item.id,{expected_attempt_count:item.payout_attempt_count,state:"waiting_account",error_code:"REFERRAL_PAYOUT_ACCOUNT_NOT_READY",next_attempt_at:next});
         waiting++;results.push({id:item.id,state:"waiting_account",next_attempt_at:next});continue;
       }
       const transfer=await createStripeReferralTransfer(config,{
@@ -53,14 +53,14 @@ export async function runReferralAutomaticPayouts({store,config,limit=25}={}){
         currency:item.currency,
         idempotency_key:"referral-reward/"+item.public_id
       });
-      const completed=await store.completeAutomaticReferralPayout(item.id,transfer);
+      const completed=await store.completeAutomaticReferralPayout(item.id,{...transfer,expected_attempt_count:item.payout_attempt_count});
       paid++;results.push({id:item.id,state:"paid",provider_transfer_reference:completed.provider_transfer_reference||transfer.provider_transfer_reference});
     }catch(error){
       failed++;
       const code=String(error?.code||"REFERRAL_PAYOUT_FAILED");
       const state=waitingCode(code)?"waiting_account":"retry";
       const next=nextIso(state==="waiting_account"?6*60*60*1000:retryDelayMs(item.payout_attempt_count,code));
-      try{await store.failAutomaticReferralPayout(item.id,{state,error_code:code,next_attempt_at:next});}catch{}
+      try{await store.failAutomaticReferralPayout(item.id,{expected_attempt_count:item.payout_attempt_count,state,error_code:code,next_attempt_at:next});}catch{}
       if(state==="waiting_account")waiting++;else retry++;
       results.push({id:item.id,state,error_code:code,next_attempt_at:next});
     }
