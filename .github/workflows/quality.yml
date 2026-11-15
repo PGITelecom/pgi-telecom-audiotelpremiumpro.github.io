@@ -146,6 +146,7 @@ jobs:
         run: |
           node --test tests/postgres.integration.test.mjs
           node --test tests/critical-journeys.postgres.integration.test.mjs
+          node --test tests/finance-fencing.postgres.integration.test.mjs
 
       - name: Benchmark read-only PostgreSQL methods in isolated CI database
         env:
