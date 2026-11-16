@@ -1023,3 +1023,57 @@ body.home-page.ds-unified .ds-two-univers .ds-unit-icon{
   background:linear-gradient(145deg,#e9c99f,#d9b184);
   border-color:rgba(103,63,31,.28);
 }
+
+/* Compactage mobile des cartes éditoriales du Pôle Télécom & Réseau, sans suppression de contenu. */
+@media(max-width:680px){
+  /* Retirer l'espace vide au-dessus des titres : icône et titre sur la même ligne. */
+  body.home-page.ds-unified .ds-value-grid > article{
+    display:grid;
+    grid-template-columns:44px minmax(0,1fr);
+    column-gap:12px;
+    row-gap:8px;
+    align-content:start;
+    padding:15px 16px;
+    min-height:0;
+  }
+  body.home-page.ds-unified .ds-value-grid > article > .ds-value-emblem{
+    grid-column:1;
+    grid-row:1;
+    align-self:center;
+    margin:0;
+  }
+  body.home-page.ds-unified .ds-value-grid > article > h3{
+    grid-column:2;
+    grid-row:1;
+    align-self:center;
+    min-width:0;
+    margin:0;
+    line-height:1.3;
+  }
+  body.home-page.ds-unified .ds-value-grid > article > p{
+    grid-column:1 / -1;
+    margin:0;
+    line-height:1.55;
+  }
+  body.home-page.ds-unified .ds-value-grid > article > a{
+    grid-column:1 / -1;
+    justify-self:start;
+    margin:0;
+    min-height:30px;
+    display:inline-flex;
+    align-items:center;
+  }
+  /* Garder tous les liens accessibles et les panneaux beige lisibles. */
+  body.home-page.ds-unified .ds-profiles-grid{margin-top:17px;gap:10px}
+  body.home-page.ds-unified .ds-profiles-grid > article{padding:15px 16px;min-height:0}
+  body.home-page.ds-unified .ds-profiles-grid > article > h3{margin:0 0 7px}
+  body.home-page.ds-unified .ds-profiles-grid > article > p{margin:0 0 10px;line-height:1.55}
+  body.home-page.ds-unified .ds-features > article.card{padding:15px 16px;min-height:0}
+  body.home-page.ds-unified .ds-features > article.card > p:first-of-type{margin-top:9px}
+  body.home-page.ds-unified .ds-geo-faq .cards > .card{min-height:0;padding:15px 16px}
+  body.home-page.ds-unified .ds-geo-faq .cards > .card p{margin:8px 0}
+  body.home-page.ds-unified .ds-geo-faq .cards > .card a{margin-top:5px}
+  /* Réduire les séparations verticales entre les rubriques, sauf la photo réseau. */
+  body.home-page.ds-unified main .section-space:not(.ds-network-showcase){padding-top:26px;padding-bottom:26px}
+  body.home-page.ds-unified .ds-value-grid{margin-top:17px;gap:10px}
+}
