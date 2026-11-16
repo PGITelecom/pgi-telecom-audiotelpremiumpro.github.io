@@ -53,9 +53,10 @@ const popular=[
 ];
 
 let indexPromise=null,entries=[],active=-1,lastTrackedQuery="";
+const indexUrl=root.getAttribute("data-site-search-index")||"/site-search-index.json";
 const loadIndex=()=>{
   if(indexPromise)return indexPromise;
-  indexPromise=fetch("/site-search-index.json",{credentials:"same-origin",cache:"force-cache"})
+  indexPromise=fetch(indexUrl,{credentials:"same-origin",cache:"force-cache"})
     .then(r=>{if(!r.ok)throw new Error("search index");return r.json()})
     .then(data=>{
       entries=Array.isArray(data?.pages)?data.pages:[];
