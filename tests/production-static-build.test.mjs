@@ -121,7 +121,8 @@ test("production static build publishes marketing root and private cockpit",()=>
       assert.ok(scripts.includes("/site/contact-widget.js"),"contact widget missing on "+slug);
       assert.ok(
         /href="\/site\/public-marketing\.css\?v=[a-z0-9._-]+"/i.test(page)||
-        /href="\/site\/contact-widget\.css\?v=[a-z0-9._-]+"/i.test(page),
+        /href="\/site\/contact-widget\.css\?v=[a-z0-9._-]+"/i.test(page)||
+        /href="\/site\/application-marketing\.css\?v=[a-z0-9._-]+"/i.test(page),
         "marketing CSS must be present on "+slug
       );
     });
