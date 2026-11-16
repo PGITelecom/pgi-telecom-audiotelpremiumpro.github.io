@@ -23,7 +23,7 @@ test("Pôle marketing benefits, relevant audiences and transparency stay truthfu
 
 test("approved photos and editorial order remain intact",()=>{
   const hero=home.indexOf("telecom-hero.webp");
-  const second=home.indexOf("pgi-telecom-supervision-infrastructure-reseau.webp");
+  const second=home.indexOf("pgi-telecom-pole-telecom-reseau-supervision-infrastructures.webp");
   const faq=home.indexOf('id="questions-pole-telecom"');
   const light=home.indexOf('class="ds-two-univers"');
   assert.ok(hero>0&&second>hero&&faq>second&&light>faq);
