@@ -7,7 +7,7 @@ import http from "node:http";
 import {createStaticSiteHandler} from "../backend/src/static-site.mjs";
 import {isDirectSvaPublicAsset} from "../backend/src/direct-sva-public-site.mjs";
 
-const approved=["style.css","brand.css","parity.css","unified.css","public-bundle.css","telecom-hero.webp","pole-telecom-skyline-reference.webp","pgi-telecom-supervision-infrastructure-reseau.webp","site.js","measurement.js"];
+const approved=["style.css","brand.css","parity.css","unified.css","public-bundle.css","telecom-hero.webp","pole-telecom-skyline-reference.webp","pgi-telecom-supervision-infrastructure-reseau.webp","pgi-telecom-pole-telecom-reseau-supervision-infrastructures.webp","site.js","measurement.js"];
 const forbidden=["index.html","admin.js","billing.js","secret.env","../index.html","private.png","preview.zip"];
 
 test("public Distribution asset policy allows all actually linked CSS and photo files, but no arbitrary files",()=>{
@@ -50,7 +50,7 @@ test("an HTTP client can actually load the real SVA parity CSS, branded CSS and 
       assert.equal(h.status,200);
       const html=await h.text();
       assert.equal((html.match(/<link rel="stylesheet"/g)||[]).length,1,"Distribution should load a single CSS bundle");
-      for(const name of ["public-bundle.css","telecom-hero.webp","pgi-telecom-supervision-infrastructure-reseau.webp"]){
+      for(const name of ["public-bundle.css","telecom-hero.webp","pgi-telecom-pole-telecom-reseau-supervision-infrastructures.webp"]){
         assert.ok(html.includes("/site/distribution-sva/"+name),"page must reference "+name);
         const response=await fetch(base+"/site/distribution-sva/"+name);
         assert.equal(response.status,200,name+" should never be a 404");
@@ -65,7 +65,7 @@ test("an HTTP client can actually load the real SVA parity CSS, branded CSS and 
           assert.equal(buffer.toString("ascii",0,4),"RIFF");
           assert.equal(buffer.toString("ascii",8,12),"WEBP");
           assert.equal(buffer.readUInt32LE(4)+8,buffer.length,"WebP bytes must be complete");
-          if(name==="pgi-telecom-supervision-infrastructure-reseau.webp")assert.ok(buffer.length>150000,"image quality regression");
+          if(name==="pgi-telecom-pole-telecom-reseau-supervision-infrastructures.webp")assert.ok(buffer.length>150000,"image quality regression");
         }
       }
       assert.equal((await fetch(base+"/site/distribution-sva/index.html")).status,404,"raw page source must not leak");
