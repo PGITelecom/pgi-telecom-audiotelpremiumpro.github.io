@@ -59,7 +59,7 @@ test("production static build publishes marketing root and private cockpit",()=>
         "/* "+file+" */\n"+fs.readFileSync(file,"utf8")+"\n"
       ).join("\n");
       assert.equal(css,expected,slug+" must preserve the CSS cascade byte for byte");
-      const page=seoPages[seoSlugs.indexOf(slug)];
+      const page=fs.readFileSync("dist/"+slug+"/index.html","utf8");
       assert.ok(page.includes('href="/site/'+bundle+'?v='),slug+" must load only the bundle");
       assert.equal([...page.matchAll(/<link rel="stylesheet"/g)].length,1,slug+" should have one CSS request");
       assert.ok(!page.includes('href="/site/site.css'),slug+" no duplicate base styles");
