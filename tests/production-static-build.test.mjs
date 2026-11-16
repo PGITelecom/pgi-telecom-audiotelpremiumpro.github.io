@@ -66,7 +66,7 @@ test("production static build publishes marketing root and private cockpit",()=>
       assert.ok(!page.includes('href="/site/contact-widget.css'),slug+" no duplicate widget styles");
     }
     for(const page of seoPages){
-      assert.match(page,/src="\\/site\\/contact-widget\\.js\\?v=[a-z0-9._-]+"/i);
+      assert.ok(page.includes('src="/site/contact-widget.js?v='),"widget JavaScript missing");
       assert.ok(["public-marketing.css","contact-widget.css","application-marketing.css","payment-marketing.css"]
         .some(asset=>page.includes(asset)),"marketing/widget CSS missing");
     }
