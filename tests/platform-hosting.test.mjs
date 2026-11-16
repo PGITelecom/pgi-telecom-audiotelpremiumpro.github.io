@@ -208,7 +208,7 @@ test("public home keeps live navigation state while reusing immutable HTML, and 
     // Distinct built releases cannot serve an earlier search index from the CDN.
     const versioned=await fetch(base+"/site-search-index.json?v=abc123def456");
     assert.equal(versioned.status,200);
-    assert.match(versioned.headers.get("content-type")||"",/application\\/json/);
+    assert.ok((versioned.headers.get("content-type")||"").includes("application/json"));
     assert.equal(versioned.headers.get("cache-control"),
       "public, max-age=31536000, s-maxage=31536000, immutable");
     assert.deepEqual(await versioned.json(),{version:2,pages:[]});
