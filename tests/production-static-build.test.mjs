@@ -48,12 +48,27 @@ test("production static build publishes marketing root and private cockpit",()=>
     assert.equal(marketingCss,expectedCss);
     assert.match(seoPages[0],/href="\/site\/public-marketing\.css\?v=[a-z0-9._-]+"/i);
     assert.doesNotMatch(seoPages[0],/href="\/site\/contact-widget\.css/i);
-    assert.match(seoPages[seoSlugs.indexOf("demande-ouverture")],/href="\/site\/contact-widget\.css\?v=[a-z0-9._-]+"/i,
-      "pages with separate form CSS keep the original cascade");
-    assert.match(seoPages[seoSlugs.indexOf("demande-ouverture")],/href="\/site\/site\.css\?v=[a-z0-9._-]+"/i);
+
+    // Form and payment CSS must retain the *exact* prior concatenation order.
+    for(const [slug,bundle,extraFile] of [
+      ["demande-ouverture","application-marketing.css","site/application.css"],
+      ["paiement-cb-audiotel","payment-marketing.css","site/payment-card.css"]
+    ]){
+      const css=fs.readFileSync("dist/site/"+bundle,"utf8");
+      const expected=["site/site.css",extraFile,"site/contact-widget.css"].map(file=>
+        "/* "+file+" */\n"+fs.readFileSync(file,"utf8")+"\n"
+      ).join("\n");
+      assert.equal(css,expected,slug+" must preserve the CSS cascade byte for byte");
+      const page=fs.readFileSync("dist/"+slug+"/index.html","utf8");
+      assert.ok(page.includes('href="/site/'+bundle+'?v='),slug+" must load only the bundle");
+      assert.equal([...page.matchAll(/<link rel="stylesheet"/g)].length,1,slug+" should have one CSS request");
+      assert.ok(!page.includes('href="/site/site.css'),slug+" no duplicate base styles");
+      assert.ok(!page.includes('href="/site/contact-widget.css'),slug+" no duplicate widget styles");
+    }
     for(const page of seoPages){
-      assert.match(page,/src="\/site\/contact-widget\.js\?v=[a-z0-9._-]+"/i);
-      assert.ok(page.includes("public-marketing.css")||page.includes("contact-widget.css"));
+      assert.ok(page.includes('src="/site/contact-widget.js?v='),"widget JavaScript missing");
+      assert.ok(["public-marketing.css","contact-widget.css","application-marketing.css","payment-marketing.css"]
+        .some(asset=>page.includes(asset)),"marketing/widget CSS missing");
     }
 
     assert.doesNotMatch(root,/\.\.\/assets\//);
@@ -106,7 +121,8 @@ test("production static build publishes marketing root and private cockpit",()=>
       assert.ok(scripts.includes("/site/contact-widget.js"),"contact widget missing on "+slug);
       assert.ok(
         /href="\/site\/public-marketing\.css\?v=[a-z0-9._-]+"/i.test(page)||
-        /href="\/site\/contact-widget\.css\?v=[a-z0-9._-]+"/i.test(page),
+        /href="\/site\/contact-widget\.css\?v=[a-z0-9._-]+"/i.test(page)||
+        /href="\/site\/application-marketing\.css\?v=[a-z0-9._-]+"/i.test(page),
         "marketing CSS must be present on "+slug
       );
     });

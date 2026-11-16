@@ -161,6 +161,20 @@ const publicMarketingCss=publicMarketingCssOrder.map(file=>
 ).join("\n");
 fs.writeFileSync(path.join(dist,"site","public-marketing.css"),publicMarketingCss,"utf8");
 
+// The two commercial conversion pages have an extra stylesheet. Keep the
+// original ordered CSS bytes; bundling changes only the number of HTTP requests.
+for(const [bundleName,extraCss] of [
+  ["application-marketing.css","site/application.css"],
+  ["payment-marketing.css","site/payment-card.css"]
+]){
+  const orderedFiles=["site/site.css",extraCss,"site/contact-widget.css"];
+  const bundledCss=orderedFiles.map(file=>
+    "/* "+file+" */\n"+fs.readFileSync(path.join(root,file),"utf8")+"\n"
+  ).join("\n");
+  fs.writeFileSync(path.join(dist,"site",bundleName),bundledCss,"utf8");
+}
+
+
 // Package future telecom pages as inert sources. The HTTP server denies them
 // until a separately reviewed publication migration; the cockpit switch only
 // controls navigation after that release, never deletion from the sitemap.
@@ -775,8 +789,22 @@ function injectContactWidget(html){
   const baseStylesheet=/<link\s+rel="stylesheet"\s+href="(?:site\.css|\/?site\/site\.css)">/;
   if(!baseStylesheet.test(html))throw new Error("PUBLIC_MARKETING_CSS_SOURCE_MISSING");
   const stylesheets=[...html.matchAll(/<link\s+rel="stylesheet"\s+href="[^"]+"[^>]*>/g)];
-  // Some legal/form pages have additional CSS between the two original links.
-  // Keep them untouched so their cascade precedence is byte-for-byte identical.
+  // Only these two pages have an additional CSS file in the same directory.
+  // Concatenate site > page > widget in their original order, retaining all
+  // declarations, selectors, specificity and URL resolution exactly as before.
+  const baseLink='<link rel="stylesheet" href="/site/site.css">';
+  const extra=stylesheets.length===2&&stylesheets[0][0]===baseLink
+    ?(stylesheets[1][0]==='<link rel="stylesheet" href="/site/application.css">'
+      ?"application-marketing.css"
+      :stylesheets[1][0]==='<link rel="stylesheet" href="/site/payment-card.css">'
+        ?"payment-marketing.css":null)
+    :null;
+  if(extra){
+    return html.replace(baseLink,'<link rel="stylesheet" href="/site/'+extra+'">')
+      .replace(stylesheets[1][0],"")
+      .replace("</head>",'<script src="/site/contact-widget.js" defer></script>\n</head>');
+  }
+  // Other legal and specialized pages retain the original CSS loading order.
   if(stylesheets.length!==1)return html.replace("</head>",
     '<link rel="stylesheet" href="/site/contact-widget.css">\n<script src="/site/contact-widget.js" defer></script>\n</head>');
   return html.replace(baseStylesheet,'<link rel="stylesheet" href="/site/public-marketing.css">')
