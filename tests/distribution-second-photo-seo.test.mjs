@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import {publishedDistributionHtml,isDirectSvaPublicAsset} from "../backend/src/direct-sva-public-site.mjs";
 const read=p=>fs.readFileSync(new URL("../"+p,import.meta.url),"utf8");
-const assetName="pgi-telecom-supervision-infrastructure-reseau.webp";
+const assetName="pgi-telecom-pole-telecom-reseau-supervision-infrastructures.webp";
 const assetPath="/site/distribution-sva/"+assetName;
 const home=read("site/distribution-sva/index.html");
 const visible=publishedDistributionHtml(home,{publication_authorized:true,navigation_visible:true,commercial_requests_enabled:false});
