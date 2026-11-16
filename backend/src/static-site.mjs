@@ -45,6 +45,8 @@ export function createStaticSiteHandler(rootDir,{getDirectSvaWebsiteState}={}){
     try{return await getDirectSvaWebsiteState();}catch{return null;}
   }
   const root=String(rootDir||"").trim()?path.resolve(String(rootDir)):null;
+  // Immutable within one deployment; refreshed if the underlying file changes.
+  let homepageRenderCache=null;
   return async function serveStaticSite(req,res,pathname){
     if(!root)return false;
     const method=String(req?.method||"GET").toUpperCase();
@@ -188,7 +190,8 @@ export function createStaticSiteHandler(rootDir,{getDirectSvaWebsiteState}={}){
     const editorialHtml=html&&/^\/[a-z0-9-]+\/$/.test(requestPath)&&
       PUBLIC_EDITORIAL_CACHE_SLUGS.has(requestPath.slice(1,-1));
     const staticAsset=!runtimeConfig&&!html&&/\.(?:css|js|png|webp|svg|ico)$/i.test(requestPath);
-    const versionedAsset=staticAsset&&/[?&]v=[A-Za-z0-9._-]{1,32}(?:&|$)/.test(String(req?.url||""));
+    const publicSearchIndex=requestPath==="/site-search-index.json";
+    const versionedAsset=(staticAsset||publicSearchIndex)&&/[?&]v=[A-Za-z0-9._-]{1,32}(?:&|$)/.test(String(req?.url||""));
     res.setHeader("Content-Type",MIME[ext]||"application/octet-stream");
     const serviceWorker=requestPath==="/service-worker.js";
     if(runtimeConfig||privateUi)res.setHeader("Cache-Control","no-store");
@@ -198,7 +201,7 @@ export function createStaticSiteHandler(rootDir,{getDirectSvaWebsiteState}={}){
     // Keep private/dynamic responses uncached. Cache only public static assets at Vercel edge.
     // Vercel requires s-maxage for CDN caching; max-age alone primarily caches browsers.
     else if(versionedAsset)res.setHeader("Cache-Control","public, max-age=31536000, s-maxage=31536000, immutable");
-    else if(staticAsset)res.setHeader("Cache-Control","public, max-age=300, s-maxage=300, stale-while-revalidate=60");
+    else if(staticAsset||publicSearchIndex)res.setHeader("Cache-Control","public, max-age=300, s-maxage=300, stale-while-revalidate=60");
     else res.setHeader("Cache-Control","public, max-age=300, stale-while-revalidate=60");
     if(clientUi)res.setHeader("Content-Security-Policy",PRIVATE_CSP);
     else if(cockpitUi)res.setHeader("Content-Security-Policy",COCKPIT_CSP);
@@ -217,9 +220,23 @@ export function createStaticSiteHandler(rootDir,{getDirectSvaWebsiteState}={}){
     }
 
     if(String(pathname||"")==="/"&&html){
-      const source=await fs.promises.readFile(file,"utf8");
-      const rendered=visibleDistributionMarketingHome(source,await visibility());
-      const body=Buffer.from(rendered,"utf8");
+      const key=file+":"+stat.size+":"+stat.mtimeMs;
+      if(homepageRenderCache?.key!==key){
+        const source=await fs.promises.readFile(file,"utf8");
+        homepageRenderCache={
+          key,
+          hidden:Buffer.from(visibleDistributionMarketingHome(source,null),"utf8"),
+          visible:Buffer.from(visibleDistributionMarketingHome(source,{
+            publication_authorized:true,navigation_visible:true
+          }),"utf8")
+        };
+      }
+      // Only cache the immutable HTML bytes, never database visibility state.
+      // Every request still checks the real editorial publication/navigation switches.
+      const prepared=homepageRenderCache;
+      const state=await visibility();
+      const body=state?.publication_authorized===true&&state?.navigation_visible===true
+        ?prepared.visible:prepared.hidden;
       res.setHeader("Content-Length",String(body.length));
       if(method==="HEAD"){res.writeHead(200);res.end();return true;}
       res.writeHead(200);res.end(body);return true;
