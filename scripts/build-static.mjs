@@ -794,11 +794,13 @@ function injectContactWidget(html){
   // declarations, selectors, specificity and URL resolution exactly as before.
   const baseLink='<link rel="stylesheet" href="/site/site.css">';
   const extra=stylesheets.length===2&&stylesheets[0][0]===baseLink
-    ?stylesheets[1][0].match(/^<link rel="stylesheet" href="\\/site\\/(application|payment-card)\\.css">$/)
+    ?(stylesheets[1][0]==='<link rel="stylesheet" href="/site/application.css">'
+      ?"application-marketing.css"
+      :stylesheets[1][0]==='<link rel="stylesheet" href="/site/payment-card.css">'
+        ?"payment-marketing.css":null)
     :null;
   if(extra){
-    const bundled=extra[1]==="application"?"application-marketing.css":"payment-marketing.css";
-    return html.replace(baseLink,'<link rel="stylesheet" href="/site/'+bundled+'">')
+    return html.replace(baseLink,'<link rel="stylesheet" href="/site/'+extra+'">')
       .replace(stylesheets[1][0],"")
       .replace("</head>",'<script src="/site/contact-widget.js" defer></script>\n</head>');
   }
