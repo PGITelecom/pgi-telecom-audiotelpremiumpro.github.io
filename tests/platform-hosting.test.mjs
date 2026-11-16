@@ -168,3 +168,62 @@ test("Railway deployment keeps app and database private-by-reference",()=>{
   assert.doesNotMatch(docker,/DATABASE_PUBLIC_URL/);
   assert.doesNotMatch(rootDocker,/DATABASE_PUBLIC_URL/);
 });
+
+
+test("public home keeps live navigation state while reusing immutable HTML, and search index caches by release",async()=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),"pgi-home-perf-"));
+  const home='<!doctype html><a class="header-distribution-link" href="/distribution-sva/" hidden>Telecom</a>';
+  fs.writeFileSync(path.join(root,"index.html"),home);
+  fs.writeFileSync(path.join(root,"site-search-index.json"),'{"version":2,"pages":[]}');
+  let visible=false,reads=0;
+  const handler=createStaticSiteHandler(root,{
+    getDirectSvaWebsiteState:async()=>{
+      reads++;
+      return {publication_authorized:visible,navigation_visible:visible};
+    }
+  });
+  const server=http.createServer(async(req,res)=>{
+    const pathname=new URL(req.url,"http://localhost").pathname;
+    if(await handler(req,res,pathname))return;
+    res.writeHead(404);res.end();
+  });
+  await new Promise(resolve=>server.listen(0,"127.0.0.1",resolve));
+  try{
+    const base="http://127.0.0.1:"+server.address().port;
+    const hidden=await fetch(base+"/");
+    assert.equal(hidden.status,200);
+    assert.equal(hidden.headers.get("cache-control"),"no-store, must-revalidate");
+    assert.equal(await hidden.text(),home);
+    visible=true;
+    const published=await fetch(base+"/");
+    assert.equal(published.status,200);
+    const publishedText=await published.text();
+    assert.ok(publishedText.includes('href="/distribution-sva/">Telecom'));
+    assert.ok(!publishedText.includes('href="/distribution-sva/" hidden'));
+    visible=false;
+    const hiddenAgain=await fetch(base+"/",{method:"HEAD"});
+    assert.equal(hiddenAgain.status,200);
+    assert.equal(Number(hiddenAgain.headers.get("content-length")),Buffer.byteLength(home));
+    assert.equal(reads,3,"homepage visibility must be read for every request");
+    // Distinct built releases cannot serve an earlier search index from the CDN.
+    const versioned=await fetch(base+"/site-search-index.json?v=abc123def456");
+    assert.equal(versioned.status,200);
+    assert.ok((versioned.headers.get("content-type")||"").includes("application/json"));
+    assert.equal(versioned.headers.get("cache-control"),
+      "public, max-age=31536000, s-maxage=31536000, immutable");
+    assert.deepEqual(await versioned.json(),{version:2,pages:[]});
+    const etag=versioned.headers.get("etag");
+    assert.match(etag||"",/^"sha256-/);
+    const notModified=await fetch(base+"/site-search-index.json?v=abc123def456",{
+      headers:{"If-None-Match":etag}
+    });
+    assert.equal(notModified.status,304);
+    const fallback=await fetch(base+"/site-search-index.json");
+    assert.equal(fallback.headers.get("cache-control"),
+      "public, max-age=300, s-maxage=300, stale-while-revalidate=60");
+    assert.equal(await fallback.text(),'{"version":2,"pages":[]}');
+  }finally{
+    await new Promise(resolve=>server.close(resolve));
+    fs.rmSync(root,{recursive:true,force:true});
+  }
+});

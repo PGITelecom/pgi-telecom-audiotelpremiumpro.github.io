@@ -39,6 +39,12 @@ test("production static build publishes marketing root and private cockpit",()=>
     assert.match(root,/src="site\/site\.js\?v=[a-z0-9._-]+"/i);
     assert.doesNotMatch(root,/href="\/site\/contact-widget\.css\?v=[a-z0-9._-]+"/i);
     assert.match(root,/src="\/site\/contact-widget\.js\?v=[a-z0-9._-]+"/i);
+    const searchIndexUrl='/site-search-index.json?v='+'c'.repeat(12);
+    assert.ok(root.includes('data-site-search-index="'+searchIndexUrl+'"'),
+      "homepage search must use this release's immutable index");
+    assert.ok(legacy.includes('data-site-search-index="'+searchIndexUrl+'"'),
+      "legacy canonical site must use the same search index");
+
 
     // Exact CSS concatenation conserves specificity, precedence, appearance and accessibility.
     const marketingCss=fs.readFileSync("dist/site/public-marketing.css","utf8");
@@ -66,6 +72,7 @@ test("production static build publishes marketing root and private cockpit",()=>
       assert.ok(!page.includes('href="/site/contact-widget.css'),slug+" no duplicate widget styles");
     }
     for(const page of seoPages){
+      assert.ok(page.includes('data-site-search-index="'+searchIndexUrl+'"'),"release search index missing");
       assert.ok(page.includes('src="/site/contact-widget.js?v='),"widget JavaScript missing");
       assert.ok(["public-marketing.css","contact-widget.css","application-marketing.css","payment-marketing.css"]
         .some(asset=>page.includes(asset)),"marketing/widget CSS missing");
