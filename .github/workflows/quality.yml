@@ -187,4 +187,43 @@ jobs:
           include-hidden-files: true
 
 
+      - name: Benchmark read-only PostgreSQL methods in isolated CI database
+        env:
+          PGI_TEST_DATABASE_URL: postgresql://pgi_test:pgi_test@127.0.0.1:5432/pgi_test
+        run: |
+          mkdir -p .ci-perf
+          node scripts/performance-postgres-ci.mjs > .ci-perf/postgres.json
+
+      - name: Summarize CI-only performance evidence
+        if: always()
+        run: |
+          node --input-type=module - <<'NODE' | tee -a "$GITHUB_STEP_SUMMARY"
+          import fs from "node:fs";
+          console.log("### Isolated CI performance comparison\n");
+          console.log("| Environment | Scenario | Virtual users | RPS target cap | Requests | p95 (ms) | Errors |");
+          console.log("|---|---|---:|---:|---:|---:|---:|");
+          for(const file of ["simulator-load.json","simulator-stress.json","simulator-spike.json","postgres.json"]){
+            const path=".ci-perf/"+file;
+            if(!fs.existsSync(path))continue;
+            const r=JSON.parse(fs.readFileSync(path,"utf8"));
+            if(file!=="postgres.json"){
+              console.log("| Simulator | "+r.run_type+" | "+r.virtual_users+" | "+r.details.max_rps+" | "+r.requests_total+" | "+r.p95_ms.toFixed(1)+" | "+r.errors_total+" |");
+            }else for(const x of r.results){
+              console.log("| CI PostgreSQL | "+x.scenario+" | "+x.virtual_users+" | "+x.max_rps+" | "+x.samples+" | "+x.p95_ms.toFixed(1)+" | "+x.errors+" |");
+            }
+          }
+          console.log("\nSynthetic CI traffic and fixture, not a production-capacity guarantee.");
+          NODE
+
+      - name: Archive CI-only performance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-performance-evidence
+          path: .ci-perf/
+          if-no-files-found: ignore
+          retention-days: 14
+          include-hidden-files: true
+
+
 
