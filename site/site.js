@@ -16,7 +16,7 @@ location.reload();
 }).catch(function(){});
 }catch(_e){}
 })();
-(()=>{const d=new Date(),m=new Intl.DateTimeFormat("fr-FR",{month:"long",timeZone:"Europe/Paris"}).format(d),y=new Intl.DateTimeFormat("fr-FR",{year:"numeric",timeZone:"Europe/Paris"}).format(d);document.querySelectorAll("[data-current-period-badge]").forEach(el=>{el.textContent=`En ${m} ${y} ... Des reversements plus généreux`})})();
+(()=>{const d=new Date(),m=new Intl.DateTimeFormat("fr-FR",{month:"long",timeZone:"Europe/Paris"}).format(d),y=new Intl.DateTimeFormat("fr-FR",{year:"numeric",timeZone:"Europe/Paris"}).format(d);document.querySelectorAll("[data-current-period-badge]").forEach(el=>{el.textContent=`En ${m} ${y} ... Des reversements plus généreux que la concurrence`})})();
 (()=>{
 const $=id=>document.getElementById(id);
 const gap=$("saving-gap"),hours=$("saving-hours"),days=$("saving-days");

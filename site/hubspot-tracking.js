@@ -491,7 +491,7 @@ function currentPeriodMarketingLabel(){
   const now=new Date();
   const month=new Intl.DateTimeFormat("fr-FR",{month:"long",timeZone:"Europe/Paris"}).format(now);
   const year=new Intl.DateTimeFormat("fr-FR",{year:"numeric",timeZone:"Europe/Paris"}).format(now);
-  return "En "+month+" "+year+" ... Des reversements plus généreux";
+  return "En "+month+" "+year+" ... Des reversements plus généreux que la concurrence";
 }
 function bindCurrentPeriodMarketingBadge(){
   const label=currentPeriodMarketingLabel();
