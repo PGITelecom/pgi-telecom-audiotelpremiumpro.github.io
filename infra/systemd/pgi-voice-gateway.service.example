@@ -1,0 +1,33 @@
+[Unit]
+Description=PGI private voice reservation gateway (mTLS)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pgi-voice-gateway
+Group=pgi-voice-gateway
+WorkingDirectory=/opt/pgi-telecom
+EnvironmentFile=/etc/pgi-voice-gateway/database.env
+Environment=PGI_VOICE_GATEWAY_CONFIG_FILE=/etc/pgi-voice-gateway/gateway.json
+ExecStart=/usr/bin/node /opt/pgi-telecom/telephony/voice-gateway-server.mjs
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+TasksMax=64
+# Install and enable ONLY on the approved private host after preflight.
+# Network ACL/firewall and a least-privileged DB role are separate prerequisites.
+
+[Install]
+WantedBy=multi-user.target
