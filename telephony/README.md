@@ -225,3 +225,49 @@ concurrentes constituent des instantanés non transactionnels.
 Ces modules sont hors Vercel et hors Neon, n'ajoutent aucune dépendance npm,
 ne démarrent aucun service ni tâche planifiée et n'exposent aucun port.
 La recette sur un serveur voix autorisé et le raccordement réel restent requis.
+
+
+## Réservation durable de capacité pour la future réception WebRTC
+
+L'API historique next-destination augmente active_calls à chaque demande ;
+l'API release par destination ne possède pas d'identifiant d'appel. Un retry
+ou un double release peut donc dériver les compteurs. Elle reste inchangée
+jusqu'à une bascule explicite et contrôlée.
+
+Les composants préparés sont :
+- backend/src/voice-reservation-lifecycle.mjs : transitions et clôture unique.
+- backend/src/voice-reservation-store.mjs : transaction PostgreSQL, idempotence
+  par UUID, verrou de destination, limite de capacité, contrôle du tenant,
+  du numéro et des conditions d'accès/reversement existantes.
+- telephony/sql/voice-reservations.prepare.sql : schéma proposé hors registre
+  des migrations. Non exécuté, non déployé dans Neon.
+- tests/voice-reservation-lifecycle.test.mjs : couverture logique des doublons,
+  événements tardifs, perte de connexion, reprise et preuve terminale.
+
+Aucun nouvel endpoint public, aucune réservation live et aucune modification
+du compteur historique active_calls. La nouvelle capacité est calculée à
+partir des réservations ouvertes ; ne jamais utiliser les deux moteurs pour
+une même destination. La sélection des destinations, leurs contrôles de
+priorité, la disponibilité des registrations SIP/WebRTC et le routage tenant
+doivent rester côté serveur, indépendamment des paramètres navigateur.
+L'identité du nœud doit être authentifiée par un canal machine privé et liée
+à la réservation. Chaque appel racine doit disposer de son UUID stable,
+d'une génération serveur et d'une séquence d'événements durable et monotone.
+Ne jamais utiliser une fin de branche SIP comme preuve de fin de l'appel racine.
+
+Un onglet fermé, une session navigateur expirée, un délai ou un serveur
+injoignable ne libère jamais de capacité : demander une observation
+autoritative de FreeSWITCH. Si le serveur média ne peut plus prouver l'état,
+la réservation reste occupée et nécessite une réconciliation. Pour la
+continuité : prévoir une destination de secours explicitement configurée ;
+ne jamais reconnecter ou transférer à l'aveugle un appel possiblement actif.
+La clôture de la réservation ne crée ni CDR ni règlement ; le pipeline CDR
+durable reste la source de l'événement de facturation.
+
+Avant activation : migration révisée et sauvegarde, rôle SQL privé minimal,
+API machine avec authentification individuelle, production/rejeu durable
+des événements média, intégration SIP over WSS, TURN et permissions par
+tenant/session, stratégie de reconnexion et d'appel de secours, recette
+des pannes et des appels facturables, bascule des destinations après
+drainage des appels existants et réconciliation du compteur historique.
+Aucun serveur voix, trunk ni ligne WebRTC n'est activé par ce code.
