@@ -12,6 +12,8 @@ import {compareWholesaleOffers} from "./src/wholesale-offer-comparison.mjs";
 import {normalizeCarrierExport} from "./src/carrier-export-normalizer.mjs";
 import {reconcileWholesalePreview,reconcileWholesaleLedger} from "./src/wholesale-reconciliation-preview.mjs";
 import {wholesaleIndependenceSnapshot,compareVoiceReception} from "./src/wholesale-independence.mjs";
+import {normalizeCarrierCsv,reconcileCarrierCsv} from "./src/carrier-csv-import.mjs";
+import {planEconomicRouting} from "./src/economic-voice-routing.mjs";
 import {startWorkers} from "./src/workers.mjs";
 import {createPortabilityQueueHandlers} from "./src/portability-automation.mjs";
 import {createOutboundPortabilityQueueHandlers} from "./src/outbound-portability-automation.mjs";
@@ -789,6 +791,22 @@ export function createBackend(options={}){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
         return done(res,metrics,started,"platform.wholesale_voice_cost",200,compareVoiceReception(body));
+      }
+
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/normalize-csv"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_normalize_csv",200,normalizeCarrierCsv(body));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/reconcile-csv"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_reconcile_csv",200,await reconcileCarrierCsv(store,body));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/economic-routing"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_economic_routing",200,await planEconomicRouting(store,body));
       }
 
       // A read-only release dossier is available even before the preparatory migrations.
