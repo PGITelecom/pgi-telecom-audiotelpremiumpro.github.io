@@ -205,3 +205,22 @@ d'un serveur TURN/WebRTC, les interconnexions, la collecte SVA, la portabilité 
 et les autorisations de numérotation. Leurs paramètres, certificats, accès opérateurs
 et conditions contractuelles réelles restent nécessaires. Conserver Stripe, Neon,
 Vercel et les autres fournisseurs informatiques, ainsi que les garde-fous de conformité.
+
+
+### Gratuité intelligente et coût total
+
+Le comparateur administrateur `POST /api/v1/platform/wholesale/internalization-tco`
+compare le coût incrémental de la prestation actuelle et d'une alternative sur
+trois volumes (bas, central, haut) et un horizon de 1 à 60 mois.
+Chaque poste doit être renseigné explicitement, même si sa valeur vérifiée est zéro.
+Les coûts comprennent licences, hébergement, maintenance, sécurité et sauvegardes,
+conformité, support, travail interne, dépassement du volume inclus, matériel,
+installation, migration, coexistence temporaire et sortie. Le moteur bloque une
+recommandation si l'économie n'est pas positive dans tous les scénarios, si la
+capacité est insuffisante ou si les preuves déclaratives manquent (usage commercial
+de la licence, coûts, capacité, qualité, sécurité, continuité, conformité, sortie).
+Il ne remplace ni une étude financière complète ni une décision d'achat.
+Priorité : réutiliser l'existant, puis logiciels libres et quotas gratuits compatibles
+avec un usage professionnel, sans remplacer Vercel, Neon, Stripe ou les autres
+prestataires informatiques actuels. Aucun abonnement, résiliation, déploiement
+ou engagement financier automatique. Aucun gain comptabilisé sans preuve réelle.
