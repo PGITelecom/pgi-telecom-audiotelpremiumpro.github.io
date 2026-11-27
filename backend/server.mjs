@@ -17,7 +17,7 @@ import {planEconomicRouting} from "./src/economic-voice-routing.mjs";
 import {compareInternalizationTco} from "./src/internalization-tco.mjs";
 import {callEconomicsSnapshot} from "./src/call-economics.mjs";
 import {evaluateWholesaleTiers} from "./src/wholesale-tier-economics.mjs";
-import {planVoiceEdge} from "../telephony/voice-edge-plan.mjs";
+import {planVoiceEdge} from "./src/voice-edge-plan.mjs";
 import {voiceRiskSnapshot} from "./src/voice-risk-review.mjs";
 import {startWorkers} from "./src/workers.mjs";
 import {createPortabilityQueueHandlers} from "./src/portability-automation.mjs";
