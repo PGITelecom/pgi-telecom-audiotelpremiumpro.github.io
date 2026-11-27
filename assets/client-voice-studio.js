@@ -1,3 +1,4 @@
+import {mountVoicePhone} from "./client-webrtc-phone.js";
 const $=id=>document.getElementById(id);
 const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 const statusLabel=s=>({draft:"Brouillon",testing:"Test",published:"Publié",paused:"En pause",archived:"Archivé"}[s]||s||"-");
@@ -73,7 +74,7 @@ function latest(s){return (s.versions||[]).slice().sort((a,b)=>Number(b.version_
 function featureText(s){const v=latest(s),a=v&&v.validation&&Array.isArray(v.validation.features)?v.validation.features:[];return a.slice(0,7).map(x=>x.replace(/_/g," ")).join(" • ");}
 
 export function createController({api,getDemo,getPortal,toast,canEdit}){
-  addStyles();mount();let services=[],demoId=100,selected=null;
+  addStyles();mount();mountVoicePhone({getDemo});let services=[],demoId=100,selected=null;
   const dialog=$("voice-studio-dialog"),list=$("voice-studio-list"),result=$("vs-result");
   const numbers=()=>{const p=getPortal?getPortal():{};return p&&Array.isArray(p.numbers)?p.numbers:[];};
   function render(){
