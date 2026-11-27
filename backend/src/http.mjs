@@ -18,13 +18,17 @@ export async function readJson(req,limitBytes){
   if(Number.isFinite(declared)&&declared>limitBytes){
     const e=new Error("BODY_TOO_LARGE");e.status=413;e.code="BODY_TOO_LARGE";throw e;
   }
-  const contentType=String(req.headers?.["content-type"]||"").toLowerCase();
-  if(declared>0&&!contentType.startsWith("application/json")){
-    const e=new Error("JSON content type required");e.status=415;e.code="UNSUPPORTED_MEDIA_TYPE";throw e;
-  }
+  const mediaType=String(req.headers?.["content-type"]||"").split(";",1)[0].trim().toLowerCase();
+  const requireJson=()=>{
+    if(mediaType!=="application/json"){
+      const e=new Error("JSON content type required");e.status=415;e.code="UNSUPPORTED_MEDIA_TYPE";throw e;
+    }
+  };
+  if(declared>0)requireJson();
   const chunks=[];
   let size=0;
   for await(const chunk of req){
+    if(chunk.length>0&&size===0)requireJson();
     size+=chunk.length;
     if(size>limitBytes){
       const e=new Error("BODY_TOO_LARGE");e.status=413;e.code="BODY_TOO_LARGE";throw e;
