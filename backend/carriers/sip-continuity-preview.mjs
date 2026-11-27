@@ -54,7 +54,8 @@ function sanitize(r){return Object.freeze({
  */
 export function prepareSipContinuityPreview(input){
  const primary=validate(input);
- const current=viable(primary);
+ // The selected primary must actually be ACTIVE, not merely ready or standby.
+ const current=primary.state==="active"&&primary.health==="up";
  const alternatives=input.routes.filter(r=>r.routeId!==primary.routeId&&viable(r)&&
   (r.type==="same_carrier_backup"?r.carrierCode===primary.carrierCode:
    r.type==="alternate_carrier"&&r.carrierCode!==primary.carrierCode));
