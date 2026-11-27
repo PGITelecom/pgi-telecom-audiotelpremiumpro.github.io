@@ -57,3 +57,10 @@ test("recovery drill must only use 127.0.0.1, require checksum, and clean test d
  assert.match(text,/public\.experts/);
  assert.doesNotMatch(text,/PGI_NEON_DATABASE_URL/);
 });
+
+test("backup rejects empty or incorrect PostgreSQL environments",()=>{
+ const text=fs.readFileSync(script,"utf8");
+ assert.match(text,/for table in calls experts outbox_events; do/);
+ assert.match(text,/encrypted backup does not contain required application tables/);
+ assert.match(text,/pg_restore --list > "\$tmpdir\/catalog\.txt"/);
+});
