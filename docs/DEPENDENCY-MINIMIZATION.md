@@ -253,3 +253,22 @@ sont explicites. Le seuil de contribution est fourni par l'administrateur.
 Les preuves saisies restent déclaratives. Aucune négociation contractuelle,
 modification de tarif, bascule, dépense ou paiement n'est déclenché.
 Aucune tâche planifiée ni migration de base n'est ajoutée.
+
+
+### Préparation voix indépendante, capacité et surveillance
+
+Le validateur natif de profils opérateurs est désormais exécuté par
+`npm run check:carriers` : format, capacités, mappings exacts, fuseau
+horaire, références de secrets et cohérence TLS. Un profil valide
+ne prouve pas une convention ni une recette technique.
+
+Deux outils administrateur avec CSRF sont disponibles dans le code :
+`POST /api/v1/platform/wholesale/voice-edge-plan` (préparation déclarative
+ACL SIP/RTP et capacité) et `POST /api/v1/platform/wholesale/voice-risk`
+(lecture des appels et mesures MOS enregistrés dans PGI, sept jours
+horaires complets, 10 000 appels et 100 groupes maximum).
+Au-delà du volume, le contrôle signale sa limite plutôt que présenter
+un résultat partiel comme complet. Les seuils de trafic et de qualité
+sont des indicateurs de revue, non une preuve de fraude. Aucun blocage
+automatique d'appel, changement de route, paiement, achat ou déploiement.
+Aucune tâche planifiée n'est ajoutée ou modifiée.
