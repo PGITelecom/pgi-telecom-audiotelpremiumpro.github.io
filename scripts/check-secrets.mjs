@@ -8,11 +8,18 @@ const secretPatterns = [
   /AKIA[0-9A-Z]{16}/,
   /gh[pousr]_[A-Za-z0-9_]{30,}/,
   /sk_live_[A-Za-z0-9]{20,}/,
-  /xox[baprs]-[A-Za-z0-9-]{20,}/
+  /xox[baprs]-[A-Za-z0-9-]{20,}/,
+  /github_pat_[A-Za-z0-9_]{40,}/,
+  /(?:rk_(?:live|test)|sk_test)_[A-Za-z0-9]{20,}/,
+  /whsec_[A-Za-z0-9+/_=-]{32,}/,
+  /(?:ASIA)[A-Z0-9]{16}/,
+  /(?:^|[^A-Za-z0-9_])(?:RESEND_API_KEY|PGI_RESEND_API_KEY|PGI_RESEND_RECEIVING_API_KEY)\s*[:=]\s*["']?re_[A-Za-z0-9_-]{20,}/i,
+  /postgres(?:ql)?:\/\/[^\s:/@]+:[^\s/@]+@[^\s/:@]*\.neon\.tech(?=[:/\s"'?]|$)/i,
+  /sk-proj-[A-Za-z0-9_-]{40,}/
 ];
 
 const skip = new Set([".git", "node_modules"]);
-const textExt = new Set([".html",".css",".js",".mjs",".json",".md",".yml",".yaml",".sql",".xml",".txt"]);
+const textExt = new Set([".html",".css",".js",".mjs",".cjs",".ts",".tsx",".jsx",".json",".md",".yml",".yaml",".sql",".xml",".txt",".sh",".toml",".conf",".ini",".map"]);
 
 function walk(dir) {
   for (const entry of fs.readdirSync(dir, {withFileTypes:true})) {
