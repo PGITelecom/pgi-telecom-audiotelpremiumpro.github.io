@@ -3,7 +3,7 @@ import {createHash} from "node:crypto";
 const FIELDS=Object.freeze(["external_call_id","started_at","ended_at","conversation_seconds","payout_eligible_seconds","confirmed_payout_ht"]);
 function fail(code){const e=new Error(code);e.code=code;e.status=400;throw e;}
 function own(o,k){return o&&typeof o==="object"&&!Array.isArray(o)&&Object.hasOwn(o,k)?o[k]:undefined;}
-function timestamp(v){if(typeof v!=="string"||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(v)||!Number.isFinite(Date.parse(v)))fail("CARRIER_TIMESTAMP_REQUIRES_OFFSET");return new Date(v).toISOString();}
+function timestamp(v){if(typeof v!=="string"||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(v)||!Number.isFinite(Date.parse(v)))fail("CARRIER_TIMESTAMP_REQUIRES_OFFSET");const day=v.slice(0,10),check=new Date(day+"T00:00:00Z");if(!Number.isFinite(check.getTime())||check.toISOString().slice(0,10)!==day||Number(v.slice(11,13))>23)fail("CARRIER_INVALID_CALENDAR_DATE");return new Date(v).toISOString();}
 function seconds(v){if(typeof v==="string"&&/^\d{1,8}$/.test(v))v=Number(v);if(!Number.isSafeInteger(v)||v<0||v>604800)fail("CARRIER_INVALID_DURATION");return v;}
 function micro(v){if(typeof v!=="string"||!/^\d{1,7}(?:\.\d{1,6})?$/.test(v))fail("CARRIER_AMOUNT_REQUIRES_DECIMAL_STRING");const [a,b=""]=v.split(".");return Number(a)*1_000_000+Number(b.padEnd(6,"0"));}
 export function normalizeCarrierExport(input={}){
