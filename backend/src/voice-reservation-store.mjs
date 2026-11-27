@@ -28,8 +28,11 @@ export async function reserveVoiceLine(sql,input,{authenticatedNode}={}){
   if(old){
    if(old.node_id!==node||String(old.tenant_id)!==tenant||String(old.sva_number_id)!==sva||String(old.destination_id)!==destination)fail("VOICE_RESERVATION_CONTEXT_CONFLICT");
    if(old.state==="released")fail("VOICE_CALL_ALREADY_RELEASED");
-   return {...output(old),duplicate:true};
+   const d=(await tx.unsafe("SELECT destination_uri FROM tenant_call_destinations WHERE id=$1",[destination]))[0];
+   return {...output(old),destination_uri:d?.destination_uri||null,duplicate:true};
   }
+  const control=(await tx.unsafe("SELECT mode FROM voice_gateway_control WHERE singleton=true FOR SHARE"))[0];
+  if(control?.mode!=="enabled")fail("VOICE_GATEWAY_NOT_ACCEPTING_CALLS");
   const number=(await tx.unsafe("SELECT sn.id,sn.tenant_id,sn.market_id,t.tenant_type FROM sva_numbers sn JOIN tenants t ON t.id=sn.tenant_id WHERE sn.id=$1 AND sn.tenant_id=$2 AND sn.status IN ('active','porting') FOR SHARE OF sn",[sva,tenant]))[0];
   if(!number)fail("VOICE_NUMBER_NOT_ROUTABLE");
   const access=(await tx.unsafe("SELECT pgi_tenant_has_premium_routing_access($1,$2,now()) AS allowed",[tenant,number.market_id]))[0];
@@ -42,12 +45,12 @@ export async function reserveVoiceLine(sql,input,{authenticatedNode}={}){
   }
   // Serialize capacity allocation per destination. This implementation is for
   // explicit SIP destinations only; no legacy fallback or browser-selected URI.
-  const dest=(await tx.unsafe("SELECT id,max_concurrent_calls FROM tenant_call_destinations WHERE id=$1 AND tenant_id=$2 AND status='active' AND destination_type='sip' AND (sva_number_id=$3 OR sva_number_id IS NULL) FOR UPDATE",[destination,tenant,sva]))[0];
+  const dest=(await tx.unsafe("SELECT d.id,d.max_concurrent_calls,d.destination_uri FROM tenant_call_destinations d JOIN voice_gateway_destinations g ON g.destination_id=d.id WHERE d.id=$1 AND d.tenant_id=$2 AND d.status='testing' AND d.active_calls=0 AND d.destination_type='sip' AND (d.sva_number_id=$3 OR d.sva_number_id IS NULL) AND g.node_id=$4 FOR UPDATE OF d",[destination,tenant,sva,node]))[0];
   if(!dest||dest.max_concurrent_calls==null)fail("VOICE_DESTINATION_NOT_READY");
   const used=(await tx.unsafe("SELECT count(*)::text AS used FROM voice_call_reservations WHERE destination_id=$1 AND state<>'released'",[destination]))[0];
   if(BigInt(used.used)>=BigInt(dest.max_concurrent_calls))fail("VOICE_CAPACITY_EXHAUSTED");
   const inserted=(await tx.unsafe("INSERT INTO voice_call_reservations(call_id,node_id,generation,tenant_id,sva_number_id,destination_id,state) VALUES($1::uuid,$2,$3::uuid,$4,$5,$6,'reserved') RETURNING *",[call,node,randomUUID(),tenant,sva,destination]))[0];
-  return {...output(inserted),duplicate:false};
+  return {...output(inserted),destination_uri:dest.destination_uri,duplicate:false};
  });
 }
 export async function recordVoiceMediaObservation(sql,input,{authenticatedNode}={}){
@@ -61,4 +64,27 @@ export async function recordVoiceMediaObservation(sql,input,{authenticatedNode}=
   const updated=(await tx.unsafe("UPDATE voice_call_reservations SET state=$2,sequence=$3,last_observation=$4,last_observed_at=now(),released_at=CASE WHEN $2='released' THEN now() ELSE NULL END WHERE call_id=$1::uuid RETURNING *",[call,next.state,next.sequence,next.last_observation]))[0];
   return {...output(updated),applied:true,release_capacity:next.release_capacity};
  });
+}
+
+// The authenticated media node supplies the actually dialed SVA number.
+// Never trust tenant or destination IDs supplied by an endpoint or browser.
+export async function resolveVoiceAdmission(sql,{node_id,call_id,sva_number}={}){
+ const node=voiceNodeId(node_id),call=voiceCallId(call_id);
+ if(typeof sva_number!=="string"||!sva_number.trim()||sva_number.length>64||sva_number!==sva_number.trim())fail("VOICE_SVA_NUMBER_INVALID");
+ const numbers=await sql.unsafe("SELECT sn.id,sn.tenant_id FROM sva_numbers sn WHERE sn.status IN ('active','porting') AND (sn.e164=$1 OR sn.display_number=$1 OR EXISTS(SELECT 1 FROM sva_number_aliases a WHERE a.sva_number_id=sn.id AND a.enabled AND a.alias=$1)) LIMIT 2",[sva_number]);
+ if(numbers.length!==1||!numbers[0].tenant_id)fail("VOICE_NUMBER_AMBIGUOUS_OR_UNAVAILABLE");
+ const sva=String(numbers[0].id),tenant=String(numbers[0].tenant_id);
+ const existing=(await sql.unsafe("SELECT call_id,node_id,tenant_id,sva_number_id,destination_id FROM voice_call_reservations WHERE call_id=$1::uuid",[call]))[0];
+ if(existing){
+  if(existing.node_id!==node||String(existing.tenant_id)!==tenant||String(existing.sva_number_id)!==sva)fail("VOICE_RESERVATION_CONTEXT_CONFLICT");
+  return {allowed:true,exclusive:true,existing:true,node_id:node,call_id:call,tenant_id:tenant,sva_number_id:sva,destination_id:String(existing.destination_id)};
+ }
+ const d=(await sql.unsafe(
+  "SELECT d.id FROM tenant_call_destinations d JOIN voice_gateway_destinations g ON g.destination_id=d.id"+
+  " CROSS JOIN LATERAL (SELECT count(*) AS occupied FROM voice_call_reservations r WHERE r.destination_id=d.id AND r.state<>'released') cap"+
+  " WHERE g.node_id=$1 AND d.tenant_id=$2 AND (d.sva_number_id=$3 OR d.sva_number_id IS NULL)"+
+  " AND d.status='testing' AND d.active_calls=0 AND d.destination_type='sip' AND d.max_concurrent_calls>cap.occupied"+
+  " ORDER BY CASE WHEN d.sva_number_id=$3 THEN 0 ELSE 1 END,d.priority,cap.occupied,d.id LIMIT 1",[node,tenant,sva]))[0];
+ if(!d)fail("VOICE_DESTINATION_NOT_READY");
+ return {allowed:true,exclusive:true,existing:false,node_id:node,call_id:call,tenant_id:tenant,sva_number_id:sva,destination_id:String(d.id)};
 }
