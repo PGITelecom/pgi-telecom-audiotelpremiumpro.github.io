@@ -189,3 +189,39 @@ Avant raccordement : serveur Coturn durci, quotas, restrictions des pairs,
 certificats valides, autorisation par tenant et session, intégration SIP
 WebRTC et vérification de la consommation de bande passante. Aucun
 service TURN ni navigateur téléphonique opérationnel n'est livré ici.
+
+
+### Publication durable et supervision CDR (serveur voix privé)
+
+Le nouveau module `cdr-spool-publish.mjs` accepte sur stdin exclusivement
+un CDR JSON terminé provenant d'un producteur autorisé. Il vérifie la taille,
+l'UUID et le carrier d'origine, conserve les octets d'origine, écrit en mode
+0600, synchronise le fichier puis publie atomiquement dans pending et
+synchronise le répertoire. Il refuse les contenus différents ayant le même
+UUID encore présent. Un accusé local signifie mise en file, pas encaissement
+ni confirmation du backend.
+
+Exécution sous le compte pgi-voice, avec PGI_CDR_SPOOL_DIR configuré :
+
+    node telephony/cdr-spool-publish.mjs < /chemin/prive/cdr-termine.json
+    node telephony/cdr-spool-health.mjs
+
+FreeSWITCH mod_json_cdr écrit normalement des fichiers UUID.cdr.json ;
+ne pas lire un fichier en cours d'écriture. Le producteur natif chargé
+de signaler la fin d'écriture et de transmettre le fichier reste à intégrer
+sur l'hôte réel. Ne pas supprimer la source sur simple accusé local ; définir
+une politique de rétention et de rapprochement avec le backend. Les relectures
+après livraison doivent s'appuyer sur la déduplication du backend.
+
+Le contrôle santé est en lecture seule : capacité disque disponible, âge du
+plus ancien CDR, quarantaines, fichiers anormaux et verrous anciens. Les
+seuils par défaut (15 min de retard, 256 Mio libres, 25 min de verrou drain
+et 60 s de verrou publication) sont des alertes indicatives, pas des SLA.
+Aucun nettoyage automatique : vérifier l'absence de processus actif avant
+de retirer un verrou résiduel, conserver les sources et contrôler les fichiers
+de staging. Les journaux n'affichent que les agrégats. Les inspections
+concurrentes constituent des instantanés non transactionnels.
+
+Ces modules sont hors Vercel et hors Neon, n'ajoutent aucune dépendance npm,
+ne démarrent aucun service ni tâche planifiée et n'exposent aucun port.
+La recette sur un serveur voix autorisé et le raccordement réel restent requis.
