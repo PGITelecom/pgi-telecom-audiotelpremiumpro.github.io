@@ -1,3 +1,4 @@
+import {planDirectSvaAutonomy} from "./direct-sva-independence.mjs";
 // Read-only release dashboard. No external credential, invented compliance
 // status, side effect or commercial launch capability.
 function failure(status,code){const e=new Error(code);e.status=status;e.code=code;return e;}
@@ -79,6 +80,7 @@ export async function directSvaProductionReadiness(store){
   technical_controls:checks,
   external_gates:REVIEW_REQUIREMENTS.map(r=>({...r,status:"external_proof_required",
    source:"external_signed_document_or_independent_review"})),
+  direct_operator_autonomy:planDirectSvaAutonomy(),
   transition_plans_prepared:transitionCount,
   automation_jobs_pending:pendingJobs,
   internal_safety_controls_ok:safetyOk,
