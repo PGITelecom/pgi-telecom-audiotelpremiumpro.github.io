@@ -11,17 +11,21 @@ const ROLE_PERMISSIONS=Object.freeze({
 
 export function customerPermissions(context={}){
   const role=String(context.customer_role||context.role||"readonly");
-  const base=new Set(ROLE_PERMISSIONS[role]||ROLE_PERMISSIONS.readonly);
+  const base=new Set(Object.hasOwn(ROLE_PERMISSIONS,role)?ROLE_PERMISSIONS[role]:ROLE_PERMISSIONS.readonly);
   const grants=Array.isArray(context.permission_grants)?context.permission_grants:[];
   const denials=new Set(Array.isArray(context.permission_denials)?context.permission_denials:[]);
-  for(const permission of grants)if(typeof permission==="string"&&permission)base.add(permission);
+  for(const permission of grants)if(typeof permission==="string"&&permission&&permission!=="*")base.add(permission);
   for(const permission of denials)base.delete(permission);
   return [...base].sort();
 }
 
 export function hasCustomerPermission(context,permission){
+  const requested=String(permission||"");
+  if(!requested||requested==="*")return false;
+  const denials=Array.isArray(context?.permission_denials)?context.permission_denials:[];
+  if(denials.includes("*")||denials.includes(requested))return false;
   const permissions=customerPermissions(context);
-  return permissions.includes("*")||permissions.includes(String(permission||""));
+  return permissions.includes("*")||permissions.includes(requested);
 }
 
 function stripInternalCommercialFields(row={}){
