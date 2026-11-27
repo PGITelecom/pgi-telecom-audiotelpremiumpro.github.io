@@ -1,5 +1,6 @@
 // Loaded only when an administrator opens the wholesale tools in the existing cockpit.
 const specs=Object.freeze({
+ "internalization-tco":{"label":"Comparer le coût total des outils gratuits et payants","template":{"business_unit":"audiotel_platform","currency":"EUR","unit":"minute","horizon_months":12,"low_monthly_units":null,"base_monthly_units":null,"high_monthly_units":null,"current":{"monthly_cost_micro_eur":{"license":null,"hosting":null,"maintenance":null,"security_backup":null,"compliance":null,"support":null,"other":null},"one_off_cost_micro_eur":{"setup":null,"migration":null,"exit":null,"parallel_run":null,"hardware":null},"included_monthly_units":null,"excess_unit_micro_eur":null,"verified_monthly_capacity":null,"internal_monthly_minutes":null,"internal_hourly_cost_micro_eur":null,"evidence":{}},"alternative":{"monthly_cost_micro_eur":{"license":null,"hosting":null,"maintenance":null,"security_backup":null,"compliance":null,"support":null,"other":null},"one_off_cost_micro_eur":{"setup":null,"migration":null,"exit":null,"parallel_run":null,"hardware":null},"included_monthly_units":null,"excess_unit_micro_eur":null,"verified_monthly_capacity":null,"internal_monthly_minutes":null,"internal_hourly_cost_micro_eur":null,"evidence":{}}}},
  compare:{label:"Comparer les offres wholesale",template:{business_unit:"audiotel_platform",currency:"EUR",billing_basis:"minute",category:"089",retail_service_micro_eur_per_min:null,monthly_minutes:null,horizon_months:12,publisher_micro_eur_per_min:null,publisher_contract_verified:false,offers:[{provider_key:"operateur-a",operator_net_micro_eur_per_min:null,variable_cost_micro_eur_per_min:{network:null,payment:null,other:null,intermediary:null},fixed_cost_micro_eur:{monthly_fee:null,minimum_commitment_topup:null,setup_fee:null,switching_fee:null,termination_fee:null},costs_verified:false,evidence:{}}]}},
  "normalize-csv":{label:"Importer directement un CSV opérateur",template:{business_unit:"audiotel_platform",currency:"EUR",provider_key:"operateur-a",delimiter:";",decimal_separator:".",field_mapping:{id:"external_call_id",start:"started_at",stop:"ended_at",talk:"conversation_seconds",bill:"payout_eligible_seconds",amount:"confirmed_payout_ht"},csv:""}},
  "reconcile-csv":{label:"Rapprocher directement un CSV avec PGI",template:{business_unit:"audiotel_platform",currency:"EUR",carrier_id:null,from_utc:null,to_utc:null,delimiter:";",decimal_separator:".",field_mapping:{id:"external_call_id",start:"started_at",stop:"ended_at",talk:"conversation_seconds",bill:"payout_eligible_seconds",amount:"confirmed_payout_ht"},csv:""}},
@@ -15,7 +16,10 @@ function line(root,label,value){const p=el("p");p.append(el("strong",label+" : "
 function apiBase(){const b=String(window.PGI_CONFIG?.apiBaseUrl||"").replace(/\/$/,"");if(!b)throw Error("API_NOT_CONFIGURED");return b;}
 function renderResult(root,result){
  root.replaceChildren();
- if(Array.isArray(result.offers)){
+ if(Array.isArray(result.scenarios)){
+  for(const s of result.scenarios)line(root,s.monthly_units+" unités/mois",micro(s.horizon_saving_micro_eur)+" économisés sur la période");
+  line(root,"Décision",result.status==="blocked"?"À vérifier : "+result.blocked_reasons.join(", "):"Candidat à revue indépendante");
+ }else if(Array.isArray(result.offers)){
   for(const offer of result.offers)line(root,offer.provider_key,micro(offer.monthly_average_contribution_micro_eur)+"/mois · "+(offer.status==="blocked"?"À vérifier : "+offer.blocked_reasons.join(", "):"Candidat à revue indépendante"));
  }else if(Number.isSafeInteger(result.gross_shortfall_micro_eur)){
   line(root,"Écarts défavorables à examiner",micro(result.gross_shortfall_micro_eur));
