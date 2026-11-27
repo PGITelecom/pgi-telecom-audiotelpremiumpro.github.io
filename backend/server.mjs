@@ -42,6 +42,7 @@ import {readDirectSvaWebsiteVisibility,setDirectSvaWebsiteNavigation} from "./sr
 import {eligibleExistingCustomerNumbers,preparedExistingCustomerTransitions,prepareExistingCustomerTransition} from "./src/direct-sva-customer-transition.mjs";
 import {directSvaProductionReadiness} from "./src/direct-sva-production-readiness.mjs";
 import {directSvaComplaintPreparatoryOverview} from "./src/direct-sva-complaint-automation.mjs";
+import {prepareSipContinuityPreview} from "./carriers/sip-continuity-preview.mjs";
 import {runDailyReportCron} from "./src/daily-report.mjs";
 import {monthlySettlementIndex,monthlySettlementReport,createMonthlySettlementPdf} from "./src/customer-financial-documents.mjs";
 
@@ -756,6 +757,29 @@ export function createBackend(options={}){
         requireRole(actor,["admin"]);
         return done(res,metrics,started,"platform.direct_sva_release_readiness",200,
           await directSvaProductionReadiness(store));
+      }
+
+      // Admin-only, CSRF-protected hypothetical continuity model. There are no
+      // connected SIP health signals, carrier contracts, routing commands or DB writes.
+      // This isolated planning endpoint deliberately sits outside the gated
+      // direct_sva customer/business routes; it cannot enable them.
+      if(method==="POST"&&pathname==="/api/v1/platform/carrier-autonomy/continuity-preview"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const scenario=await readJson(req,config.bodyLimitBytes);
+        if(!scenario||typeof scenario!=="object"||Array.isArray(scenario)||
+           Object.keys(scenario).some(key=>!["number","currentRouteId","routes"].includes(key))){
+          const error=new Error("Invalid continuity preview input");
+          error.status=422;error.code="SIP_PREVIEW_INVALID_FIELDS";throw error;
+        }
+        // Hypothetical single-number scope; not evidence that a number is
+        // assigned to Audiotel or accessible on any real calling network.
+        const result=prepareSipContinuityPreview({
+          number:scenario.number,
+          authorizedNumbers:[scenario.number],
+          currentRouteId:scenario.currentRouteId,
+          routes:scenario.routes
+        });
+        return done(res,metrics,started,"platform.carrier_autonomy_continuity_preview",200,result);
       }
 
       // The two admin switches are independent of the future business API.
