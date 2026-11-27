@@ -265,3 +265,13 @@ html,body,.cp-app{overflow-anchor:none}
   .cp-brand-dialog-actions{display:grid;grid-template-columns:1fr 1fr}
   .cp-brand-dialog-actions .cp-primary,.cp-brand-dialog-actions .cp-ghost{width:100%;min-width:0;min-height:42px}
 }
+
+/* Keep browser scroll anchoring after the one-time initial landing. */
+html:not(.cp-initial-top-lock),html:not(.cp-initial-top-lock) body,html:not(.cp-initial-top-lock) .cp-app{overflow-anchor:auto}
+@media (hover:none) and (pointer:coarse){
+ .cp-header,.cp-section-nav,.cp-mobile-nav{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+ .cp-header{background-color:#101215}
+ .cp-section-nav{background-color:#0c0e10}
+ .cp-mobile-nav{background-color:#121518}
+ .cp-live-money[data-active=true]{animation:none!important}
+}
