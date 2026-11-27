@@ -45,3 +45,8 @@ html{background:#2b1b15}body{background:radial-gradient(circle at 18% -5%,rgba(2
 @media(max-width:620px){.lj-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;}.lj-actions>button{width:100%!important;min-height:42px!important;margin:0!important;}.lj-actions>small{grid-column:1/-1!important;margin:0!important;}}
 @media(max-width:430px){.topbar-brand-wordmark{width:min(180px,52vw)!important}.product-name-pgi{font-size:21px!important}.product-name-audiotel{font-size:11.5px!important}}
 @media(min-width:821px){.mobile-nav{display:grid;position:fixed;inset:auto 20px 8px 268px;grid-template-columns:repeat(5,1fr);padding:6px}.mobile-nav button{border:0;background:none;color:#c9ab94;padding:10px}}
+/* Touch scrolling: avoid large backdrop repaint and animated jackpot shadows. */
+@media (hover:none) and (pointer:coarse){
+ .topbar,.sidebar,.mobile-nav{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+ .live-jackpot[data-active=true]{animation:none!important}
+}
