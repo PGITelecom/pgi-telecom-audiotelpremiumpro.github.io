@@ -1,0 +1,23 @@
+[Unit]
+Description=PGI independent FreeSWITCH CDR delivery
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=pgi-voice
+Group=pgi-voice
+EnvironmentFile=/etc/pgi-voice/cdr-delivery.env
+WorkingDirectory=/opt/pgi-telecom
+ExecStart=/usr/bin/node /opt/pgi-telecom/telephony/cdr-spool-delivery.mjs
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/var/lib/pgi-voice/cdr
+TimeoutStartSec=1200
