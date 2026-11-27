@@ -21,7 +21,7 @@
     "hash:password": "node scripts/hash-password.mjs",
     "check:lock": "node scripts/check-lock.mjs",
     "check:production": "node scripts/check-production-contract.mjs",
-    "check:shell": "bash -n scripts/preflight.sh scripts/backup-postgres.sh scripts/restore-drill.sh scripts/static-release.sh scripts/deploy-backend-release.sh scripts/host-audit.sh scripts/start-platform.sh",
+    "check:shell": "bash -n scripts/preflight.sh scripts/backup-postgres.sh scripts/restore-drill.sh scripts/static-release.sh scripts/deploy-backend-release.sh scripts/host-audit.sh scripts/start-platform.sh scripts/backup-neon-encrypted.sh scripts/restore-neon-encrypted-drill.sh",
     "check:migrations": "node scripts/check-migrations.mjs",
     "perf:load": "node scripts/performance-load.mjs",
     "perf:postgres-ci": "node scripts/performance-postgres-ci.mjs",

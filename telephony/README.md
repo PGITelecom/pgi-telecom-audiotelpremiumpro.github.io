@@ -102,3 +102,19 @@ Le `destination_number` FreeSWITCH doit être propagé sans invention ni substit
 
 
 Les destinations B2B sont stockées dans `tenant_call_destinations` et peuvent être un téléphone, un trunk SIP, un PBX ou un centre d'appels de la société cliente. Les nouvelles destinations démarrent en `testing` et doivent être explicitement activées. FreeSWITCH doit recopier `call_destination_id` dans le CDR. Les anciens endpoints `next-expert` restent disponibles uniquement pour compatibilité.
+
+
+## Interconnexion directe Audiotel, préparation sans engagement
+
+Décision du 27/11/2026 : préparer une interconnexion SIP gérée par Audiotel, sans raccordement payant ni modification de la production avant établissement d'un coût total et de véritables accords.
+
+Le module pur `backend/carriers/direct-interconnection-readiness.mjs` expose `prepareDirectInterconnectionPreview({mode:"bilateral_direct",peerCodes:[]})` et accepte également le mode `wholesale_bridge`. Il sert uniquement à rendre visibles les preuves à collecter. La liste de pairs proposée ne démontre ni accord, ni capacité nationale, ni état de santé. Ne jamais lui fournir d'IP SIP, secret, identifiant client ni tarif privé. Ce module ne peut jamais autoriser une route, un tarif ou un virement.
+
+Parcours de réalisation :
+1. Exiger le dossier juridique de la société, ses obligations télécom, et l'attribution 089 Arcep réellement obtenue ; préparer les conditions d'interconnexion bilatérale et, si applicable, du préfixe de routage. **Aucun numéro n'est actuellement attribué.**
+2. Préparer la spécification d'un SBC administré par Audiotel devant Kamailio/OpenSIPS et FreeSWITCH ; isoler signalisation, médias et administration ; ports fermés par défaut, ACL et authentification adaptées aux opérateurs, journaux épurés et mesures antifraude. Ce schéma ne vaut pas installation.
+3. Demander aux opérateurs potentiels leur périmètre d'origine réel, les protocoles/supports acceptés, leurs frais et conditions de raccordement, l'ouverture nationale des 089, les règles tarifaires, les CDR opposables et la collecte/settlement.
+4. Comparer avec une collecte wholesale minimale dans `evaluateInterconnectionOwnershipCosts` et `evaluatePerCallContribution`, avec hébergement 24/7, personnel, continuité et sécurité inclus. Aucun tarif non vérifié ne peut devenir un gain attendu.
+5. Une fois les contrats, droits, sécurité et finance validés séparément, concevoir un passage en exploitation distinct et approuvé avec recette de bout en bout, preuve de transport/recouvrement, limitation de fraude et reprise.
+
+Un SBC propre ne remplace pas l'acheminement par les réseaux appelants. Une liste d'opérateurs n'est pas un contrat. Une connexion SIP n'assure pas automatiquement la collecte de la composante service. **La branche GitHub ne connecte aucun réseau.**
