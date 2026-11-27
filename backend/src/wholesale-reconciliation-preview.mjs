@@ -25,3 +25,36 @@ export function reconcileWholesalePreview(input={}){
   digest:createHash("sha256").update(JSON.stringify({provider,period,rows})).digest("hex"),rows:Object.freeze(rows),
   sources_independently_verified:false,funds_collected_verified:false,ledger_write_authorized:false,payout_authorized:false});
 }
+
+
+// Compare against the actual stored PGI expectations for one carrier and a
+// complete, bounded time window. Never trust an externally supplied expected total.
+function utc(v){
+ if(typeof v!=="string"||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(v))fail("RECON_INVALID_UTC_WINDOW");
+ const d=new Date(v);if(!Number.isFinite(d.getTime())||d.toISOString()!==v.replace("Z",".000Z"))fail("RECON_INVALID_UTC_WINDOW");
+ return d;
+}
+function exactMicro(v){
+ if(typeof v!=="string"||!/^\d{1,7}(?:\.\d{1,6})?$/.test(v))fail("RECON_STORED_AMOUNT_UNAVAILABLE");
+ const [a,b=""]=v.split(".");
+ return Number(a)*1_000_000+Number(b.padEnd(6,"0"));
+}
+export async function reconcileWholesaleLedger(store,input={}){
+ if(!input||input.business_unit!=="audiotel_platform"||input.currency!=="EUR")fail("RECON_SCOPE");
+ const carrier=integer(input.carrier_id,"CARRIER_ID",Number.MAX_SAFE_INTEGER);
+ if(carrier===0)fail("RECON_INVALID_CARRIER_ID");
+ const from=utc(input.from_utc),to=utc(input.to_utc);
+ if(to<=from||to-from>31*86400000||to>new Date())fail("RECON_INVALID_UTC_WINDOW");
+ if(!Array.isArray(input.reported_rows)||input.reported_rows.length>1000)fail("RECON_INVALID_ROWS");
+ const sql=store?.readSql;
+ if(typeof sql?.unsafe!=="function"){const e=new Error("WHOLESALE_POSTGRES_REQUIRED");e.code=e.message;e.status=503;throw e;}
+ const carriers=await sql.unsafe("SELECT id FROM carriers WHERE id=$1",[carrier]);
+ if(carriers.length!==1)fail("RECON_UNKNOWN_CARRIER");
+ const records=await sql.unsafe("SELECT external_call_id,expected_payout_ht::text AS expected_ht FROM calls WHERE host_carrier_id=$1 AND started_at >= $2::timestamptz AND started_at < $3::timestamptz AND currency='EUR' AND call_status='connected' ORDER BY started_at,id LIMIT 1001",[carrier,from.toISOString(),to.toISOString()]);
+ if(records.length>1000)fail("RECON_SPLIT_WINDOW_REQUIRED");
+ const result=reconcileWholesalePreview({business_unit:"audiotel_platform",currency:"EUR",provider_key:"carrier-"+carrier,period:input.from_utc.slice(0,7),
+  expected_rows:records.map(x=>({external_call_id:x.external_call_id,expected_micro_eur:exactMicro(x.expected_ht)})),reported_rows:input.reported_rows});
+ return Object.freeze({...result,expected_source:"pgi_stored_connected_call_expectations",from_utc:from.toISOString(),to_utc:to.toISOString(),
+  report_coverage_verified:false,contract_rate_independently_verified:false,
+  digest:createHash("sha256").update(JSON.stringify({from:from.toISOString(),to:to.toISOString(),digest:result.digest})).digest("hex")});
+}
