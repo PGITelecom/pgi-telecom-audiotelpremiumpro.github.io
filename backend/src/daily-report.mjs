@@ -1,4 +1,5 @@
 import {sendDailyReportEmail} from "./resend-email.mjs";
+import {wholesaleIndependenceSnapshot} from "./wholesale-independence.mjs";
 
 const TZ="Europe/Paris";
 const RUN_HOURS=new Set([20,21]);
@@ -18,6 +19,37 @@ function unavailable(label){return label+" : non disponible côté serveur pour 
 export function dailyReportScheduleState(now=new Date()){
   const p=parisParts(now);
   return {...p,should_run:RUN_HOURS.has(p.hour),retry:p.hour===21};
+}
+
+// Isolate the telecom section so a missing source never prevents the existing report.
+export async function collectDailyWholesaleReport(store){
+  try{
+    const data=await wholesaleIndependenceSnapshot(store);
+    return {available:true,data};
+  }catch{
+    return {available:false};
+  }
+}
+function wholesaleReportLines(section){
+  if(section?.available!==true)return ["Indépendance télécom : données indisponibles, aucune estimation substituée.",""];
+  const data=section.data,resources=data.resource_records||{},routes=data.logical_routes||[],finance=data.carrier_finance||[];
+  const result=[
+    "Indépendance télécom | données PGI enregistrées",
+    "Blocs ARCEP enregistrés avec attribution en cours de validité : "+(resources.recorded_current_grants??"N/D"),
+    "Contrats d'interconnexion enregistrés en cours de validité : "+(resources.recorded_current_contracts??"N/D"),
+    "Numéros en inventaire : "+(resources.inventory_records??"N/D"),
+    "Routes actives enregistrées : "+routes.filter(x=>x.active_carrier&&x.active_connection_state==="active").length,
+    "Routes sans opérateur de secours prêt : "+routes.filter(x=>!x.standby_carrier||!["ready","active","standby"].includes(x.standby_connection_state)).length,
+    "Flux EUR sur les 30 derniers jours (100 groupes maximum) :"
+  ];
+  if(!finance.length)result.push("Aucun appel EUR enregistré sur cette période.");
+  for(const row of finance){
+    const label=String(row.carrier_name||"Opérateur non identifié").replace(/[\r\n\t]/g," ").slice(0,120);
+    const money=v=>typeof v==="string"&&/^-?\d+(?:\.\d+)?$/.test(v)?v+" EUR HT":"N/D";
+    result.push(label+" | attendus : "+money(row.expected_ht)+" | confirmés : "+money(row.confirmed_ht)+" | marqués payés : "+money(row.recorded_paid_ht)+" | coût technique : "+money(row.technical_cost_ht));
+  }
+  result.push("Contrôle documentaire : ces états ne prouvent ni un encaissement bancaire ni une autorisation réglementaire. Les différences ne sont pas nécessairement des impayés échus.","");
+  return result;
 }
 
 export function buildDailyReportText(date,snapshot={}){
@@ -51,6 +83,7 @@ export function buildDailyReportText(date,snapshot={}){
     "Appels connectés : "+n(system.calls_connected),
     "Événements en attente dans l outbox : "+n(system.outbox_pending),
     "",
+    ...wholesaleReportLines(snapshot.wholesale),
     "Données externes",
     "HubSpot : les tickets PGI restent synchronisés lorsque l intégration CRM est configurée. Ce bilan de secours utilise Neon comme source opérationnelle.",
     unavailable("Google Search Console"),
@@ -73,8 +106,9 @@ export async function runDailyReportCron({store,config,now=new Date()}){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient))return {ok:false,skipped:true,reason:"recipient_not_configured",...schedule};
   if(!store||typeof store.dailyReportSnapshot!=="function")return {ok:false,skipped:true,reason:"snapshot_unavailable",...schedule};
   const snapshot=await store.dailyReportSnapshot({date:schedule.date});
+  const wholesale=await collectDailyWholesaleReport(store);
   const subject="Bilan PGI Telecom | "+frDate(schedule.date);
-  const text=buildDailyReportText(schedule.date,snapshot);
+  const text=buildDailyReportText(schedule.date,{...snapshot,wholesale});
   const key="bilan-pgi-"+schedule.date;
   const result=await sendDailyReportEmail(config,{to:recipient,subject,text,idempotencyKey:key});
   return {ok:true,skipped:false,date:schedule.date,hour:schedule.hour,retry:schedule.retry,idempotency_key:key,message_id:result.message_id||null};
