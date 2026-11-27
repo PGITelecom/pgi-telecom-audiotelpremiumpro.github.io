@@ -1,6 +1,9 @@
 // Loaded only when an administrator opens the wholesale tools in the existing cockpit.
 const specs=Object.freeze({
  compare:{label:"Comparer les offres wholesale",template:{business_unit:"audiotel_platform",currency:"EUR",billing_basis:"minute",category:"089",retail_service_micro_eur_per_min:null,monthly_minutes:null,horizon_months:12,publisher_micro_eur_per_min:null,publisher_contract_verified:false,offers:[{provider_key:"operateur-a",operator_net_micro_eur_per_min:null,variable_cost_micro_eur_per_min:{network:null,payment:null,other:null,intermediary:null},fixed_cost_micro_eur:{monthly_fee:null,minimum_commitment_topup:null,setup_fee:null,switching_fee:null,termination_fee:null},costs_verified:false,evidence:{}}]}},
+ "normalize-csv":{label:"Importer directement un CSV opérateur",template:{business_unit:"audiotel_platform",currency:"EUR",provider_key:"operateur-a",delimiter:";",field_mapping:{id:"external_call_id",start:"started_at",stop:"ended_at",talk:"conversation_seconds",bill:"payout_eligible_seconds",amount:"confirmed_payout_ht"},csv:""}},
+ "reconcile-csv":{label:"Rapprocher directement un CSV avec PGI",template:{business_unit:"audiotel_platform",currency:"EUR",carrier_id:null,from_utc:null,to_utc:null,delimiter:";",field_mapping:{id:"external_call_id",start:"started_at",stop:"ended_at",talk:"conversation_seconds",bill:"payout_eligible_seconds",amount:"confirmed_payout_ht"},csv:""}},
+ "economic-routing":{label:"Comparer les destinations SIP et téléphoniques",template:{business_unit:"audiotel_platform",currency:"EUR",tenant_public_id:"",sva_number_id:null,typical_call_seconds:60,quotes:[{destination_id:null,minimum_billable_seconds:null,billing_increment_seconds:null,rate_micro_eur_per_min:null,connection_fee_micro_eur:null,cost_verified:false,quality_verified:false,customer_consent_verified:false}]}},
  "normalize-export":{label:"Normaliser les CDR opérateur",template:{business_unit:"audiotel_platform",currency:"EUR",provider_key:"operateur-a",field_mapping:{id:"external_call_id",start:"started_at",end:"ended_at",talk:"conversation_seconds",bill:"payout_eligible_seconds",amount:"confirmed_payout_ht"},rows:[]}},
  "reconcile-ledger":{label:"Rapprocher avec nos appels enregistrés",template:{business_unit:"audiotel_platform",currency:"EUR",carrier_id:null,from_utc:null,to_utc:null,reported_rows:[]}},
  "voice-cost":{label:"Évaluer les économies WebRTC",template:{business_unit:"audiotel_platform",currency:"EUR",monthly_minutes:null,webrtc_adoption_bps:null,fallback_bps:null,horizon_months:12,pstn_cost_micro_eur_per_min:null,webrtc_cost_micro_eur_per_min:null,monthly_fixed_cost_micro_eur:null,setup_cost_micro_eur:null,evidence:{}}}
@@ -21,6 +24,9 @@ function renderResult(root,result){
   line(root,"Économie mensuelle estimée",micro(result.monthly_saving_micro_eur));
   line(root,"Économie sur la période",micro(result.horizon_saving_micro_eur));
   line(root,"Amortissement",result.payback_months==null?"Non atteint":result.payback_months+" mois");
+ }else if(Object.hasOwn(result,"candidate_destination_id")){
+  line(root,"Destination économique candidate",result.candidate_destination_id??"Aucune alternative vérifiée plus économique");
+  line(root,"Économie estimée par appel",micro(result.estimated_saving_per_call_micro_eur));
  }else if(Number.isSafeInteger(result.row_count)){
   line(root,"Appels normalisés",result.row_count);
   line(root,"Reversement déclaré",micro(result.total_reported_payout_micro_eur));
@@ -39,9 +45,19 @@ export async function open({root,postJson,feedback}){
  const note=el("p","Saisir les données contractuelles exactes. Montants en micro-euros HT : 1 € = 1 000 000. Les champs null doivent être complétés, y compris les frais nuls confirmés. Les preuves restent déclaratives.");
  note.className="pa-note";
  const input=el("textarea");input.setAttribute("aria-label","Données de l’analyse wholesale");input.rows=12;input.style.width="100%";input.style.maxWidth="100%";input.style.boxSizing="border-box";input.spellcheck=false;
+ const file=el("input");file.type="file";file.accept=".csv,text/csv,text/plain";file.setAttribute("aria-label","Relevé CSV opérateur");
+ file.hidden=true;
+ file.addEventListener("change",async()=>{
+  const selected=file.files?.[0];if(!selected)return;
+  try{
+   if(selected.size>180000)throw Error("Fichier trop volumineux");
+   const text=await selected.text();const payload=JSON.parse(input.value);payload.csv=text;input.value=JSON.stringify(payload,null,2);
+  }catch(e){output.textContent="CSV non chargé : "+String(e.message||"Erreur").slice(0,200);}
+  finally{file.value="";}
+ });
  const run=el("button","Analyser");run.type="button";run.className="pa-btn";
  const output=el("div");output.setAttribute("role","status");
- const template=()=>{input.value=JSON.stringify(specs[picker.value].template,null,2);output.replaceChildren();};
+ const template=()=>{input.value=JSON.stringify(specs[picker.value].template,null,2);file.hidden=!["normalize-csv","reconcile-csv"].includes(picker.value);output.replaceChildren();};
  picker.addEventListener("change",template);template();
  run.addEventListener("click",async()=>{
   run.disabled=true;picker.disabled=true;output.textContent="Analyse en cours…";
@@ -52,7 +68,7 @@ export async function open({root,postJson,feedback}){
   }catch(e){output.textContent="Analyse indisponible : "+String(e.code||e.message||"Erreur").slice(0,200);}
   finally{run.disabled=false;picker.disabled=false;}
  });
- root.append(picker,note,input,run,output);
+ root.append(picker,note,file,input,run,output);
  try{
   const res=await fetch(apiBase()+"/platform/wholesale/independence",{credentials:"include",cache:"no-store",headers:{Accept:"application/json"}});
   if(!res.ok)throw Error("WHOLESALE_INVENTORY_UNAVAILABLE");
