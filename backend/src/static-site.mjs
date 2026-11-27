@@ -242,6 +242,9 @@ export function createStaticSiteHandler(rootDir,{getDirectSvaWebsiteState}={}){
     else if(versionedAsset)res.setHeader("Cache-Control","public, max-age=31536000, s-maxage=31536000, immutable");
     else if(staticAsset||publicSearchIndex)res.setHeader("Cache-Control","public, max-age=300, s-maxage=300, stale-while-revalidate=60");
     else res.setHeader("Cache-Control","public, max-age=300, stale-while-revalidate=60");
+    // Only the existing Audiotel customer document may request microphone access.
+    // Browser consent is still required; camera and geolocation remain denied.
+    if(requestPath==="/client.html"&&html)res.setHeader("Permissions-Policy","camera=(), microphone=(self), geolocation=()");
     if(clientUi)res.setHeader("Content-Security-Policy",PRIVATE_CSP);
     else if(cockpitUi)res.setHeader("Content-Security-Policy",COCKPIT_CSP);
     else if(html)res.setHeader("Content-Security-Policy",PUBLIC_CSP);
