@@ -48,14 +48,16 @@ export async function deliverSpool(config,{fetchImpl=fetch,batch=100}={}){
     const st=await handle.stat();
     if(!st.isFile()||st.uid!==process.getuid()||(st.mode&0o077)!==0||st.nlink!==1||st.size>262144)fail("CDR_INSECURE_FILE");
     body=await handle.readFile({encoding:"utf8"});
-    validateSpoolEnvelope(JSON.parse(body),entry.name);
    }catch(e){
-    // Leave unsafe filesystem entries untouched for manual investigation.
-    if(e.code==="CDR_INSECURE_FILE"||["ELOOP","ENOENT"].includes(e.code)){counts.retry++;continue;}
+    // Filesystem errors must not be interpreted as invalid carrier data.
+    counts.retry++;continue;
+   }finally{await handle?.close();}
+   try{validateSpoolEnvelope(JSON.parse(body),entry.name);}
+   catch{
     const target=path.join(quarantine,entry.name);
     try{await lstat(target);counts.retry++;continue;}catch(e){if(e.code!=="ENOENT")throw e;}
     await rename(file,target);counts.quarantined++;continue;
-   }finally{await handle?.close();}
+   }
    let response;
    try{
     response=await fetchImpl(config.url,{method:"POST",headers:{Authorization:config.authorization,"Content-Type":"application/json",Accept:"application/json"},body,redirect:"error",signal:AbortSignal.timeout(10000)});
