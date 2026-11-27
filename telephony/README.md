@@ -167,3 +167,25 @@ automatique sur un réseau non contractualisé.
 
 Ces préparatifs n'exigent aucune migration Neon, ne changent pas Vercel,
 Stripe ni les autres services informatiques, et ne déclenchent aucune dépense.
+
+
+## Préparation des raccordements indépendants
+
+Le plan `telephony/voice-edge-plan.mjs` réutilise le validateur de profils
+opérateurs du backend. Il produit les intentions ACL par adresse IPv4
+exacte, les plages de ports RTP et une estimation de bande passante avec
+réserve. Il n'écrit pas de pare-feu, ne génère pas une configuration
+Kamailio/FreeSWITCH complète et n'ouvre aucun port. Les adresses, codecs,
+transport, MGIT, capacité et secours doivent provenir des accords réels.
+Ce modèle initial concerne des pairs SIP fixes ; il ne définit pas les
+règles d'accès ICE/TURN publiques. Les capacités CPU, mémoire, transcodage,
+chiffrement et qualité doivent être mesurées sur le futur hôte.
+
+`telephony/turn-credentials.mjs` prépare les identifiants REST temporaires
+compatibles Coturn (HMAC-SHA1 selon le protocole REST TURN, durée 60 à 600 s,
+TLS TCP uniquement dans ce profil). Le secret maître reste côté serveur.
+Aucune route client de distribution d'identifiants n'est activée.
+Avant raccordement : serveur Coturn durci, quotas, restrictions des pairs,
+certificats valides, autorisation par tenant et session, intégration SIP
+WebRTC et vérification de la consommation de bande passante. Aucun
+service TURN ni navigateur téléphonique opérationnel n'est livré ici.
