@@ -79,3 +79,23 @@ Le script de creation des sauvegardes refuse aussi d'annoncer qu'une archive est
 **Decision prudente :** les deux branches restent des candidates au nettoyage, mais ne doivent **pas** etre supprimees comme des doublons exacts. Certaines differences peuvent etre simplement des horodatages ou des scenarios de recette, d'autres portent sur la configuration metier SVA. Conserver avant toute suppression un export externe chiffre, une restauration en environnement isole et un inventaire des changements de configuration propres a chaque branche. Les 10 branches restent conservees pour le moment.
 
 Ce constat corrige toute interpretation selon laquelle « 85 migrations et memes nombres de lignes » prouveraient l'absence de donnees uniques. Aucun compte, numero, contrat, paiement ni route telecom n'a ete modifie. **Aucune branche supprimee.**
+
+
+## Analyse ciblée des six divergences entre branches de recette (27/11/2026)
+
+Analyse en lecture seule des paramètres métiers, sans extraire les données clients :
+
+- Les six intégrations `direct_sva_integration_readiness` (GA4, GSC, HubSpot, réseau, PSP, comptabilité) sont toutes `planned`, `disabled` et `can_send_data=false`, avec la même absence de notes/preuves. Les différences initiales d'empreinte concernent les dates de revue/création.
+- `direct_sva_operator_controls` est identique : mode `preparation`, activation des numéros et reversements désactivés.
+- `pgi_company_business_units` présente deux unités, `audiotel_platform` et `direct_sva`, avec paramètres fonctionnels identiques. Les empreintes de ligne divergentes portent sur les métadonnées d'horodatage.
+- `schema_migrations` : 85 versions et checksums **identiques** entre `main` et les deux branches de recette ; seuls les horodatages d'application divergent.
+- `direct_sva_admin_switches` : la prévisualisation d'interface est activée sur `main`, désactivée sur les deux anciennes branches. L'exploitation commerciale reste désactivée partout.
+- `direct_sva_website_visibility` : autorisation de contenu public et navigation activées sur `main`, désactivées sur les anciennes branches ; boutons commerciaux désactivés partout. **Ne jamais remplacer la configuration actuelle par les anciens états.**
+
+**Conclusion opérationnelle :** les deux anciennes branches de recette sont fonctionnellement redondantes pour les migrations et les intégrations préparées, mais conservent de véritables traces d'historique, en particulier leurs dates d'exécution et leurs états de visibilité antérieurs. Ce ne sont donc pas des copies octet par octet. Leur suppression doit rester conditionnée à une preuve de récupération récente et à une décision explicite les désignant, pas à une supposition d'identité.
+
+Candidatures exactes au nettoyage après sauvegarde :
+1. `br-noisy-band-auw2255q` : `validation-migrations-076-085-2026-10-11`.
+2. `br-shiny-river-auqpjd9i` : `preflight-prod-migrations-072-085-2026-10-11`.
+
+Ne pas supprimer `main`, `backup-before-pr200-2026-11-15`, les branches `backup-prod-*`, ni la snapshot historique unique dans l'état actuel.
