@@ -129,6 +129,7 @@ const files=[
   "assets/tenant-service-admin.js",
   "assets/tenant-payout-admin.js",
   "assets/platform-admin-tools.js",
+  "assets/wholesale-admin.js",
   "assets/platform-regulatory-tools.js",
   "assets/control-tower.js",
   "assets/control-tower-assurance.js",
