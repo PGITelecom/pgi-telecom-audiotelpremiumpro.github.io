@@ -46,7 +46,8 @@ export async function reconcileWholesaleLedger(store,input={}){
  const from=utc(input.from_utc),to=utc(input.to_utc);
  if(to<=from||to-from>31*86400000||to>new Date())fail("RECON_INVALID_UTC_WINDOW");
  if(!Array.isArray(input.reported_rows)||input.reported_rows.length>1000)fail("RECON_INVALID_ROWS");
- const sql=store?.readSql;
+ // Read the primary so a lagging replica cannot hide recent call records.
+ const sql=store?.sql;
  if(typeof sql?.unsafe!=="function"){const e=new Error("WHOLESALE_POSTGRES_REQUIRED");e.code=e.message;e.status=503;throw e;}
  const carriers=await sql.unsafe("SELECT id FROM carriers WHERE id=$1",[carrier]);
  if(carriers.length!==1)fail("RECON_UNKNOWN_CARRIER");
