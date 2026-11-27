@@ -42,3 +42,11 @@ test("least cost advice preserves tenant, number specificity, priority, capacity
  assert.equal((await planEconomicRouting(store,{...p,quotes:[q(1,40000),{...q(2,5000),customer_consent_verified:false}]})).candidate_destination_id,null);
  await assert.rejects(planEconomicRouting(store,{...p,quotes:[q(99,0)]}),/OUTSIDE_TENANT/);
 });
+
+test("real French CSV headers and decimal commas work without guessing monetary units",()=>{
+ const french="Identifiant appel;Début;Fin;Conversation;Facturable;Montant HT\ncall-a;2026-10-01T10:00:00Z;2026-10-01T10:01:00Z;60;60;0,543210";
+ const p={...input,csv:french,decimal_separator:",",field_mapping:{"Identifiant appel":"external_call_id","Début":"started_at","Fin":"ended_at","Conversation":"conversation_seconds","Facturable":"payout_eligible_seconds","Montant HT":"confirmed_payout_ht"}};
+ assert.equal(normalizeCarrierCsv(p).total_reported_payout_micro_eur,543210);
+ assert.throws(()=>normalizeCarrierCsv({...p,decimal_separator:"."}),/DECIMAL_STRING/);
+ assert.throws(()=>normalizeCarrierCsv({...p,csv:french.replaceAll("2026-10-01","2026-02-30")}),/CALENDAR_DATE/);
+});
