@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import {verifyDeploymentSchema} from "../backend/src/verify-deployment-schema.mjs";
 import {createHash} from "node:crypto";
 import {auditPgiReleaseSchema,PGI_REQUIRED_RELEASE_MIGRATIONS} from "../backend/src/schema-release-audit.mjs";
 const manifest=PGI_REQUIRED_RELEASE_MIGRATIONS.map(version=>({
@@ -53,4 +54,17 @@ test("Vercel verifies schema before opening DB-backed routes, without waking Neo
  assert.match(router,/requiresDatabaseBackedSiteState/);
  assert.doesNotMatch(start,/node backend\/migrate\.mjs/);
  assert.match(docker,/scripts\/verify-deployment-schema\.mjs/);
+});
+
+test("shared release verifier performs exactly one read-only query and refuses mismatch",async()=>{
+  let calls=0;
+  const sql={unsafe:async(query,args)=>{
+    calls++;
+    assert.match(query,/^SELECT version,checksum FROM schema_migrations/);
+    assert.deepEqual(args,[manifest[0].version]);
+    return manifest;
+  }};
+  assert.equal((await verifyDeploymentSchema(sql)).ready,true);
+  assert.equal(calls,1);
+  await assert.rejects(verifyDeploymentSchema({unsafe:async()=>manifest.slice(1)}),{code:"PGI_RELEASE_SCHEMA_NOT_READY"});
 });
