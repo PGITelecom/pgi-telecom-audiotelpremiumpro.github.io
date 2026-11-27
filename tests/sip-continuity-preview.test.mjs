@@ -32,6 +32,16 @@ test("healthy primary remains unchanged even with lower-priority available backu
  assert.equal(r.proposed_route,null);
 });
 
+test("standby primary with up health must not be mistaken for the active route",()=>{
+ const routes=structuredClone(original.routes);
+ routes[0].health="up";
+ routes[0].state="standby";
+ const r=plan({routes});
+ assert.equal(r.decision,"same_carrier_sip_backup");
+ assert.equal(r.proposed_route.route_id,"route_backup_a");
+ assert.equal(r.can_change_sip_route,false);
+});
+
 test("alternate carrier is only a proposal when no same-carrier SIP route exists",()=>{
  const routes=structuredClone(original.routes);
  routes[1].health="down";
