@@ -116,6 +116,7 @@ const files=[
   "assets/direct-sva-switches.js",
   "assets/direct-sva-cockpit-entry.js",
   "assets/autonomy-workbench.js",
+  "assets/carrier-continuity-console.js",
   "assets/autonomy-cost-engine.mjs",
   "assets/accounting-expert.js",
   "assets/customer-relations.js",
