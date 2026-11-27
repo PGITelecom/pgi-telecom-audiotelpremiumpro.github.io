@@ -138,3 +138,30 @@ Aucune refonte applicative.
 Si l'opérateur utilise un établissement de paiement en sous-jacent pour les reversements, PGI ne doit pas en dépendre techniquement dans le cœur.
 
 L'opérateur/adaptateur encapsule cette relation. Si le modèle contractuel impose une relation directe avec un PSP, elle reste une dépendance financière périphérique, jamais une dépendance téléphonique ou applicative.
+
+
+## Comparateur wholesale et normalisation des relevés
+
+Les routes POST `/api/v1/platform/wholesale/compare` et
+`/api/v1/platform/wholesale/normalize-export` sont réservées aux administrateurs authentifiés
+avec CSRF. Aucun changement de fournisseur, écriture comptable, paiement, affectation de numéro
+ou appel à un opérateur ne peut être déclenché par ces routes.
+
+Le comparateur travaille en micro-euros HT entiers (1 EUR = 1 000 000 micro-EUR).
+La marge minimale de contribution est de 70 000 micro-EUR/minute, après coûts variables
+et frais fixes amortis sur l'horizon renseigné, avant impôts et autres charges non saisies.
+Chaque coût est obligatoire, y compris les frais d'intermédiaire, les frais de sortie
+et les compléments au minimum de facturation. Une offre non documentée reste bloquée
+même si sa marge estimée est élevée. Les indicateurs de preuve saisis sont déclaratifs,
+pas une certification indépendante ni une autorisation de mise en service.
+
+Le normaliseur accepte les lignes JSON déjà extraites des relevés fournisseur, avec
+mapping explicite, dates ISO horodatées avec fuseau, montants décimaux textuels et
+identifiants d'appel uniques. Il produit un aperçu canonique et une empreinte stable.
+Un montant déclaré par un fournisseur n'est jamais assimilé à un encaissement vérifié.
+Les champs personnels inutiles ne sont pas retournés. L'importeur CSV/SFTP, le rapprochement
+avec les écritures réelles et le raccordement SIP nécessitent les spécifications et les
+preuves contractuelles de chaque opérateur.
+
+Ce périmètre ne modifie ni Vercel, ni Neon, ni Stripe, ni les autres prestataires techniques.
+Aucune activation commerciale du pôle Distribution n'est effectuée.
