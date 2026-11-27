@@ -191,63 +191,59 @@ function scrollAppTop(){
   try{window.scrollTo({top:0,left:0,behavior:"auto"})}catch(_e){window.scrollTo(0,0)}
   document.documentElement.scrollTop=0;if(document.body)document.body.scrollTop=0;
 }
-function scrollToBusinessLive(attempt){
-  clearClientHash();
-  var target=$("client-live-money"),header=document.querySelector(".cp-header");
-  if(!target){
-    if((attempt||0)<20)setTimeout(function(){scrollToBusinessLive((attempt||0)+1)},50);
-    return;
-  }
-  var headerHeight=header?Math.ceil(header.getBoundingClientRect().height):0;
-  var y=Math.max(0,Math.round(target.getBoundingClientRect().top+window.scrollY-headerHeight-12));
-  try{window.scrollTo({top:y,left:0,behavior:"auto"})}catch(_e){window.scrollTo(0,y)}
+var initialLandingCleanup=null;
+function cancelInitialLanding(){
+  if(initialLandingCleanup){initialLandingCleanup();initialLandingCleanup=null;}
 }
 function releaseInitialTopLock(){
-  scrollAppTop();
+  cancelInitialLanding();
   document.documentElement.classList.remove("cp-initial-top-lock");
   scrollAppTop();
 }
-function isFirstPageNavigation(){
-  try{
-    var nav=performance.getEntriesByType&&performance.getEntriesByType("navigation")[0];
-    return !nav||nav.type==="navigate";
-  }catch(_e){return true}
-}
-function releaseInitialLockAtBusinessLive(){
-  clearClientHash();
-  document.documentElement.classList.remove("cp-initial-top-lock");
-  var cancelled=false,cleanups=[];
-  function cancelLandingGuard(){cancelled=true;cleanups.forEach(function(fn){try{fn()}catch(_e){}});cleanups=[]}
-  ["pointerdown","touchstart","wheel","keydown"].forEach(function(type){
-    var fn=function(){cancelLandingGuard()};
-    window.addEventListener(type,fn,{passive:true,once:true});
-    cleanups.push(function(){window.removeEventListener(type,fn)});
-  });
-  function land(){if(!cancelled)scrollToBusinessLive(0)}
-  land();
-  requestAnimationFrame(function(){land();requestAnimationFrame(land)});
-  var delays=isFirstPageNavigation()?[60,160,320,650,1000,1450,1900,2500,3200]:[60,160,320,650,1000];
-  delays.forEach(function(ms,index){setTimeout(function(){land();if(index===delays.length-1)cancelLandingGuard()},ms)});
-  if(isFirstPageNavigation()&&"ResizeObserver" in window){
-    var target=$("client-live-money"),header=document.querySelector(".cp-header");
-    if(target){
-      var ro=new ResizeObserver(function(){land()});
-      ro.observe(target);if(header)ro.observe(header);
-      var stop=function(){try{ro.disconnect()}catch(_e){}};
-      cleanups.push(stop);setTimeout(stop,3300);
-    }
+// Landing is requested once at session entry. Never fight a user's scroll.
+function prepareBusinessLiveLanding(){
+  cancelInitialLanding();
+  var cancelled=false,frame=0,cleanups=[];
+  function cancel(){
+    cancelled=true;
+    if(frame)cancelAnimationFrame(frame);
+    cleanups.forEach(function(fn){fn()});cleanups=[];
   }
+  initialLandingCleanup=cancel;
+  ["pointerdown","touchstart","wheel","keydown"].forEach(function(type){
+    window.addEventListener(type,cancel,{passive:true,once:true});
+    cleanups.push(function(){window.removeEventListener(type,cancel)});
+  });
+  return function release(){
+    document.documentElement.classList.remove("cp-initial-top-lock");
+    if(cancelled)return;
+    frame=requestAnimationFrame(function(){
+      frame=0;
+      if(cancelled||$("customer-app").hidden)return;
+      var target=$("client-live-money"),header=document.querySelector(".cp-header");
+      if(target){
+        var h=header?Math.ceil(header.getBoundingClientRect().height):0;
+        var y=Math.max(0,Math.round(target.getBoundingClientRect().top+window.scrollY-h-12));
+        if(Math.abs(window.scrollY-y)>2)window.scrollTo({top:y,left:0,behavior:"instant"});
+      }
+      cancelInitialLanding();
+    });
+  };
 }
 function showApp(){
   $("customer-auth").hidden=true;$("customer-app").hidden=false;clearClientHash();
+  // Release the initial lock before data loading, so a slow request cannot
+  // trap touch scrolling; late data must not snap the viewport back.
+  var release=prepareBusinessLiveLanding();
+  document.documentElement.classList.remove("cp-initial-top-lock");
   loadPortal().then(function(){
-    releaseInitialLockAtBusinessLive();
+    release();
     var u=new URL(location.href);
     if(u.searchParams.get("action")==="cancel-subscription"){
       u.searchParams.delete("action");history.replaceState(null,"",u.pathname+(u.search?"?"+u.searchParams.toString():"")+u.hash);
       ensureBilling().then(function(x){return x.open("manage");}).catch(function(){toast("Gestion de la résiliation momentanément indisponible.");});
     }
-  }).catch(function(e){releaseInitialLockAtBusinessLive();toast("Chargement impossible : "+(e.code||e.message));});
+  }).catch(function(e){cancelInitialLanding();toast("Chargement impossible : "+(e.code||e.message));});
 }
 function hideAuthPanels(){
   ["login-panel","forgot-panel","reset-panel","register-panel","activation-panel"].forEach(function(id){var el=$(id);if(el)el.hidden=true;});
