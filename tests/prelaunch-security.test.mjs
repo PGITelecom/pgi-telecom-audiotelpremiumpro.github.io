@@ -72,3 +72,25 @@ test("prelaunch admin diagnostics preserve staff/customer isolation and readonly
     assert.equal((await response.json()).error.code,"FORBIDDEN");
   }finally{await app.close();}
 });
+
+test("staff sessions cannot survive account revocation or fall back to an old admin password",async()=>{
+  const config=cfg(), app=createBackend({config});
+  const newPassword="updated-admin-password-123456";
+  const created=await app.store.createStaffUser({login_name:"admin",email:"staff@example.test",display_name:"Admin",role:"admin"},hashPassword(newPassword),{sub:"admin"});
+  const address=await app.listen(),base="http://127.0.0.1:"+address.port;
+  const login=password=>fetch(base+"/api/v1/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:"admin",password})});
+  try{
+    assert.equal((await login("admin-password-123456")).status,401);
+    const authenticated=await login(newPassword);
+    assert.equal(authenticated.status,200);
+    const cookies=cookieHeader(cookiesFrom(authenticated.headers));
+    const me=()=>fetch(base+"/api/v1/auth/me",{headers:{Cookie:cookies}});
+    assert.equal((await me()).status,200);
+    const row=app.store.staffUsers.find(x=>String(x.id)===String(created.id));
+    row.session_version++;
+    assert.equal((await me()).status,401);
+    row.enabled=false;
+    assert.equal((await login(newPassword)).status,401);
+    assert.equal((await login("admin-password-123456")).status,401);
+  }finally{await app.close();}
+});

@@ -82,6 +82,8 @@ export function startWorkers({store,eventBus,config,queueHandlers={}}){
                 status:snapshot.status,
                 provider_checkout_session_reference:snapshot.provider_checkout_session_reference,
                 provider_payment_intent_reference:snapshot.provider_payment_intent_reference,
+                  verified_amount_minor:snapshot.verified_amount_minor,
+                  verified_currency:snapshot.verified_currency,
                 payload_sha256:"0".repeat(64)
               });
             }

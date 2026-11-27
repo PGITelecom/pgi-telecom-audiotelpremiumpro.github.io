@@ -9,16 +9,19 @@ export function issueWebAuthnState(config,purpose,subject){
   return{challenge,state:payload+"."+mac(config.sessionSecret,payload)}
 }
 export function verifyWebAuthnState(config,state,purpose,subject){
-  const[payload,sig]=String(state||"").split(".");if(!payload||!sig)throw problem("WEBAUTHN_STATE_INVALID",400);
+  if(!webauthnConfigured(config)||typeof state!=="string"||state.length>4096)throw problem("WEBAUTHN_STATE_INVALID",400);
+  const parts=state.split(".");if(parts.length!==2)throw problem("WEBAUTHN_STATE_INVALID",400);
+  const[payload,sig]=parts;if(!/^[A-Za-z0-9_-]+$/.test(payload)||!/^[A-Za-z0-9_-]{43}$/.test(sig))throw problem("WEBAUTHN_STATE_INVALID",400);
   const expected=Buffer.from(mac(config.sessionSecret,payload));const actual=Buffer.from(sig);
   if(expected.length!==actual.length||!timingSafeEqual(expected,actual))throw problem("WEBAUTHN_STATE_INVALID",400);
   let x;try{x=JSON.parse(b(payload).toString("utf8"))}catch{throw problem("WEBAUTHN_STATE_INVALID",400)}
-  if(x.p!==purpose||String(x.s)!==String(subject)||!x.exp||Date.now()>x.exp)throw problem("WEBAUTHN_STATE_INVALID",400);
+  const now=Date.now();
+  if(!x||typeof x!=="object"||Array.isArray(x)||x.p!==purpose||String(x.s)!==String(subject)||!Number.isSafeInteger(x.exp)||x.exp<=now||x.exp>now+300000||typeof x.c!=="string"||!/^[A-Za-z0-9_-]{43}$/.test(x.c))throw problem("WEBAUTHN_STATE_INVALID",400);
   return x
 }
 function clientData(raw,expectedChallenge,origin,type){
   let json,buf;try{buf=b(raw);json=JSON.parse(buf.toString("utf8"))}catch{throw problem("WEBAUTHN_CLIENT_DATA_INVALID",400)}
-  if(json.type!==type||json.challenge!==expectedChallenge||json.origin!==origin)throw problem("WEBAUTHN_CLIENT_DATA_INVALID",400);
+  if(!json||typeof json!=="object"||Array.isArray(json)||json.type!==type||json.challenge!==expectedChallenge||json.origin!==origin||json.crossOrigin===true)throw problem("WEBAUTHN_CLIENT_DATA_INVALID",400);
   return{json,buf}
 }
 function authData(raw,rpId){
@@ -38,6 +41,7 @@ export function validateWebAuthnRegistration(config,input,stateInfo){
   return{credential_id:credentialId,public_key_spki:spki,sign_count:ad.signCount,transports:Array.isArray(input.transports)?input.transports.slice(0,8):[],label:String(input.label||"Passkey").slice(0,120)}
 }
 export function verifyWebAuthnAssertion(config,input,stateInfo,credential){
+  if(!credential||credential.enabled===false)throw problem("WEBAUTHN_CREDENTIAL_INVALID",401);
   const cd=clientData(input.client_data_json,stateInfo.c,config.webauthnOrigin,"webauthn.get");
   const ad=authData(input.authenticator_data,config.webauthnRpId);
   if(String(input.credential_id)!==String(credential.credential_id))throw problem("WEBAUTHN_CREDENTIAL_MISMATCH",400);

@@ -246,7 +246,7 @@ test("full customer journey stays fail-closed until legal readiness and keeps SV
 
     const now=Math.floor(Date.now()/1000);
     const stripeEvent={
-      id:"evt_customer_journey_"+Date.now(),type:"customer.subscription.created",created:now,
+      id:"evt_customer_journey_"+Date.now(),type:"customer.subscription.created",created:now,livemode:false,
       data:{object:{
         id:"sub_test_customer_journey",customer:"cus_test_customer_journey",status:"active",
         metadata:{

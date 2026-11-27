@@ -515,12 +515,12 @@ export function createBackend(options={}){
         const staff=typeof store.staffLoginIdentity==="function"?await store.staffLoginIdentity(username):null;
         const staffLocked=Boolean(staff?.locked_until&&Date.now()<Date.parse(staff.locked_until));
         const staffOk=Boolean(staff&&!staffLocked&&staff.enabled!==false&&verifyPassword(password,staff.password_hash));
-        const legacyOk=constantTimeTokenEqual(username,config.adminUsername)&&verifyPassword(password,config.adminPasswordHash);
+        const legacyOk=(!staff||(!staff.password_hash&&staff.enabled===true&&!staffLocked&&staff.role==="admin"))&&constantTimeTokenEqual(username,config.adminUsername)&&verifyPassword(password,config.adminPasswordHash);
         let user=null;
         if(staffOk)user=staff;
         else if(legacyOk&&typeof store.ensureLegacyStaffIdentity==="function")user=await store.ensureLegacyStaffIdentity(config.adminUsername);
         else if(legacyOk)user={id:"admin",role:"admin",display_name:"Administrator"};
-        if(!user){
+        if(!user||user.enabled===false){
           if(staff?.id&&typeof store.recordStaffAuthFailure==="function")await store.recordStaffAuthFailure(staff.id,config.authMaxFailures,config.authFailureWindowSeconds);
           metrics.authFailures++;
           recordAuthFailure(authKey,config,authBuckets);
@@ -748,7 +748,11 @@ export function createBackend(options={}){
         });
       }
 
-      const actor=authenticate(req,config);
+      let actor=authenticate(req,config);
+      if(actor&&config.authMode==="session"&&typeof store.staffCredentialById==="function"){
+        const current=await store.staffCredentialById(actor.sub);
+        if(!current||current.enabled!==true||current.role!==actor.role||Number(current.session_version||1)!==Number(actor.session_version)|| (current.locked_until&&Date.now()<Date.parse(current.locked_until)))actor=null;
+      }
       const customerActor=authenticateCustomer(req,config);
 
       // A read-only release dossier is available even before the preparatory migrations.
@@ -1134,6 +1138,8 @@ export function createBackend(options={}){
                   status:item.snapshot.status,
                   provider_checkout_session_reference:item.snapshot.provider_checkout_session_reference,
                   provider_payment_intent_reference:item.snapshot.provider_payment_intent_reference,
+                  verified_amount_minor:item.snapshot.verified_amount_minor,
+                  verified_currency:item.snapshot.verified_currency,
                   payload_sha256:"0".repeat(64)
                 });
                 changed=changed||Boolean(applied.updated);
@@ -1193,7 +1199,7 @@ export function createBackend(options={}){
         const body=await readJson(req,config.bodyLimitBytes);
         const account=await store.customerCardPaymentAccount(context.tenant_id);
         if(!account||account.status!=="active"||account.charges_enabled!==true)return done(res,metrics,started,"customer.card_payments.checkout",409,{error:{code:"CARD_PAYMENT_ACCOUNT_NOT_READY"},provider:stripeConnectState(config),account});
-        const amountMinor=Math.trunc(Number(body.amount_minor));
+        const amountMinor=typeof body.amount_minor==="number"?body.amount_minor:typeof body.amount_minor==="string"&&/^[1-9][0-9]{0,8}$/.test(body.amount_minor)?Number(body.amount_minor):NaN;
         if(!Number.isInteger(amountMinor)||amountMinor<500||amountMinor>100000000){const e=new Error("Card payment amount must be between 5 EUR and 1,000,000 EUR equivalent");e.status=400;e.code="INVALID_CARD_PAYMENT_AMOUNT";throw e;}
         const request=await store.createCustomerCardPaymentRequest(context.tenant_id,context.id,{
           amount_minor:amountMinor,currency:String(body.currency||"EUR").toUpperCase(),description:body.description,customer_email:body.customer_email||null,
@@ -1375,7 +1381,7 @@ export function createBackend(options={}){
         requireCustomerCsrf(req,customerActor,config);
         const context=await store.customerSessionContext(customerActor);
         const body=await readJson(req,config.bodyLimitBytes);
-        const payload={tenant_id:context.tenant_id,...body};
+        const payload={...body,tenant_id:context.tenant_id};
         const result=await store.idempotent(req.headers["idempotency-key"],"customer.portability.create",payload,()=>store.createCustomerPortabilityRequest(context.tenant_id,body));
         return done(res,metrics,started,"customer.portability.create",201,{...result.value,replayed:result.replayed});
       }
@@ -1434,7 +1440,7 @@ export function createBackend(options={}){
         const context=await store.customerSessionContext(customerActor);
         requireCustomerPermission(context,"incidents.write");
         const body=await readJson(req,config.bodyLimitBytes);
-        const payload={tenant_id:context.tenant_id,...body};
+        const payload={...body,tenant_id:context.tenant_id};
         const result=await store.idempotent(req.headers["idempotency-key"],"customer.service_incident.create",payload,()=>store.createCustomerServiceIncident(context.tenant_id,body,customerActor.sub));
         if(!result.replayed){
           const outcomes=await Promise.allSettled([
@@ -1476,7 +1482,7 @@ export function createBackend(options={}){
         requireCustomerCsrf(req,customerActor,config);
         const context=await store.customerSessionContext(customerActor);
         if(!["owner","admin"].includes(context.customer_role))throw Object.assign(new Error("Customer role cannot open financial/legal cases"),{status:403,code:"CUSTOMER_RELATIONS_FORBIDDEN"});
-        const body=await readJson(req,config.bodyLimitBytes),payload={tenant_id:context.tenant_id,...body};
+        const body=await readJson(req,config.bodyLimitBytes),payload={...body,tenant_id:context.tenant_id};
         const result=await store.idempotent(req.headers["idempotency-key"],"customer.relation.create",payload,()=>store.createCustomerRelationCase(context.tenant_id,body,customerActor.sub));
         return done(res,metrics,started,"customer.relations.create",201,{...result.value,replayed:result.replayed});
       }
@@ -1484,7 +1490,7 @@ export function createBackend(options={}){
         requireCustomerCsrf(req,customerActor,config);
         const context=await store.customerSessionContext(customerActor);
         if(!["owner","admin"].includes(context.customer_role))throw Object.assign(new Error("Customer role cannot request account exit"),{status:403,code:"CUSTOMER_RELATIONS_FORBIDDEN"});
-        const body=await readJson(req,config.bodyLimitBytes),payload={tenant_id:context.tenant_id,...body};
+        const body=await readJson(req,config.bodyLimitBytes),payload={...body,tenant_id:context.tenant_id};
         const result=await store.idempotent(req.headers["idempotency-key"],"customer.exit.create",payload,()=>store.createCustomerExitRequest(context.tenant_id,body,customerActor.sub));
         // A request to exit is not a completed departure. Do not classify the tenant as lost.
         // CRM lifecycle synchronization must follow verified full closure, never a partial request.
@@ -1534,7 +1540,7 @@ export function createBackend(options={}){
         requireCustomerCsrf(req,customerActor,config);
         const context=await store.customerSessionContext(customerActor);
         if(!["owner","admin"].includes(context.customer_role)){const e=new Error("Customer role cannot configure voice services");e.status=403;e.code="VOICE_STUDIO_FORBIDDEN";throw e;}
-        const body=await readJson(req,config.bodyLimitBytes),payload={tenant_id:context.tenant_id,...body};
+        const body=await readJson(req,config.bodyLimitBytes),payload={...body,tenant_id:context.tenant_id};
         const result=await store.idempotent(req.headers["idempotency-key"],"customer.voice_service.create",payload,()=>store.createCustomerVoiceService(context.tenant_id,body,customerActor.sub));
         return done(res,metrics,started,"customer.voice_service.create",201,{...result.value,replayed:result.replayed});
       }
@@ -1543,7 +1549,7 @@ export function createBackend(options={}){
         requireCustomerCsrf(req,customerActor,config);
         const context=await store.customerSessionContext(customerActor);
         if(!["owner","admin"].includes(context.customer_role)){const e=new Error("Customer role cannot configure voice services");e.status=403;e.code="VOICE_STUDIO_FORBIDDEN";throw e;}
-        const body=await readJson(req,config.bodyLimitBytes),payload={tenant_id:context.tenant_id,service_id:match.id,...body};
+        const body=await readJson(req,config.bodyLimitBytes),payload={...body,tenant_id:context.tenant_id,service_id:match.id};
         const result=await store.idempotent(req.headers["idempotency-key"],"customer.voice_service.draft",payload,()=>store.saveCustomerVoiceDraft(context.tenant_id,match.id,body,customerActor.sub));
         return done(res,metrics,started,"customer.voice_service.draft",201,{...result.value,replayed:result.replayed});
       }
@@ -2119,7 +2125,7 @@ export function createBackend(options={}){
       if(method==="POST"&&match){
         requireRole(actor,["admin","finance"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
-        const payload={id:match.id,...body};
+        const payload={...body,id:match.id};
         const result=await store.idempotent(req.headers["idempotency-key"],"platform.accounting_expert.entry_validate",payload,()=>validateExpertAccountingEntry(store,match.id,body,actor));
         return done(res,metrics,started,"platform.accounting_expert_entry_validate",200,{...result.value,replayed:result.replayed});
       }
@@ -2128,7 +2134,7 @@ export function createBackend(options={}){
       if(method==="POST"&&match){
         requireRole(actor,["admin","finance"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
-        const payload={id:match.id,...body};
+        const payload={...body,id:match.id};
         const result=await store.idempotent(req.headers["idempotency-key"],"platform.accounting_expert.entry_reverse",payload,()=>reverseExpertAccountingEntry(store,match.id,body,actor));
         return done(res,metrics,started,"platform.accounting_expert_entry_reverse",201,{...result.value,replayed:result.replayed});
       }
@@ -2335,7 +2341,7 @@ export function createBackend(options={}){
       if(method==="POST"&&match){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
-        const result=await store.idempotent(req.headers["idempotency-key"],"tenant.payout_terms.create",{tenant:match.id,...body},()=>store.createTenantPayoutTerms(match.id,body,actor));
+        const result=await store.idempotent(req.headers["idempotency-key"],"tenant.payout_terms.create",{...body,tenant:match.id},()=>store.createTenantPayoutTerms(match.id,body,actor));
         return done(res,metrics,started,"platform.tenant_payout_terms",201,{...result.value,replayed:result.replayed});
       }
 
@@ -2389,7 +2395,7 @@ export function createBackend(options={}){
       if(method==="POST"&&match){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
-        const result=await store.idempotent(req.headers["idempotency-key"],"sva.compliance.profile",{id:match.id,...body},()=>store.upsertSvaServiceComplianceProfile(match.id,body,actor));
+        const result=await store.idempotent(req.headers["idempotency-key"],"sva.compliance.profile",{...body,id:match.id},()=>store.upsertSvaServiceComplianceProfile(match.id,body,actor));
         return done(res,metrics,started,"platform.sva_compliance_profile",200,{...result.value,replayed:result.replayed});
       }
 
@@ -2397,7 +2403,7 @@ export function createBackend(options={}){
       if(method==="POST"&&match){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
-        const result=await store.idempotent(req.headers["idempotency-key"],"sva.compliance.evidence",{id:match.id,...body},()=>store.recordSvaEcosystemEvidence(match.id,body,actor));
+        const result=await store.idempotent(req.headers["idempotency-key"],"sva.compliance.evidence",{...body,id:match.id},()=>store.recordSvaEcosystemEvidence(match.id,body,actor));
         return done(res,metrics,started,"platform.sva_compliance_evidence",201,{...result.value,replayed:result.replayed});
       }
 
@@ -2405,7 +2411,7 @@ export function createBackend(options={}){
       if(method==="POST"&&match){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
-        const result=await store.idempotent(req.headers["idempotency-key"],"sva.tariff_change.plan",{id:match.id,...body},()=>store.planSvaTariffChange(match.id,body,actor));
+        const result=await store.idempotent(req.headers["idempotency-key"],"sva.tariff_change.plan",{...body,id:match.id},()=>store.planSvaTariffChange(match.id,body,actor));
         return done(res,metrics,started,"platform.sva_tariff_change",201,{...result.value,replayed:result.replayed});
       }
 
@@ -2413,7 +2419,7 @@ export function createBackend(options={}){
       if(method==="POST"&&match){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
-        const result=await store.idempotent(req.headers["idempotency-key"],"regulatory.profile.update",{id:match.id,...body},()=>store.upsertSvaRegulatoryProfile(match.id,body,actor));
+        const result=await store.idempotent(req.headers["idempotency-key"],"regulatory.profile.update",{...body,id:match.id},()=>store.upsertSvaRegulatoryProfile(match.id,body,actor));
         return done(res,metrics,started,"platform.regulatory_profile",200,{...result.value,replayed:result.replayed});
       }
 
@@ -2429,7 +2435,7 @@ export function createBackend(options={}){
       if(method==="POST"&&match){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
-        const result=await store.idempotent(req.headers["idempotency-key"],"regulatory.evidence.append",{id:match.id,...body},()=>store.recordSvaRegulatoryEvidence(match.id,body,actor));
+        const result=await store.idempotent(req.headers["idempotency-key"],"regulatory.evidence.append",{...body,id:match.id},()=>store.recordSvaRegulatoryEvidence(match.id,body,actor));
         return done(res,metrics,started,"platform.regulatory_evidence",201,{...result.value,replayed:result.replayed});
       }
 
@@ -2451,12 +2457,12 @@ export function createBackend(options={}){
       if(method==="POST"&&match){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
-        const result=await store.idempotent(req.headers["idempotency-key"],"regulatory.abuse.open",{id:match.id,...body},()=>store.createSvaAbuseCase(match.id,body,actor));
+        const result=await store.idempotent(req.headers["idempotency-key"],"regulatory.abuse.open",{...body,id:match.id},()=>store.createSvaAbuseCase(match.id,body,actor));
         return done(res,metrics,started,"platform.regulatory_abuse",201,{...result.value,replayed:result.replayed});
       }
 
       match=routeMatch(pathname,"/api/v1/platform/tenants/:id/call-destinations");
-      if(method==="POST"&&match){requireRole(actor,["admin"]);requireCsrf(req,actor,config);const body=await readJson(req,config.bodyLimitBytes);const result=await store.idempotent(req.headers["idempotency-key"],"call_destination.create",{tenant:match.id,...body},()=>store.createCallDestination(match.id,body,actor));return done(res,metrics,started,"platform.call_destination_create",201,{...result.value,replayed:result.replayed});}
+      if(method==="POST"&&match){requireRole(actor,["admin"]);requireCsrf(req,actor,config);const body=await readJson(req,config.bodyLimitBytes);const result=await store.idempotent(req.headers["idempotency-key"],"call_destination.create",{...body,tenant:match.id},()=>store.createCallDestination(match.id,body,actor));return done(res,metrics,started,"platform.call_destination_create",201,{...result.value,replayed:result.replayed});}
       match=routeMatch(pathname,"/api/v1/platform/call-destinations/:id/status");
       if(method==="POST"&&match){requireRole(actor,["admin"]);requireCsrf(req,actor,config);const body=await readJson(req,config.bodyLimitBytes);const payload={id:match.id,status:body.status,reason:body.reason||""};const result=await store.idempotent(req.headers["idempotency-key"],"call_destination.status",payload,()=>store.setCallDestinationStatus(match.id,body.status,actor,body.reason||""));return done(res,metrics,started,"platform.call_destination_status",200,{...result.value,replayed:result.replayed});}
 
@@ -2464,7 +2470,7 @@ export function createBackend(options={}){
       if(method==="POST"&&match){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
-        const payload={id:match.id,...body};
+        const payload={...body,id:match.id};
         const result=await store.idempotent(req.headers["idempotency-key"],"portability.status",payload,()=>store.updatePortabilityRequest(match.id,body,actor));
         return done(res,metrics,started,"platform.portability_status",200,{...result.value,replayed:result.replayed});
       }
@@ -2473,7 +2479,7 @@ export function createBackend(options={}){
       if(method==="POST"&&match){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
-        const payload={id:match.id,...body};
+        const payload={...body,id:match.id};
         const result=await store.idempotent(req.headers["idempotency-key"],"portability.complete",payload,()=>store.completePortabilityRequest(match.id,body,actor));
         await syncHubSpotTenantLifecycle(store,result.value?.tenant_public_id,"Client actif","portability_complete");
         return done(res,metrics,started,"platform.portability_complete",200,{...result.value,replayed:result.replayed});
@@ -2489,7 +2495,7 @@ export function createBackend(options={}){
       if(method==="POST"&&match){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
-        const payload={tenant:match.id,...body};
+        const payload={...body,tenant:match.id};
         const result=await store.idempotent(req.headers["idempotency-key"],"service_incident.create",payload,()=>store.createTenantServiceIncident(match.id,body,actor));
         return done(res,metrics,started,"platform.service_incident.create",201,{...result.value,replayed:result.replayed});
       }
@@ -2900,7 +2906,8 @@ function authenticate(req,config){
     return {sub:"local-admin",role:"admin",name:"Local Simulator",csrf:"disabled"};
   }
   const cookies=parseCookies(req.headers.cookie||"");
-  return verifySession(cookies["__Host-pgi_session"],config.sessionSecret);
+  const actor=verifySession(cookies["__Host-pgi_session"],config.sessionSecret);
+  return actor&&actor.actor_type!=="customer"?actor:null;
 }
 function authenticateCustomer(req,config){
   if(config.authMode!=="session")return null;
@@ -2916,6 +2923,7 @@ function requireRole(actor,roles){
   if(!roles.includes(actor.role)){const e=new Error("Forbidden");e.status=403;e.code="FORBIDDEN";throw e;}
 }
 function requireCsrf(req,actor,config){
+  requireActor(actor);
   if(config.authMode==="disabled")return;
   const cookies=parseCookies(req.headers.cookie||"");
   const header=String(req.headers["x-csrf-token"]||"");

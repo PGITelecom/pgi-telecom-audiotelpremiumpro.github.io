@@ -1966,7 +1966,7 @@ export class PostgresStore{
     if(login.length<3||login.length>120)return null;
     const rows=await this.sql.unsafe(
       "SELECT u.id,u.login_name,u.display_name,u.role,u.enabled,c.password_hash,c.session_version,c.failed_attempts,c.first_failure_at,c.locked_until"+
-      " FROM app_users u JOIN staff_password_credentials c ON c.app_user_id=u.id"+
+      " FROM app_users u LEFT JOIN staff_password_credentials c ON c.app_user_id=u.id"+
       " WHERE lower(u.login_name)=lower($1) LIMIT 1",
       [login]
     );
@@ -1975,7 +1975,7 @@ export class PostgresStore{
 
   async staffCredentialById(appUserId){
     const id=Number(appUserId);if(!Number.isInteger(id)||id<=0)return null;
-    const rows=await this.readSql.unsafe("SELECT u.id,u.login_name,u.enabled,c.password_hash,c.session_version,c.locked_until FROM app_users u JOIN staff_password_credentials c ON c.app_user_id=u.id WHERE u.id=$1 LIMIT 1",[id]);
+    const rows=await this.sql.unsafe("SELECT u.id,u.login_name,u.enabled,u.role,c.password_hash,COALESCE(c.session_version,1) AS session_version,c.locked_until FROM app_users u LEFT JOIN staff_password_credentials c ON c.app_user_id=u.id WHERE u.id=$1 LIMIT 1",[id]);
     return rows[0]||null;
   }
 
@@ -4562,7 +4562,7 @@ export class PostgresStore{
   }
 
   async createCustomerCardPaymentRequest(tenantId,principalId,input={}){
-    const id=Number(tenantId),amount=Math.trunc(Number(input.amount_minor)),currency=String(input.currency||"EUR").trim().toUpperCase();
+    const id=Number(tenantId),amount=input.amount_minor,currency=String(input.currency||"EUR").trim().toUpperCase();
     if(!Number.isInteger(id)||id<=0)throw problem(400,"INVALID_TENANT_ID");
     if(!Number.isInteger(amount)||amount<100||amount>100000000)throw problem(400,"INVALID_CARD_PAYMENT_AMOUNT");
     if(!/^[A-Z]{3}$/.test(currency))throw problem(400,"INVALID_CARD_PAYMENT_CURRENCY");
@@ -4641,23 +4641,47 @@ export class PostgresStore{
       const charge=/^ch_[A-Za-z0-9]+$/.test(String(input.provider_charge_reference||""))?String(input.provider_charge_reference):null;
       const status=String(input.status||"");
       if(!["open","paid","expired","failed","refunded","disputed"].includes(status))return {duplicate:false,updated:false};
-      const conditions=[],params=[];
-      if(requestId){params.push(requestId);conditions.push("public_id=$"+params.length+"::uuid")}
-      if(paymentIntent){params.push(paymentIntent);conditions.push("provider_payment_intent_reference=$"+params.length)}
-      if(!conditions.length)return {duplicate:false,updated:false};
+      const account=String(input.connected_account_reference||"");
+      if(provider!=="stripe"||!/^acct_[A-Za-z0-9]+$/.test(account))return {duplicate:false,updated:false};
+      const conditions=[],anchors=[],params=[account];
+      conditions.push("EXISTS (SELECT 1 FROM tenant_card_payment_accounts a WHERE a.id=r.card_payment_account_id AND a.tenant_id=r.tenant_id AND a.provider_account_reference=$1)");
+      if(requestId){params.push(requestId);conditions.push("r.public_id=$"+params.length+"::uuid");}
+      for(const [column,reference] of [["provider_checkout_session_reference",checkout],["provider_payment_intent_reference",paymentIntent],["provider_charge_reference",charge]]){
+        if(!reference)continue;
+        params.push(reference);
+        const p="$"+params.length;
+        anchors.push("r."+column+"="+p);
+        conditions.push("(r."+column+" IS NULL OR r."+column+"="+p+")");
+      }
+      if(!anchors.length)return {duplicate:false,updated:false};
+      conditions.push("("+anchors.join(" OR ")+")");
+      if(status==="paid"&&type==="charge.dispute.closed"){
+        if(input.dispute_status!=="won")return {duplicate:false,updated:false};
+        conditions.push("r.status='disputed'");
+      }else if(status==="paid"){
+        const amount=input.verified_amount_minor,currency=input.verified_currency;
+        if(!Number.isSafeInteger(amount)||amount<=0||typeof currency!=="string"||!/^[A-Z]{3}$/.test(currency))return {duplicate:false,updated:false};
+        params.push(amount);conditions.push("r.amount_minor=$"+params.length+"::bigint");
+        params.push(currency);conditions.push("r.currency=$"+params.length);
+        conditions.push("r.status IN ('created','open','failed','expired','paid')");
+      }else if(status==="refunded"||status==="disputed"){
+        conditions.push("r.status IN ('paid','disputed')");
+      }else{
+        conditions.push("r.status IN ('created','open','failed','expired')");
+      }
       params.push(status);const statusParam="$"+params.length;
       params.push(checkout);const checkoutParam="$"+params.length;
       params.push(paymentIntent);const piParam="$"+params.length;
       params.push(charge);const chargeParam="$"+params.length;
       params.push(input.event_time||new Date().toISOString());const timeParam="$"+params.length;
       const rows=await tx.unsafe(
-        "UPDATE tenant_card_payment_requests SET status="+statusParam+
+        "UPDATE tenant_card_payment_requests AS r SET status="+statusParam+
         ",provider_checkout_session_reference=COALESCE("+checkoutParam+",provider_checkout_session_reference)"+
         ",provider_payment_intent_reference=COALESCE("+piParam+",provider_payment_intent_reference)"+
         ",provider_charge_reference=COALESCE("+chargeParam+",provider_charge_reference)"+
         ",paid_at=CASE WHEN "+statusParam+"='paid' THEN COALESCE(paid_at,"+timeParam+"::timestamptz) ELSE paid_at END"+
         ",refunded_at=CASE WHEN "+statusParam+"='refunded' THEN COALESCE(refunded_at,"+timeParam+"::timestamptz) ELSE refunded_at END"+
-        " WHERE ("+conditions.join(" OR ")+") RETURNING public_id::text AS public_id,tenant_id,status",
+        " WHERE "+conditions.join(" AND ")+" RETURNING public_id::text AS public_id,tenant_id,status",
         params
       );
       return {duplicate:false,updated:rows.length>0,request:rows[0]||null};

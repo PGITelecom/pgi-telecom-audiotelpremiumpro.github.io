@@ -267,13 +267,13 @@ export function normalizeStripePortabilityPriorityEvent(event){
   let status="pending";
   if(type==="checkout.session.expired")status="expired";
   else if(type==="checkout.session.async_payment_failed")status="failed";
-  else if(type==="checkout.session.async_payment_succeeded"||paymentStatus==="paid"||paymentStatus==="no_payment_required")status="paid";
-  const amount=Number(obj.amount_total),currency=String(obj.currency||meta.currency||"").toUpperCase();
+  else if(paymentStatus==="paid")status="paid";
+  const amount=obj.amount_total,currency=String(obj.currency||"").toUpperCase();
   return {
     provider:"stripe",provider_event_id:String(event.id||""),event_type:type,event_time:eventIso(event),
     tenant_public_id:tenantPublicId,portability_request_id:requestId,status,payment_status:paymentStatus||null,
     checkout_session_reference:String(obj.id||""),payment_intent_reference:idValue(obj.payment_intent),
-    amount_minor:Number.isInteger(amount)?amount:null,currency:/^[A-Z]{3}$/.test(currency)?currency:null
+    amount_minor:Number.isSafeInteger(amount)&&amount>=0?amount:null,currency:/^[A-Z]{3}$/.test(currency)?currency:null
   };
 }
 
@@ -308,7 +308,8 @@ export async function verifyStripeWebhook(req,config,secretOverride=null){
   const a=Buffer.from(expected),valid=parsed.v1.some(v=>{const b=Buffer.from(String(v));return a.length===b.length&&timingSafeEqual(a,b);});
   if(!valid)throw failure(400,"STRIPE_SIGNATURE_INVALID");
   let event;try{event=JSON.parse(raw.toString("utf8"));}catch{throw failure(400,"INVALID_JSON");}
-  if(!event||typeof event!=="object"||!String(event.id||"").startsWith("evt_"))throw failure(400,"STRIPE_EVENT_INVALID");
+  if(!event||typeof event!=="object"||Array.isArray(event)||!/^evt_[A-Za-z0-9_]{1,180}$/.test(String(event.id||"")))throw failure(400,"STRIPE_EVENT_INVALID");
+  if(config?.mode==="production"&&(typeof config.stripeLiveMode!=="boolean"||event.livemode!==config.stripeLiveMode))throw failure(400,"STRIPE_EVENT_MODE_MISMATCH");
   return event;
 }
 function idValue(v){return typeof v==="string"?v:(v&&typeof v.id==="string"?v.id:null);}

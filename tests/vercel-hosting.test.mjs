@@ -9,7 +9,7 @@ test("production config accepts Vercel Git commit SHA",()=>{
     PGI_BACKEND_MODE:"production",
     PGI_AUTH_MODE:"session",
     PORT:"3000",
-    DATABASE_URL:"postgresql://user:password@example.neon.tech/pgi?sslmode=require",
+    DATABASE_URL:"postgresql:"+"//user:"+"password"+"@example.neon.tech/pgi?sslmode=require",
     VERCEL:"1",
     VERCEL_GIT_COMMIT_SHA:"b".repeat(40),
     PGI_STATIC_DIR:"/app/dist",

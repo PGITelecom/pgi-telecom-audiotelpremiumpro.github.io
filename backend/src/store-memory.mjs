@@ -766,7 +766,7 @@ export class MemoryStore{
   }
 
   async staffLoginIdentity(loginName){
-    const row=this.staffUsers.find(x=>x.enabled&&x.password_hash&&x.login_name.toLowerCase()===String(loginName||"").trim().toLowerCase());
+    const row=this.staffUsers.find(x=>x.login_name.toLowerCase()===String(loginName||"").trim().toLowerCase());
     return row?structuredClone(row):null;
   }
 
@@ -777,7 +777,7 @@ export class MemoryStore{
     return this.staffUsers.map(({password_hash,...x})=>({...structuredClone(x),password_login_enabled:Boolean(password_hash),password_changed_at:null,locked_until:null}));
   }
 
-  async staffCredentialById(appUserId){const id=Number(appUserId);const u=this.staffUsers?.find?.(x=>Number(x.id)===id);return u?.password_hash?structuredClone(u):null;}
+  async staffCredentialById(appUserId){const id=Number(appUserId);const u=this.staffUsers?.find?.(x=>Number(x.id)===id);return u?structuredClone(u):null;}
   async createStaffUser(input={},passwordHash,actor={}){
     const login=String(input.login_name||"").trim(),email=String(input.email||"").trim().toLowerCase(),display=String(input.display_name||"").trim(),role=String(input.role||"readonly").trim().toLowerCase();
     if(login.length<3||login.length>120||!/^[A-Za-z0-9._@+-]+$/.test(login))throw problem(400,"INVALID_STAFF_LOGIN");
