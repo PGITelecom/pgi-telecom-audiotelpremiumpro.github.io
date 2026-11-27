@@ -33,3 +33,49 @@ export function evaluateAutonomyCosts({minutes,retainedRevenuePerMinute,options}
   financialDecisionAuthorized:false,operatorActivationAuthorized:false,payoutAuthorized:false
  });
 }
+
+
+// Optional 3-way interconnection cost comparison for a future admin preview.
+// This does NOT presume rights to direct interconnection or access to callers.
+// All inputs must come from real quotes, documented costs or explicit hypotheses.
+const MODEL_CODES=Object.freeze(["integrated","owned_sip_wholesale_collection","direct_interconnection"]);
+export function evaluateInterconnectionOwnershipCosts({minutesPerMonth,scenarios}={}){
+ const minutes=bounded(minutesPerMonth,10000000,"minutes mensuelles",true);
+ if(!Array.isArray(scenarios)||scenarios.length!==3||
+    scenarios.some((s,i)=>s?.code!==MODEL_CODES[i]))
+  throw new RangeError("Trois modèles ordonnés et distincts requis");
+ const results=scenarios.map((s,i)=>{
+  const fixed=bounded(s.fixedMonthlyEur,50000000,"frais mensuels "+i);
+  const variable=bounded(s.variableEurPerMinute,1000,"prix variable "+i);
+  const operations=bounded(s.operationsMonthlyEur,50000000,"exploitation "+i);
+  const initial=bounded(s.initialInvestmentEur,100000000,"investissement "+i);
+  const months=bounded(s.amortizationMonths,240,"durée d'amortissement "+i,true);
+  if(months<1)throw new RangeError("Durée d'amortissement invalide");
+  const fixedAll=fixed+operations+initial/months;
+  const cost=fixedAll+minutes*variable;
+  return Object.freeze({code:s.code,monthlyCostEur:cents(cost),
+    fixedEffectiveMonthlyEur:cents(fixedAll),variableEurPerMinute:variable,
+    effectiveEurPerMinute:minutes>0?cost/minutes:null});
+ });
+ const best=results.reduce((a,b)=>a.monthlyCostEur<=b.monthlyCostEur?a:b);
+ const direct=results[2],wholesale=results[1];
+ const perMinuteSaving=wholesale.variableEurPerMinute-direct.variableEurPerMinute;
+ const additionalFixed=direct.fixedEffectiveMonthlyEur-wholesale.fixedEffectiveMonthlyEur;
+ const breakEvenMinutes=perMinuteSaving>0&&additionalFixed>0?
+   Math.ceil(additionalFixed/perMinuteSaving):null;
+ return Object.freeze({
+  minutes_per_month:minutes,
+  scenarios:Object.freeze(results),
+  lowest_cost_code_from_entered_figures:best.code,
+  direct_vs_wholesale_cost_difference_eur:cents(direct.monthlyCostEur-wholesale.monthlyCostEur),
+  direct_vs_wholesale_break_even_minutes:breakEvenMinutes,
+  quote_authenticity_verified:false,
+  direct_operator_agreements_verified:false,
+  access_to_all_089_origin_networks_verified:false,
+  settlement_and_payment_legality_verified:false,
+  numbering_and_routing_rights_verified:false,
+  commercial_or_technical_activation_authorized:false,
+  production_system_modified:false,
+  interpretation:"Pure cost estimate before tax and compliance validation; never a proof of feasibility."
+ });
+}
