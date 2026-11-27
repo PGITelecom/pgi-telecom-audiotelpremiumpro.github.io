@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import {verifyDeploymentSchema} from "../backend/src/verify-deployment-schema.mjs";
 import {createHash} from "node:crypto";
 import {auditPgiReleaseSchema,PGI_REQUIRED_RELEASE_MIGRATIONS} from "../backend/src/schema-release-audit.mjs";
 const manifest=PGI_REQUIRED_RELEASE_MIGRATIONS.map(version=>({
@@ -41,11 +42,29 @@ test("Vercel verifies schema before opening DB-backed routes, without waking Neo
  const docker=fs.readFileSync("Dockerfile.vercel","utf8");
  assert.match(start,/exec node backend\/vercel-entry\.mjs/);
  assert.doesNotMatch(start,/^node scripts\/verify-deployment-schema\.mjs/m);
- const before=entry.indexOf('execFileAsync(process.execPath,["scripts/verify-deployment-schema.mjs"]');
- const backend=entry.indexOf('await import("./server.mjs")');
- assert.ok(before>=0&&backend>before);
- assert.match(entry,/return createDefaultBackend\(\)/);
+ const store=fs.readFileSync("backend/src/store-postgres.mjs","utf8");
+ const server=fs.readFileSync("backend/server.mjs","utf8");
+ assert.match(entry,/return createDefaultBackend\(\{verifySchema:/);
+ assert.match(entry,/await verifyDeploymentSchema\(sql\)/);
+ assert.match(server,/PostgresStore\.connect\(config,eventBus,\{verifySchema\}\)/);
+ const before=store.indexOf("await verifySchema(sql)");
+ const repair=store.indexOf("await ensureReferralPayoutAutomationSchema(sql)",before);
+ assert.ok(before>=0&&repair>before);
+ assert.doesNotMatch(entry,/execFileAsync|node:child_process/);
  assert.match(router,/requiresDatabaseBackedSiteState/);
  assert.doesNotMatch(start,/node backend\/migrate\.mjs/);
  assert.match(docker,/scripts\/verify-deployment-schema\.mjs/);
+});
+
+test("shared release verifier performs exactly one read-only query and refuses mismatch",async()=>{
+  let calls=0;
+  const sql={unsafe:async(query,args)=>{
+    calls++;
+    assert.match(query,/^SELECT version,checksum FROM schema_migrations/);
+    assert.deepEqual(args,[manifest[0].version]);
+    return manifest;
+  }};
+  assert.equal((await verifyDeploymentSchema(sql)).ready,true);
+  assert.equal(calls,1);
+  await assert.rejects(verifyDeploymentSchema({unsafe:async()=>manifest.slice(1)}),{code:"PGI_RELEASE_SCHEMA_NOT_READY"});
 });

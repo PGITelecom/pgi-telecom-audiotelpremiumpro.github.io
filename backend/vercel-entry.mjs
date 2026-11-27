@@ -1,21 +1,17 @@
-import {execFile} from "node:child_process";
-import {promisify} from "node:util";
 import {randomUUID} from "node:crypto";
 import {pathToFileURL} from "node:url";
 import {loadConfig} from "./src/config.mjs";
 import {createVercelLazyServer} from "./src/vercel-lazy-server.mjs";
+import {verifyDeploymentSchema} from "./src/verify-deployment-schema.mjs";
 
-const execFileAsync=promisify(execFile);
-
-// The exact same schema guard formerly run on every container boot remains
-// mandatory, but runs once only if the request actually needs PostgreSQL.
+// Preserve the full checksum guard before opening any DB-backed route.
+// Reuse the primary application pool rather than spawning a child Node process.
 async function createVerifiedBackend(){
-  const result=await execFileAsync(process.execPath,["scripts/verify-deployment-schema.mjs"],{
-    cwd:process.cwd(),env:process.env,timeout:20000,maxBuffer:128*1024
-  });
-  if(result.stdout)process.stdout.write(result.stdout);
   const {createDefaultBackend}=await import("./server.mjs");
-  return createDefaultBackend();
+  return createDefaultBackend({verifySchema:async sql=>{
+    const audit=await verifyDeploymentSchema(sql);
+    console.log("PGI_RELEASE_SCHEMA_READY",audit.release_version,audit.required_count,"migration checksums verified");
+  }});
 }
 
 export function createVercelEntry({initializeBackend=createVerifiedBackend,config=loadConfig()}={}){

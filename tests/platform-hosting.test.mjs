@@ -227,3 +227,36 @@ test("public home keeps live navigation state while reusing immutable HTML, and 
     fs.rmSync(root,{recursive:true,force:true});
   }
 });
+
+test("home compression preserves exact public markup, HEAD and live publication switches",async t=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),"pgi-home-compress-"));
+  const home='<!doctype html><a class="header-distribution-link" href="/distribution-sva/" hidden>Telecom</a>'+("<p>Public marketing content</p>".repeat(300));
+  fs.writeFileSync(path.join(root,"index.html"),home);
+  let visible=false,reads=0;
+  const handler=createStaticSiteHandler(root,{getDirectSvaWebsiteState:async()=>{reads++;return {publication_authorized:visible,navigation_visible:visible}}});
+  const server=http.createServer((req,res)=>handler(req,res,"/"));
+  await new Promise(resolve=>server.listen(0,"127.0.0.1",resolve));
+  t.after(async()=>{await new Promise(resolve=>server.close(resolve));fs.rmSync(root,{recursive:true,force:true});});
+  const base="http://127.0.0.1:"+server.address().port;
+  const plain=await fetch(base,{headers:{"Accept-Encoding":"identity"}});
+  assert.equal(plain.headers.get("content-encoding"),null);
+  assert.equal(await plain.text(),home);
+  const zipped=await fetch(base,{headers:{"Accept-Encoding":"br"}});
+  assert.equal(zipped.headers.get("content-encoding"),"br");
+  assert.match(zipped.headers.get("vary"),/Accept-Encoding/i);
+  assert.match(zipped.headers.get("cache-control"),/no-store/);
+  assert.ok(Number(zipped.headers.get("content-length"))<Buffer.byteLength(home)/2);
+  assert.equal(await zipped.text(),home);
+  visible=true;
+  const shown=await fetch(base,{headers:{"Accept-Encoding":"gzip"}});
+  assert.equal(shown.headers.get("content-encoding"),"gzip");
+  assert.equal(await shown.text(),home.replace(' hidden>','>'));
+  visible=false;
+  const head=await fetch(base,{method:"HEAD",headers:{"Accept-Encoding":"br"}});
+  assert.equal(head.headers.get("content-encoding"),"br");
+  assert.equal(head.headers.get("content-length"),zipped.headers.get("content-length"));
+  const disabled=await fetch(base,{headers:{"Accept-Encoding":"br;q=0,gzip;q=0"}});
+  assert.equal(disabled.headers.get("content-encoding"),null);
+  assert.equal(await disabled.text(),home);
+  assert.equal(reads,5);
+});
