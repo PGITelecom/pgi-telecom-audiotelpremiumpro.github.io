@@ -1966,7 +1966,7 @@ export class PostgresStore{
     if(login.length<3||login.length>120)return null;
     const rows=await this.sql.unsafe(
       "SELECT u.id,u.login_name,u.display_name,u.role,u.enabled,c.password_hash,c.session_version,c.failed_attempts,c.first_failure_at,c.locked_until"+
-      " FROM app_users u JOIN staff_password_credentials c ON c.app_user_id=u.id"+
+      " FROM app_users u LEFT JOIN staff_password_credentials c ON c.app_user_id=u.id"+
       " WHERE lower(u.login_name)=lower($1) LIMIT 1",
       [login]
     );
@@ -1975,7 +1975,7 @@ export class PostgresStore{
 
   async staffCredentialById(appUserId){
     const id=Number(appUserId);if(!Number.isInteger(id)||id<=0)return null;
-    const rows=await this.readSql.unsafe("SELECT u.id,u.login_name,u.enabled,c.password_hash,c.session_version,c.locked_until FROM app_users u JOIN staff_password_credentials c ON c.app_user_id=u.id WHERE u.id=$1 LIMIT 1",[id]);
+    const rows=await this.sql.unsafe("SELECT u.id,u.login_name,u.enabled,u.role,c.password_hash,COALESCE(c.session_version,1) AS session_version,c.locked_until FROM app_users u LEFT JOIN staff_password_credentials c ON c.app_user_id=u.id WHERE u.id=$1 LIMIT 1",[id]);
     return rows[0]||null;
   }
 
