@@ -7,6 +7,9 @@ test("the 2018 number-sharing ban and 2028 routing deadline are distinguished",(
  const now=planDirectSvaAutonomy({as_of:"2026-11-27T00:00:00Z"});
  assert.equal(now.regulation_2018,"new_08_number_lending_between_operators_prohibited_since_2018");
  assert.equal(now.routing_prefix_deadline,DIRECT_SVA_ROUTING_DEADLINE);
+ assert.equal(now.legacy_number_lending_sunset_deadline,"2028-07-01");
+ assert.equal(now.legacy_number_lending_allowed_after_deadline,false);
+ assert.equal(now.legacy_number_regularization_methods.length,2);
  assert.equal(now.routing_prefix_required_now_for_ported_numbers,false);
  assert.equal(now.routing_prefix_required_in_future_for_ported_numbers,true);
  assert.equal(now.external_gates.find(x=>x.key==="own_2028_routing_prefix").mandatory_now,false);
