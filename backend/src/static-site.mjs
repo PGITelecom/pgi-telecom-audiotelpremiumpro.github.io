@@ -1,12 +1,51 @@
 import fs from "node:fs";
 import path from "node:path";
 import {createHash} from "node:crypto";
+import {gzipSync,brotliCompressSync,constants as zlibConstants} from "node:zlib";
 import {isDirectSvaPath,isDirectSvaPublicAsset,directSvaPublicPagePath,visibleDistributionMarketingHome,publishedDistributionHtml,publishedDistributionSitemap,publishedDistributionRobots} from "./direct-sva-public-site.mjs";
 import {isDirectSvaPrivatePortalPath} from "./direct-sva-private-portal.mjs";
 
 const PRIVATE_CSP="default-src 'self'; script-src 'self' https://accounts.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://lh3.googleusercontent.com; connect-src 'self' https://accounts.google.com https://www.googleapis.com; frame-src https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests";
 const COCKPIT_CSP="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests";
 const VALIDATOR_CACHE=new Map();
+const PUBLIC_ENCODING_LIMIT=256*1024;
+const PUBLIC_ENCODING_CACHE=new Map();
+const PUBLIC_ENCODING_CACHE_LIMIT=64;
+
+function preferredPublicEncoding(header){
+  const values=new Map();
+  for(const entry of String(header||"").toLowerCase().split(",")){
+    const [name,...params]=entry.trim().split(";");
+    const quality=params.find(x=>/^\s*q\s*=/.test(x));
+    const q=quality?Number(quality.split("=")[1]):1;
+    if(name&&Number.isFinite(q)&&q>=0&&q<=1)values.set(name,q);
+  }
+  const br=values.get("br")??values.get("*")??0;
+  const gzip=values.get("gzip")??values.get("*")??0;
+  return br>0&&br>=gzip?"br":gzip>0?"gzip":null;
+}
+function sendPublicBuffer(req,res,body,{cacheKey}={}){
+  const previous=String(res.getHeader("Vary")||"");
+  if(!previous.split(",").some(x=>x.trim().toLowerCase()==="accept-encoding"))
+    res.setHeader("Vary",previous?previous+", Accept-Encoding":"Accept-Encoding");
+  const encoding=body.length>=1024&&body.length<=PUBLIC_ENCODING_LIMIT?preferredPublicEncoding(req.headers?.["accept-encoding"]):null;
+  let output=body;
+  if(encoding){
+    const key=cacheKey?cacheKey+":"+encoding:null;
+    let encoded=key?PUBLIC_ENCODING_CACHE.get(key):null;
+    if(!encoded){
+      encoded=encoding==="br"?brotliCompressSync(body,{params:{[zlibConstants.BROTLI_PARAM_QUALITY]:4}}):gzipSync(body,{level:4});
+      if(key){
+        if(PUBLIC_ENCODING_CACHE.size>=PUBLIC_ENCODING_CACHE_LIMIT)PUBLIC_ENCODING_CACHE.delete(PUBLIC_ENCODING_CACHE.keys().next().value);
+        PUBLIC_ENCODING_CACHE.set(key,encoded);
+      }
+    }
+    if(encoded.length<body.length){output=encoded;res.setHeader("Content-Encoding",encoding);}
+  }
+  res.setHeader("Content-Length",String(output.length));
+  res.writeHead(200);
+  res.end(String(req.method||"GET").toUpperCase()==="HEAD"?undefined:output);
+}
 
 // CDN cache is deliberately limited to build-time, identical-for-everyone
 // editorial landing pages. Homepage, Distribution, forms, account and payment
@@ -235,11 +274,10 @@ export function createStaticSiteHandler(rootDir,{getDirectSvaWebsiteState}={}){
       // Every request still checks the real editorial publication/navigation switches.
       const prepared=homepageRenderCache;
       const state=await visibility();
-      const body=state?.publication_authorized===true&&state?.navigation_visible===true
-        ?prepared.visible:prepared.hidden;
-      res.setHeader("Content-Length",String(body.length));
-      if(method==="HEAD"){res.writeHead(200);res.end();return true;}
-      res.writeHead(200);res.end(body);return true;
+      const visible=state?.publication_authorized===true&&state?.navigation_visible===true;
+      const body=visible?prepared.visible:prepared.hidden;
+      sendPublicBuffer(req,res,body,{cacheKey:prepared.key+":"+(visible?"visible":"hidden")});
+      return true;
     }
     res.setHeader("Content-Length",String(stat.size));
     if(method==="HEAD"){res.writeHead(200);res.end();return true;}
