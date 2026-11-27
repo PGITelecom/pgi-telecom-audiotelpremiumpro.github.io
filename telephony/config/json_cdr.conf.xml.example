@@ -1,0 +1,12 @@
+<include>
+  <configuration name="json_cdr.conf" description="PGI private A-leg CDR staging">
+    <settings>
+      <param name="log-b-leg" value="false"/>
+      <param name="prefix-a-leg" value="true"/>
+      <param name="encode-values" value="false"/>
+      <param name="log-dir" value="/var/lib/pgi-voice/native-cdr"/>
+      <param name="rotate" value="false"/>
+      <!-- Disk only. PGI's separate authenticated delivery worker handles retries. -->
+    </settings>
+  </configuration>
+</include>
