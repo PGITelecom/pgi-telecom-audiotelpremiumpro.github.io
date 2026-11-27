@@ -102,3 +102,68 @@ Le `destination_number` FreeSWITCH doit être propagé sans invention ni substit
 
 
 Les destinations B2B sont stockées dans `tenant_call_destinations` et peuvent être un téléphone, un trunk SIP, un PBX ou un centre d'appels de la société cliente. Les nouvelles destinations démarrent en `testing` et doivent être explicitement activées. FreeSWITCH doit recopier `call_destination_id` dans le CDR. Les anciens endpoints `next-expert` restent disponibles uniquement pour compatibilité.
+
+
+## Composants autonomes préparés (hors réseau de production)
+
+### CDR : livraison différée sur le serveur voix
+
+Le module `telephony/cdr-spool-delivery.mjs` envoie les CDR JSON terminés à
+l'API PGI déjà existante. Il conserve le fichier lors des pannes réseau, des
+erreurs d'authentification, des limites de débit et des blocages contractuels.
+Une réponse PGI valide 200/201 avec le marqueur de déduplication autorise
+la suppression du fichier livré. Les CDR invalides sont isolés dans
+`quarantine`, jamais considérés comme encaissés. Les autres erreurs
+de fichiers restent à contrôler. Les journaux n'affichent que les compteurs.
+
+Prérequis de mise en service : hôte Linux privé, Node.js compatible avec
+AbortSignal.timeout, compte dédié pgi-voice, réseau machine HTTPS autorisé
+et certificat valide. Le proxy public doit continuer à refuser les routes
+machine et d'ingestion. Ne jamais contourner cette protection. Les répertoires
+`/var/lib/pgi-voice/cdr` et `pending` doivent appartenir au compte de service
+et être de mode 0700. Les fichiers terminés doivent être déposés atomiquement
+par un producteur FreeSWITCH autorisé, mode 0600, avec le nom UUID.json et
+`variables.uuid` identique. Ce producteur et le trunk ne sont pas déployés ici.
+Le nom réel du carrier doit être capturé au début de l'appel dans
+`pgi_host_carrier`, jamais inféré après une bascule. Propager également
+`pgi_call_destination_id` et, si réellement mesuré, `pgi_dtmf_errors`.
+Les identifiants sont vérifiés dans le backend et les contrôles d'isolation
+multi-tenant existants restent en place.
+
+Le service et le timer systemd fournis en exemples sont inactifs tant
+qu'ils ne sont pas installés et autorisés. Le fichier d'environnement est
+à créer en privé, avec les accès réellement attribués, jamais dans Git.
+Le verrou du spool prévient les drains concurrents ; en cas d'arrêt forcé,
+contrôler l'absence de processus actif avant de retirer un verrou résiduel.
+Surveiller l'espace disque, la file et les quarantaines, et définir la
+rétention RGPD avant exploitation.
+
+### Annonces SVI locales
+
+`telephony/local-announcements.mjs` prépare un paquet WAV et un manifeste
+à partir d'un parcours Voice Studio validé, en utilisant le programme
+local eSpeak NG. Aucun texte n'est envoyé à un service de synthèse distant.
+Les textes identiques sont dédupliqués dans le paquet. Les WAV sont contrôlés,
+les empreintes calculées, le paquet isolé du dialplan actif.
+Le moteur eSpeak NG constitue une option de base sans abonnement ;
+la qualité vocale doit être acceptée, et les annonces réglementaires,
+notamment MGIT, doivent être validées avant tout usage réel.
+L'outil ne remplace pas un serveur média/SVI FreeSWITCH opérationnel,
+ne génère pas d'enregistrement d'appel et n'active aucun numéro.
+
+Une fois le moteur installé sur un hôte privé autorisé, exécuter :
+`node telephony/local-announcements.mjs /chemin/prive/parcours.json /chemin/prive/annonces`
+(répertoire de sortie existant en 0700). Ne jamais mettre les textes ou
+fichiers clients dans le dépôt public.
+
+### Portabilité opérateur
+
+Les connecteurs entrants et sortants existants refusent les redirections
+HTTP et vérifient le protocole de l'URL effectivement utilisée, y compris
+les consultations de statut et annulations. La configuration des URL,
+identifiants, conventions APNF et certificats reste dépendante des
+spécifications du partenaire réel. Aucune portabilité fictive ni activation
+automatique sur un réseau non contractualisé.
+
+Ces préparatifs n'exigent aucune migration Neon, ne changent pas Vercel,
+Stripe ni les autres services informatiques, et ne déclenchent aucune dépense.
