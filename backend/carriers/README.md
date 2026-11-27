@@ -86,3 +86,12 @@ Le moteur pur `sip-continuity-preview.mjs` prépare la décision de continuité 
 Le moteur reçoit des instantanés de santé et une liste de numéros qui doivent provenir, dans une intégration future, de contrôles authentifiés et cloisonnés par client. Il ne les authentifie pas lui-même. Une route secondaire SIP chez le même opérateur ne suffit pas si son réseau public de collecte 089 est tombé. Une bascule vers un autre opérateur nécessite ses propres contrats, la disponibilité effective du 089, les procédures de portage et les accords de règlement. Le statut de cette proposition ne vaut jamais validation réglementaire ni disponibilité nationale.
 
 Une évolution opérationnelle exigera une orchestration distincte et autorisée, avec contrôles de santé multi-sources, mécanismes antifraude, journal d'audit, confirmation de l'acheminement réel et procédures de retour arrière.
+
+## Archives CDR portables, sans complexité supplémentaire
+
+`portable-cdr-archive.mjs` fournit seulement deux fonctions :
+`createPortableCdrArchive(previewCarrierCdrBatch(...))` produit un objet JSON indépendant du fournisseur ; `verifyPortableCdrArchive(JSON.stringify(archive))` contrôle format, compte, doublons et empreinte SHA-256 avant toute éventuelle réutilisation. Aucune bibliothèque externe, abonnement, formulaire ou action opérateur supplémentaire.
+
+L'archive conserve uniquement les huit champs CDR autorisés ; les colonnes arbitraires, l'identité de l'appelant et les informations bancaires ne sont jamais reprises. Le module ne lit ni n'écrit de fichiers, ni base de données, ni réseau. L'intégration de sauvegarde/restauration et le contrôle des accès restent à réaliser séparément si autorisés.
+
+Attention : **l'empreinte détecte les modifications accidentelles, pas l'identité de l'expéditeur** ; un tiers malveillant peut recalculer une empreinte. Garder une copie indépendante de confiance du hash, et prévoir signature/authentification et droits par client avant un usage de preuve ou une importation financière. Les archives ne commandent ni routage, ni portabilité, ni paiement.
