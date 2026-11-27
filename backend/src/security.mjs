@@ -13,7 +13,7 @@ export function parseCookies(header=""){
 }
 
 export function hashPassword(password){
-  if(typeof password!=="string"||password.length<12)throw new Error("password must be at least 12 characters");
+  if(typeof password!=="string"||password.length<12||password.length>8192)throw new Error("password must contain 12 to 8192 characters");
   const salt=randomBytes(16);
   const N=16384,r=8,p=1;
   const digest=scryptSync(password,salt,64,{N,r,p,maxmem:64*1024*1024});
@@ -60,7 +60,7 @@ export function verifySession(token,secret){
     if(!encoded||!sig||!/^[A-Za-z0-9_-]+$/.test(encoded)||!/^[A-Za-z0-9_-]+$/.test(sig))return null;
     const expected=createHmac("sha256",secret).update(encoded).digest();
     const actual=Buffer.from(sig,"base64url");
-    if(expected.length!==actual.length||!timingSafeEqual(expected,actual))return null;
+    if(actual.toString("base64url")!==sig||expected.length!==actual.length||!timingSafeEqual(expected,actual))return null;
     const payload=JSON.parse(Buffer.from(encoded,"base64url").toString("utf8"));
     const now=Math.floor(Date.now()/1000);
     if(!payload||typeof payload!=="object"||Array.isArray(payload)||
@@ -72,8 +72,9 @@ export function verifySession(token,secret){
 }
 
 export function constantTimeTokenEqual(a,b){
-  const ah=createHash("sha256").update(String(a||"")).digest();
-  const bh=createHash("sha256").update(String(b||"")).digest();
+  if(typeof a!=="string"||typeof b!=="string"||!a||!b)return false;
+  const ah=createHash("sha256").update(a).digest();
+  const bh=createHash("sha256").update(b).digest();
   return timingSafeEqual(ah,bh);
 }
 
