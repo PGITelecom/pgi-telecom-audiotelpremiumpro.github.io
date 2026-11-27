@@ -10,6 +10,8 @@ import {securityHeaders,readJson,json,text,problemJson,routeMatch,clientIp} from
 import {normalizeFreeSwitchCdr} from "./src/cdr-freeswitch.mjs";
 import {compareWholesaleOffers} from "./src/wholesale-offer-comparison.mjs";
 import {normalizeCarrierExport} from "./src/carrier-export-normalizer.mjs";
+import {reconcileWholesalePreview} from "./src/wholesale-reconciliation-preview.mjs";
+import {wholesaleIndependenceSnapshot,compareVoiceReception} from "./src/wholesale-independence.mjs";
 import {startWorkers} from "./src/workers.mjs";
 import {createPortabilityQueueHandlers} from "./src/portability-automation.mjs";
 import {createOutboundPortabilityQueueHandlers} from "./src/outbound-portability-automation.mjs";
@@ -767,6 +769,21 @@ export function createBackend(options={}){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
         return done(res,metrics,started,"platform.wholesale_normalize",200,normalizeCarrierExport(body));
+      }
+
+      if(method==="GET"&&pathname==="/api/v1/platform/wholesale/independence"){
+        requireRole(actor,["admin"]);
+        return done(res,metrics,started,"platform.wholesale_independence",200,await wholesaleIndependenceSnapshot(store));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/reconcile"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_reconcile",200,reconcileWholesalePreview(body));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/voice-cost"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_voice_cost",200,compareVoiceReception(body));
       }
 
       // A read-only release dossier is available even before the preparatory migrations.
