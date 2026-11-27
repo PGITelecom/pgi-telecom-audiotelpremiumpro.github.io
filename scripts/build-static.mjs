@@ -68,7 +68,7 @@ const files=[
   "assets/client-portability-priority.js",
   "assets/client-service-center.js",
   "assets/client-relations.js",
-  "assets/client-voice-studio.js",
+  "assets/client-voice-studio.js","assets/client-webrtc-phone.js",
   "assets/client-search.js",
   "assets/client-premium.js",
   "assets/client-growth-suite.js",
