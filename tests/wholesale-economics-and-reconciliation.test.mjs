@@ -65,7 +65,7 @@ test("wholesale cockpit module is packaged, lazy-loaded and every preview is adm
  const build=fs.readFileSync("scripts/build-static.mjs","utf8");
  assert.match(cockpit,/await import\("\.\/wholesale-admin\.js"\)/);
  assert.match(build,/"assets\/wholesale-admin\.js"/);
- for(const name of ["compare","normalize-export","reconcile","reconcile-ledger","voice-cost","normalize-csv","reconcile-csv","economic-routing"]){
+ for(const name of ["compare","normalize-export","reconcile","reconcile-ledger","voice-cost","normalize-csv","reconcile-csv","economic-routing","internalization-tco"]){
   const marker='if(method==="POST"&&pathname==="/api/v1/platform/wholesale/'+name+'"){';
   const offset=server.indexOf(marker);assert.ok(offset>=0);
   assert.match(server.slice(offset,offset+240),/requireRole\(actor,\["admin"\]\);requireCsrf\(req,actor,config\);/);
