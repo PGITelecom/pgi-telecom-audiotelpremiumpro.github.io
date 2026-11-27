@@ -177,3 +177,31 @@ Le cockpit « Abonnement & opérateur » contient désormais un module d'analyse
 - `POST /api/v1/platform/wholesale/voice-cost` : estimation des économies de réception WebRTC, y compris les minutes de repli PSTN, frais fixes et investissement initial.
 
 Le comparateur exige également la catégorie du numéro et le tarif service HT déclaré, soumis aux plafonds configurés du modèle de marge existant. Les coûts, preuves, tarifs et autorisations doivent être confirmés indépendamment. Aucun serveur média ou trunk SIP réel n'est déployé par ces fonctions. Les formulaires avancés utilisent du JSON et ne persistent aucune saisie. Les routes POST sont réservées aux administrateurs avec CSRF. Aucun changement de schéma ni de fournisseur informatique n'est nécessaire.
+
+
+### Internalisation supplémentaire : fichiers opérateurs et coût des destinations
+
+Les routes administrateur POST `/api/v1/platform/wholesale/normalize-csv`,
+`/api/v1/platform/wholesale/reconcile-csv` et
+`/api/v1/platform/wholesale/economic-routing` sont protégées par session et CSRF.
+Le cockpit accepte un fichier CSV local (180 000 octets maximum, 1 000 lignes de données,
+64 colonnes), avec séparateur explicite et correspondance de colonnes.
+Les fichiers sont analysés sans SDK propriétaire ni convertisseur externe.
+Le rapprochement utilise les attentes de la base PGI et conserve les empreintes du texte
+UTF-8 reçu et de l'export canonique. Les montants déclarés et les écarts ne constituent
+pas une preuve de règlement. Les dates, unités et conventions opérateur doivent être
+confirmées ; aucun CSV ne déclenche un paiement ou une modification du journal.
+
+Le calcul de terminaison utilise des entiers en micro-euros et tient compte du minimum
+facturable, de l'incrément de durée et du forfait de connexion. Il s'agit d'une estimation
+selon la convention explicitée, et non d'une substitution aux tarifs du contrat.
+L'analyse de routage s'appuie sur la simulation PGI existante, pour un tenant et un numéro
+déterminés : seules les destinations disponibles, de même priorité et de même
+spécificité peuvent être comparées. Les preuves de qualité, coût et accord client
+sont déclaratives et exigent validation. Le moteur ne modifie aucun routage réel.
+
+Restent hors périmètre : la mise en service d'un SBC, d'un serveur média/SVI FreeSWITCH,
+d'un serveur TURN/WebRTC, les interconnexions, la collecte SVA, la portabilité réseau
+et les autorisations de numérotation. Leurs paramètres, certificats, accès opérateurs
+et conditions contractuelles réelles restent nécessaires. Conserver Stripe, Neon,
+Vercel et les autres fournisseurs informatiques, ainsi que les garde-fous de conformité.
