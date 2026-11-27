@@ -31,3 +31,19 @@ L'état « prêt à déployer sur Vercel + Neon » est **NON**. Avant toute migr
 - Privilégier un export externe chiffré et une restauration isolée **avant** la mise en service.
 - Enregistrer comme seuls états vérifiés : **code CI réussi**, **nouvelle sauvegarde absente**, **branche Neon main non protégée**, **déploiement du nouveau code absent**.
 - Ne déclarer « déploiement Vercel et Neon terminé » qu'après confirmations indépendantes des deux plateformes.
+
+
+## Optimisation de l'espace sans perte de donnees (27/11/2026)
+
+Une nouvelle tentative non destructive de branche Neon `backup-pre-release-2026-11-27`, sans compute, a ete **refusee HTTP 422 : branches limit exceeded**. Neon comporte 10 branches repertoriees, dont `main`, la sauvegarde active du 15/11 et 8 branches archivees. Leur suppression n'est **pas autorisee** tant que l'on n'a pas une protection externe plus recente et une restauration probante. La compression des archives ne reduit pas le **nombre** de branches ou de snapshots, qui est le quota bloquant.
+
+Pour eviter un abonnement supplementaire, preparer desormais une sauvegarde externe du PostgreSQL Neon avec le script `scripts/backup-neon-encrypted.sh` dans la branche GitHub PR #207. Son fonctionnement :
+
+1. Utiliser depuis une machine de confiance disposant de `pg_dump`, `pg_restore` et du logiciel libre `age` une connexion **directe TLS verifiee** a Neon. Fournir l'URL dans l'environnement seulement (`PGI_NEON_DATABASE_URL`), jamais en argument de commande, dans le code ou dans un log. La connexion doit posseder un droit de lecture adapte a la sauvegarde.
+2. Fournir une cle publique destinataire `PGI_BACKUP_AGE_RECIPIENT` et une identite de dechiffrement conservee **hors du depot GitHub** (`PGI_BACKUP_AGE_IDENTITY_FILE`), puis un repertoire absolu **hors du depot et hors de Neon** (`PGI_BACKUP_OUTDIR`). Ne jamais copier de cle privee ni de dump en clair dans GitHub, une feuille de calcul ou un artefact CI public.
+3. Le `pg_dump --format=custom --compress=6` produit directement un flux compresse, chiffre avec age et place temporairement dans un repertoire restreint. Le script dechiffre pour faire `pg_restore --list` **sans effectuer de restauration sur Neon**, publie le fichier .age et sa somme SHA-256 uniquement si ces verifications reussissent. Il n'efface jamais les archives preexistantes.
+4. Copier cette sauvegarde chiffree vers un second emplacement prive independant (par exemple stockage local fiable distinct ou dossier Drive prive, avec autorisations et quotas verifies). Conserver la cle de recuperation hors du lieu des archives. Deux copies et deux lieux de risque distincts sont preferables.
+5. Restaurer **sur une base isolee** et confronter schemas, donnees, permissions et coherence des applications. La simple lecture de la liste de `pg_restore` ne suffit pas a prouver une restauration. Conserver une preuve datée de ce test.
+6. Seulement apres cette etape, examiner individuellement les huit anciennes branches archivees et le snapshot historique pour determiner quels doublons peuvent etre supprimes, **avec une approbation explicite et sans supprimer la branche `main` ni l'unique copie recentement validee**. Garder les versions de restauration requises pour l'activite et les obligations legales. Une archive ne devient pas inutile du seul fait de son age.
+
+**Statut concret :** le script et ses verifications CI sont prepares mais aucune sauvegarde reelle Neon n'a ete obtenue par ce script ; aucune copie externe et aucune restauration isolee ne sont confirmees. Il faut un contexte de sauvegarde de confiance et les identifiants Neon disponibles sans les exposer. Aucun espace Neon n'a encore ete libere. Ne pas annoncer le deployement pret.
