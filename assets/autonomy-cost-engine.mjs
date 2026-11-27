@@ -83,3 +83,57 @@ export function evaluateInterconnectionOwnershipCosts({minutesPerMonth,scenarios
   interpretation:"Pure cost estimate before tax and compliance validation; never a proof of feasibility."
  });
 }
+
+
+/**
+ * Read-only economics of one SVA call, using the service revenue actually
+ * due to Audiotel BEFORE distributing editor proceeds and paying expenses.
+ * The amount is excl. VAT, excl. ordinary call transport and is NEVER the
+ * caller's total phone bill. Inputs must be established from real contracts
+ * and CDR/settlement evidence by a separate authenticated process.
+ * No stored data, network calls, payment instructions or price settings.
+ */
+export function evaluatePerCallContribution({
+  billedServiceSeconds,
+  contractServiceRevenueHT,
+  editorShareHT,
+  operatorCollectionChargesHT,
+  platformVariableChargesHT,
+  prudentFraudAndUnpaidReserveHT,
+  monthlyAttributableFixedChargesHT,
+  expectedMonthlyCalls
+}={}){
+ const billed=bounded(billedServiceSeconds,86400,"secondes de service facturables",true);
+ const gross=bounded(contractServiceRevenueHT,100000,"recette service HT");
+ const editor=bounded(editorShareHT,100000,"part editeur HT");
+ const operator=bounded(operatorCollectionChargesHT,100000,"collecte et reseau HT");
+ const variable=bounded(platformVariableChargesHT,100000,"exploitation variable HT");
+ const reserve=bounded(prudentFraudAndUnpaidReserveHT,100000,"reserve de risque HT");
+ const fixed=bounded(monthlyAttributableFixedChargesHT,50000000,"frais fixes mensuels HT");
+ const count=bounded(expectedMonthlyCalls,10000000,"appels mensuels",true);
+ if(count<1)throw new RangeError("appels mensuels : au moins un appel requis");
+ const allocatedFixed=fixed/count;
+ const totalCosts=editor+operator+variable+reserve+allocatedFixed;
+ const contribution=gross-totalCosts;
+ const perMinute=billed>0?contribution/(billed/60):null;
+ return Object.freeze({
+  billed_service_seconds:billed,
+  service_revenue_ht_eur:cents(gross),
+  editor_share_ht_eur:cents(editor),
+  operator_and_collection_ht_eur:cents(operator),
+  other_variable_ht_eur:cents(variable),
+  prudential_reserve_ht_eur:cents(reserve),
+  allocated_fixed_ht_eur:cents(allocatedFixed),
+  estimated_total_cost_ht_eur:cents(totalCosts),
+  estimated_contribution_per_call_ht_eur:cents(contribution),
+  estimated_contribution_per_billed_minute_ht_eur:perMinute===null?null:cents(perMinute),
+  economics:contribution>0?"positive":contribution<0?"loss":"break_even",
+  prices_or_settlements_independently_verified:false,
+  verified_cash_collection:false,
+  corporate_tax_or_social_contributions_included:false,
+  legal_tariff_compliance_verified:false,
+  per_call_payout_or_price_change_authorized:false,
+  network_action_executed:false,
+  result_kind:"indicative_ex_ante_call_contribution_before_tax_only"
+ });
+}
