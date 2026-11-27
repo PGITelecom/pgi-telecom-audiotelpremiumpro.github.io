@@ -212,7 +212,7 @@ export class PostgresStore{
     this.eventBus=eventBus;
   }
 
-  static async connect(config,eventBus){
+  static async connect(config,eventBus,{verifySchema}={}){
     const mod=await import("postgres");
     const postgres=mod.default;
     const makeClient=(url,max)=>postgres(url,{
@@ -224,15 +224,24 @@ export class PostgresStore{
       transform:{undefined:null}
     });
     const sql=makeClient(config.databaseUrl,config.databasePoolMax);
-    await sql.unsafe("select 1 as ok");
-    await ensureReferralPayoutAutomationSchema(sql);
-    await ensureReferralInvitationSchema(sql);
     let readSql=sql;
-    if(config.databaseReadUrl){
-      readSql=makeClient(config.databaseReadUrl,config.databaseReadPoolMax);
-      await readSql.unsafe("select 1 as ok");
+    try{
+      // The release audit is itself a connection probe. Do not open a second
+      // pool or perform a redundant SELECT 1 on a verified Vercel startup.
+      if(typeof verifySchema==="function")await verifySchema(sql);
+      else await sql.unsafe("select 1 as ok");
+      await ensureReferralPayoutAutomationSchema(sql);
+      await ensureReferralInvitationSchema(sql);
+      if(config.databaseReadUrl){
+        readSql=makeClient(config.databaseReadUrl,config.databaseReadPoolMax);
+        await readSql.unsafe("select 1 as ok");
+      }
+      return new PostgresStore(sql,config,eventBus,readSql);
+    }catch(error){
+      if(readSql!==sql)await readSql.end({timeout:1}).catch(()=>{});
+      await sql.end({timeout:1}).catch(()=>{});
+      throw error;
     }
-    return new PostgresStore(sql,config,eventBus,readSql);
   }
 
   async close(){
