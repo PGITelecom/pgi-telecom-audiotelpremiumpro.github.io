@@ -34,7 +34,7 @@ export function planVoiceEdge(input={}){
   media:{peer_ipv4:media,port_start:start,port_end:end,protocol:"udp"},
   capacity:{target_concurrent_calls:concurrent,reserved_concurrent_calls:peak,required_rtp_ports:ports,available_rtp_ports:end-start+1,estimated_mbps_per_direction:bandwidth},
   network_rule_intent:{default_inbound:"deny",allow_signaling_only_from_listed_peers:true,allow_media_only_from_listed_peers:true,public_esl:false,public_admin:false,public_sip_registration:false},
-  review_items:[...reviewed.review_items,...evidence],status:evidence.length?"blocked":"candidate_for_independent_review",
+  review_items:[...reviewed.review_items,...evidence],status:evidence.length||reviewed.review_items.length?"blocked":"candidate_for_independent_review",
   limitations:["ipv4_fixed_peers_only","no_webrtc_public_ice_or_turn_rules","bandwidth_estimate_excludes_measured_protocol_overhead_and_host_resources","no_firewall_or_trunk_activation"],
   network_activation_authorized:false,deployment_authorized:false,provider_switch_authorized:false};
 }
