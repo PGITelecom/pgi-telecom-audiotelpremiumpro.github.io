@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {evaluateAutonomyCosts,evaluateInterconnectionOwnershipCosts} from "../assets/autonomy-cost-engine.mjs";
+import {evaluateAutonomyCosts,evaluateInterconnectionOwnershipCosts,evaluatePerCallContribution} from "../assets/autonomy-cost-engine.mjs";
 const base={minutes:10000,retainedRevenuePerMinute:.2,options:[
  {variableCostPerMinute:.07,fixedCostMonthly:0},
  {variableCostPerMinute:.02,fixedCostMonthly:300}
@@ -74,4 +74,34 @@ test("strict numeric inputs reject coercion and maliciously shaped objects",()=>
  assert.throws(()=>evaluateInterconnectionOwnershipCosts({
   ...interconnect,scenarios:interconnect.scenarios.map((s,i)=>i===2?{...s,amortizationMonths:0} : s)
  }),/invalide/);
+});
+
+
+const exampleCall={
+ billedServiceSeconds:180,contractServiceRevenueHT:1.5,editorShareHT:.9,
+ operatorCollectionChargesHT:.2,platformVariableChargesHT:.05,
+ prudentFraudAndUnpaidReserveHT:.05,
+ monthlyAttributableFixedChargesHT:100,expectedMonthlyCalls:1000
+};
+test("per-call contribution deducts every contractual and forecast cost",()=>{
+ const r=evaluatePerCallContribution(exampleCall);
+ assert.equal(r.estimated_contribution_per_call_ht_eur,.2);
+ assert.equal(r.estimated_contribution_per_billed_minute_ht_eur,.07);
+ assert.equal(r.allocated_fixed_ht_eur,.1);
+ assert.equal(r.economics,"positive");
+ assert.equal(r.verified_cash_collection,false);
+ assert.equal(r.legal_tariff_compliance_verified,false);
+ assert.equal(r.per_call_payout_or_price_change_authorized,false);
+});
+test("per-call contribution preserves potential losses rather than hiding them",()=>{
+ const r=evaluatePerCallContribution({...exampleCall,operatorCollectionChargesHT:1.2});
+ assert.equal(r.estimated_contribution_per_call_ht_eur,-.8);
+ assert.equal(r.economics,"loss");
+});
+test("per-call contribution refuses missing/ambiguous amounts and undefined volume",()=>{
+ assert.throws(()=>evaluatePerCallContribution({...exampleCall,editorShareHT:[]}),/invalide/);
+ assert.throws(()=>evaluatePerCallContribution({...exampleCall,operatorCollectionChargesHT:" "}),/invalide/);
+ assert.throws(()=>evaluatePerCallContribution({...exampleCall,expectedMonthlyCalls:0}),/au moins un appel/);
+ assert.throws(()=>evaluatePerCallContribution({...exampleCall,billedServiceSeconds:1.5}),/invalide/);
+ assert.equal(evaluatePerCallContribution({...exampleCall,billedServiceSeconds:0}).estimated_contribution_per_billed_minute_ht_eur,null);
 });
