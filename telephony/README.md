@@ -189,3 +189,72 @@ Avant raccordement : serveur Coturn durci, quotas, restrictions des pairs,
 certificats valides, autorisation par tenant et session, intégration SIP
 WebRTC et vérification de la consommation de bande passante. Aucun
 service TURN ni navigateur téléphonique opérationnel n'est livré ici.
+
+
+## Chaîne native CDR et raccordement : paquet d'intégration
+
+Le fichier `telephony/config/json_cdr.conf.xml.example` est une configuration
+native de mod_json_cdr conforme à la documentation FreeSWITCH :
+https://developer.signalwire.com/freeswitch/module-reference/event-handlers/mod_json_cdr/
+Il journalise sur disque les A-legs, en JSON non encodé, sans POST direct.
+Avant toute mise en service, installer les versions maintenues des logiciels
+depuis leurs sources officielles, vérifier la disponibilité et la licence du
+module, configurer un compte de service dédié, UMask=0077 et des répertoires
+privés 0700 sous /var/lib/pgi-voice. Le producteur FreeSWITCH et le processus
+de staging doivent partager le même UID dédié. Ne jamais utiliser un
+répertoire partagé avec des clients ou des logiciels non approuvés.
+
+Le nouveau `cdr-native-stage.mjs` attend un fichier a_UUID.cdr.json stable,
+vérifie l'identifiant et la présence du carrier réel, réduit les variables
+aux seules données utilisées par PGI et conserve les mesures compatibles
+avec le normaliseur. Il publie une copie en mode 0600 de manière atomique
+sans écraser un événement déjà présent. Le fichier natif n'est retiré
+qu'après synchronisation de la copie. Une collision de contenu reste à
+examiner et ne remplace jamais le premier CDR. Les fichiers inconnus,
+récents, incomplets ou non conformes ne sont pas effacés.
+
+Le service exemple existant utilise désormais `cdr-pipeline.mjs` qui
+enchaîne staging puis livraison, y compris si certains fichiers natifs
+nécessitent un examen. Le verrou flock autour du service prévient les
+exécutions concurrentes de la chaîne. Ne pas lancer les modules séparément
+en parallèle de ce service. Après arrêt forcé, vérifier le verrou interne
+résiduel et les fichiers temporaires .stage-* avant reprise. Prévoir
+surveillance d'espace disque, de l'ancienneté des files et politique de
+rétention ; aucune purge automatique de données en anomalie. La capacité
+de reprise réelle doit être vérifiée sur le futur hôte.
+
+`voice-host-bundle.mjs` génère un paquet de configuration avec empreintes
+SHA-256 : fragment ACL FreeSWITCH, fragment de paramètres Sofia, règles
+nftables pour les ports SIP/RTP spécifiés, estimation de capacité et
+manifeste. Le paquet n'est jamais appliqué. Il concerne les pairs IPv4
+fixes en SIP/TLS ; ce n'est ni un pare-feu complet, ni un profil Sofia
+complet, ni un SBC ou un téléphone WebRTC opérationnel. Vérifier les
+certificats, NAT, adresses, authentification, codecs, MGIT, compatibilité
+opérateur et règles de pare-feu déjà présentes. Exécuter nft -c -f sur
+le fichier généré uniquement dans un environnement autorisé avant
+toute intégration. Le pare-feu de l'hôte doit conserver ses règles
+d'administration et de refus par défaut ; le paquet ne les remplace pas.
+Ne pas exposer l'Event Socket ni ouvrir des ports de registration SIP.
+
+`carrier-sftp-collection.mjs` récupère directement un relevé CSV précis
+via le client OpenSSH SFTP, avec clé hôte vérifiée et fichier known_hosts
+privé. Il exige un compte en lecture seule, l'empreinte authentifiée,
+une zone de téléchargement privée à quota de disque borné et un contrat
+confirmé. Il n'effectue ni listing distant, ni suppression, ni écriture
+chez l'opérateur. Délai d'exécution borné et validation des fichiers
+au format UTF-8, 180 000 octets maximum après téléchargement.
+Il utilise notre normaliseur CSV et enregistre uniquement le paquet
+canonique avec empreintes, hors de Git. La récupération ne déclenche
+aucun rapprochement comptable automatique, règlement ou paiement.
+Les paramètres doivent venir du fournisseur réel ; un export trop grand
+doit être découpé par lui. Aucun accès SFTP réel n'est configuré ici.
+
+Le point restant avant le téléphone WebRTC actif : réservation de
+destination liée à un identifiant unique d'appel et libération
+idempotente. Les anciennes API de sélection incrémentent le compteur
+et une relance après timeout pourrait créer une réservation fantôme.
+Ne pas brancher un dialplan avec relances automatiques sur ces API
+sans résoudre cette contrainte. Il faut ensuite intégrer les accès SIP
+par tenant, les certificats, le média et les preuves de qualité.
+Aucun serveur voix, tâche, numéro, règle réseau ni contrat n'est
+activé par ces fichiers. Aucun changement de schéma Neon n'est requis.
