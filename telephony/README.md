@@ -271,3 +271,40 @@ tenant/session, stratégie de reconnexion et d'appel de secours, recette
 des pannes et des appels facturables, bascule des destinations après
 drainage des appels existants et réconciliation du compteur historique.
 Aucun serveur voix, trunk ni ligne WebRTC n'est activé par ce code.
+
+
+## Téléphone WebRTC dans l'espace client
+
+Le Studio vocal Audiotel inclut le module assets/client-webrtc-phone.js.
+Les commandes d'appel restent désactivées et le statut NON RACCORDÉ ne
+simule aucune disponibilité. Le contrôle microphone demande explicitement
+la permission et ferme immédiatement les pistes ; le signal sonore est
+généré localement. Pas d'enregistrement ni d'envoi audio. Le navigateur
+arrête les contrôles si le portail devient masqué, et les pistes obtenues
+après une demande annulée sont fermées. Seule la page /client.html est
+autorisée à demander le micro ; les autres pages gardent la politique
+restrictive, sans caméra ni géolocalisation. Le contrôle microphone ne
+constitue pas une mesure de qualité audio ou de disponibilité SIP.
+
+telephony/webrtc/inbound-sip-adapter.mjs prépare une réception SIP.js
+SimpleUser à une seule session simultanée par poste, avec autorisation
+éphémère, WSS autorisé, audio uniquement, TURN TLS explicite, et commandes
+décrocher, refuser, raccrocher et couper le micro. Il n'est ni importé
+par le portail ni livré dans dist. SIP.js n'est pas installé. Un événement
+navigateur ne clôture jamais une réservation serveur. En cas d'état
+incertain, le poste ne redevient pas disponible automatiquement.
+
+Documentation technique : https://sipjs.com/guides/simple-user/ et
+https://github.com/onsip/SIP.js/tree/main/docs/simple-user .
+
+Avant raccordement : épingler et embarquer la version SIP.js validée,
+provisionner le serveur SIP WSS et Coturn, autoriser exclusivement leurs
+origines exactes, créer côté serveur les autorisations de postes
+temporaires et le contrôle de disponibilité réel, vérifier le rôle du
+client et son affectation au numéro, appliquer la migration de
+réservations après revue, raccorder les événements FreeSWITCH et le
+secours PSTN, vérifier les comportements de reconnexion et de révocation.
+Les identifiants SIP/TURN doivent rester en mémoire du navigateur,
+expirer côté serveur et ne jamais figurer dans le dépôt, les URL ou les
+journaux. La remise en disponibilité après incident doit être confirmée
+par le serveur média. Aucune activation réseau ni dépense n'est déclenchée.
