@@ -123,12 +123,14 @@ async function callCarrierForLine(line,{config,env,fetchImpl}){
   }
   const statusMode=Boolean(line.operator_reference&&statusEndpoint(line,settings));
   const finalUrl=statusMode?new URL(statusEndpoint(line,settings)):url;
+  if(finalUrl.username||finalUrl.password||finalUrl.hash||!["http:","https:"].includes(finalUrl.protocol))throw coded("OUTBOUND_PORTABILITY_OPERATOR_ENDPOINT_INVALID");
+  if(config?.mode==="production"&&finalUrl.protocol!=="https:")throw coded("OUTBOUND_PORTABILITY_OPERATOR_HTTPS_REQUIRED");
   const timeoutMs=clamp(Number(settings.portability_timeout_ms)||10000,2000,30000);
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);timer.unref?.();
   const body=buildRequest(line);
   try{
     const response=await fetchImpl(finalUrl,{
-      method:statusMode?"GET":"POST",headers,signal:controller.signal,
+      method:statusMode?"GET":"POST",headers,signal:controller.signal,redirect:"error",
       body:statusMode?undefined:JSON.stringify(body)
     });
     const type=String(response.headers?.get?.("content-type")||"").toLowerCase();
