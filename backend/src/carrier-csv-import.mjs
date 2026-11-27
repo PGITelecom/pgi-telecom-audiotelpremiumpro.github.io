@@ -27,8 +27,28 @@ export function parseCarrierCsv(csv,delimiter=";"){
 }
 export function normalizeCarrierCsv(input={}){
  if(!input||typeof input!=="object")fail("CSV_INVALID_INPUT");
- const rows=parseCarrierCsv(input.csv,input.delimiter);
- const result=normalizeCarrierExport({...input,rows});
+ const parsed=parseCarrierCsv(input.csv,input.delimiter);
+ const convention=input.decimal_separator??".";
+ if(![".",","].includes(convention))fail("CSV_INVALID_DECIMAL_SEPARATOR");
+ // Map arbitrary real provider header labels to safe canonical aliases. No
+ // inference or fuzzy matching: exact header names, one canonical field each.
+ const mapping=input.field_mapping;
+ if(!mapping||typeof mapping!=="object"||Array.isArray(mapping))fail("CSV_MAPPING_INVALID");
+ const canonical=new Map(),aliasMapping={};
+ for(const [header,field] of Object.entries(mapping)){
+  if(!Object.hasOwn(parsed[0],header)||typeof field!=="string"||canonical.has(field))fail("CSV_MAPPING_INVALID");
+  const alias="col_"+canonical.size;
+  canonical.set(field,{header,alias});aliasMapping[alias]=field;
+ }
+ const rows=parsed.map(row=>Object.fromEntries([...canonical.entries()].map(([field,{header,alias}])=>{
+  let value=row[header];
+  if(field==="confirmed_payout_ht"&&convention===","){
+   if(!/^\d{1,7}(?:,\d{1,6})?$/.test(value))fail("CSV_INVALID_DECIMAL_AMOUNT");
+   value=value.replace(",",".");
+  }
+  return [alias,value];
+ })));
+ const result=normalizeCarrierExport({...input,field_mapping:aliasMapping,rows});
  return Object.freeze({...result,raw_file_sha256:createHash("sha256").update(input.csv,"utf8").digest("hex")});
 }
 export async function reconcileCarrierCsv(store,input={}){
