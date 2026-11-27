@@ -15,6 +15,7 @@ import {wholesaleIndependenceSnapshot,compareVoiceReception} from "./src/wholesa
 import {normalizeCarrierCsv,reconcileCarrierCsv} from "./src/carrier-csv-import.mjs";
 import {planEconomicRouting} from "./src/economic-voice-routing.mjs";
 import {compareInternalizationTco} from "./src/internalization-tco.mjs";
+import {callEconomicsSnapshot} from "./src/call-economics.mjs";
 import {startWorkers} from "./src/workers.mjs";
 import {createPortabilityQueueHandlers} from "./src/portability-automation.mjs";
 import {createOutboundPortabilityQueueHandlers} from "./src/outbound-portability-automation.mjs";
@@ -814,6 +815,12 @@ export function createBackend(options={}){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
         return done(res,metrics,started,"platform.wholesale_internalization_tco",200,compareInternalizationTco(body));
+      }
+
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/call-economics"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_call_economics",200,await callEconomicsSnapshot(store,body));
       }
 
       // A read-only release dossier is available even before the preparatory migrations.
