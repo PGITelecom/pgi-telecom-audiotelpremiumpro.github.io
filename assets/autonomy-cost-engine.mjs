@@ -1,6 +1,10 @@
 // Read-only telecom cost comparison. No operator price or authorization is assumed.
 const bounded=(value,max,name,integer=false)=>{
- if(value===""||value===null||value===undefined||typeof value==="boolean")throw new RangeError(name+" : valeur manquante");
+ if(value===null||value===undefined||value==="")throw new RangeError(name+" : valeur manquante");
+ // Fail closed: Number([]), Number("  ") and Number([0]) silently become zero.
+ if(typeof value!=="number"&&typeof value!=="string")throw new RangeError(name+" : valeur invalide");
+ if(typeof value==="string"&&!/^(?:0|[1-9]\\d*)(?:\\.\\d+)?$/.test(value))
+  throw new RangeError(name+" : valeur invalide");
  const n=Number(value);
  if(!Number.isFinite(n)||n<0||n>max||(integer&&!Number.isSafeInteger(n)))throw new RangeError(name+" : valeur invalide");
  return n;
