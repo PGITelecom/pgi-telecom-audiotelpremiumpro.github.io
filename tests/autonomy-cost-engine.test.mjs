@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {evaluateAutonomyCosts} from "../assets/autonomy-cost-engine.mjs";
+import {evaluateAutonomyCosts,evaluateInterconnectionOwnershipCosts} from "../assets/autonomy-cost-engine.mjs";
 const base={minutes:10000,retainedRevenuePerMinute:.2,options:[
  {variableCostPerMinute:.07,fixedCostMonthly:0},
  {variableCostPerMinute:.02,fixedCostMonthly:300}
@@ -36,4 +36,42 @@ test("equal options do not produce fictitious savings",()=>{
  assert.equal(r.monthlyDifference,0);
  assert.equal(r.winner,"equal");
  assert.equal(r.breakEvenMinutes,null);
+});
+
+
+const interconnect={
+ minutesPerMonth:10000,scenarios:[
+  {code:"integrated",fixedMonthlyEur:0,variableEurPerMinute:.09,operationsMonthlyEur:0,initialInvestmentEur:0,amortizationMonths:12},
+  {code:"owned_sip_wholesale_collection",fixedMonthlyEur:200,variableEurPerMinute:.045,operationsMonthlyEur:100,initialInvestmentEur:0,amortizationMonths:12},
+  {code:"direct_interconnection",fixedMonthlyEur:450,variableEurPerMinute:.01,operationsMonthlyEur:500,initialInvestmentEur:12000,amortizationMonths:24}
+ ]};
+test("compare three interconnection models including operation and amortized investment",()=>{
+ const r=evaluateInterconnectionOwnershipCosts(interconnect);
+ assert.equal(r.scenarios[0].monthlyCostEur,900);
+ assert.equal(r.scenarios[1].monthlyCostEur,750);
+ assert.equal(r.scenarios[2].monthlyCostEur,1550);
+ assert.equal(r.lowest_cost_code_from_entered_figures,"owned_sip_wholesale_collection");
+ assert.equal(r.direct_vs_wholesale_cost_difference_eur,800);
+ assert.equal(r.direct_vs_wholesale_break_even_minutes,32858);
+ assert.equal(r.commercial_or_technical_activation_authorized,false);
+ assert.equal(r.direct_operator_agreements_verified,false);
+});
+test("no traffic, no divide-by-zero and no implicit business authorization",()=>{
+ const r=evaluateInterconnectionOwnershipCosts({...interconnect,minutesPerMonth:0});
+ assert.equal(r.scenarios[2].monthlyCostEur,1450);
+ assert.equal(r.scenarios[2].effectiveEurPerMinute,null);
+ assert.equal(r.settlement_and_payment_legality_verified,false);
+});
+test("strict numeric inputs reject coercion and maliciously shaped objects",()=>{
+ for(const bad of [[],[0],{},false,true," ","0x2","Infinity","1e4","-1"]){
+  assert.throws(()=>evaluateAutonomyCosts({...base,minutes:bad}),/invalide/);
+  assert.throws(()=>evaluateInterconnectionOwnershipCosts({...interconnect,minutesPerMonth:bad}),/invalide/);
+ }
+ assert.throws(()=>evaluateInterconnectionOwnershipCosts({...interconnect,scenarios:interconnect.scenarios.slice(1)}),/Trois modèles/);
+ assert.throws(()=>evaluateInterconnectionOwnershipCosts({
+  ...interconnect,scenarios:interconnect.scenarios.map((s,i)=>i===1?{...s,fixedMonthlyEur:[]} : s)
+ }),/invalide/);
+ assert.throws(()=>evaluateInterconnectionOwnershipCosts({
+  ...interconnect,scenarios:interconnect.scenarios.map((s,i)=>i===2?{...s,amortizationMonths:0} : s)
+ }),/invalide/);
 });
