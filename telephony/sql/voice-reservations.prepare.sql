@@ -22,12 +22,10 @@ CREATE INDEX voice_call_reservations_destination_open_idx
 CREATE INDEX voice_call_reservations_review_idx
  ON voice_call_reservations(last_observed_at) WHERE state <> 'released';
 REVOKE ALL ON voice_call_reservations FROM PUBLIC;
--- Replay protection persists across gateway restarts and multiple instances.
+
 CREATE TABLE voice_machine_nonces (
- node_id text NOT NULL CHECK (node_id ~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,63}
-),
- key_id text NOT NULL CHECK (key_id ~ '^[A-Za-z0-9_-]{1,64}
-),
+ node_id text NOT NULL CHECK (node_id ~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$'),
+ key_id text NOT NULL CHECK (key_id ~ '^[A-Za-z0-9_-]{1,64}$'),
  nonce uuid NOT NULL,
  expires_at timestamptz NOT NULL,
  PRIMARY KEY (node_id,key_id,nonce)
@@ -37,8 +35,6 @@ REVOKE ALL ON voice_machine_nonces FROM PUBLIC;
 -- Remove expired rows only via a private maintenance role, with a conservative
 -- grace period and bounded batches; never delete valid replay protection.
 
--- Exclusive WebRTC lane: dedicated destinations must stay outside the legacy
--- status='active' selector. The default control state permits no reservations.
 CREATE TABLE voice_gateway_control (
  singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
  mode text NOT NULL DEFAULT 'disabled' CHECK (mode IN ('disabled','draining','enabled')),
@@ -47,17 +43,16 @@ CREATE TABLE voice_gateway_control (
 INSERT INTO voice_gateway_control(singleton,mode) VALUES(true,'disabled');
 CREATE TABLE voice_gateway_destinations (
  destination_id bigint PRIMARY KEY REFERENCES tenant_call_destinations(id),
- node_id text NOT NULL CHECK (node_id ~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,63}
-),
+ node_id text NOT NULL CHECK (node_id ~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$'),
  created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX voice_gateway_destinations_node_idx ON voice_gateway_destinations(node_id,destination_id);
 REVOKE ALL ON voice_gateway_control,voice_gateway_destinations FROM PUBLIC;
 
--- Bind only a new, non-legacy destination. Lock its row before committing the
--- binding. Removal or rebinding requires a reviewed migration after drain.
+-- Bind only a new, non-legacy destination. Lock and touch its row to serialize
+-- concurrent legacy changes. Removal/rebinding requires a reviewed migration.
 CREATE FUNCTION voice_gateway_bind_destination() RETURNS trigger
-LANGUAGE plpgsql SET search_path = pg_catalog, public AS $
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $pgi$
 DECLARE d public.tenant_call_destinations%ROWTYPE;
 BEGIN
  IF TG_OP <> 'INSERT' THEN
@@ -68,16 +63,19 @@ BEGIN
     d.destination_type <> 'sip' OR d.max_concurrent_calls IS NULL THEN
   RAISE EXCEPTION 'VOICE_GATEWAY_DESTINATION_NOT_EXCLUSIVE';
  END IF;
+ UPDATE public.tenant_call_destinations SET updated_at=clock_timestamp() WHERE id=NEW.destination_id;
  RETURN NEW;
 END;
-$;
+$pgi$;
 CREATE TRIGGER voice_gateway_bind_destination_guard
  BEFORE INSERT OR UPDATE OR DELETE ON voice_gateway_destinations
  FOR EACH ROW EXECUTE FUNCTION voice_gateway_bind_destination();
 
 -- A future legacy UI action must not accidentally activate a dedicated route.
+-- Fixed search_path and qualified tables allow the legacy writer to keep its
+-- existing privileges without granting access to the private gateway table.
 CREATE FUNCTION voice_gateway_guard_legacy_destination() RETURNS trigger
-LANGUAGE plpgsql SET search_path = pg_catalog, public AS $
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $pgi$
 BEGIN
  IF EXISTS (SELECT 1 FROM public.voice_gateway_destinations WHERE destination_id=OLD.id) AND
     (NEW.status NOT IN ('testing','disabled') OR NEW.active_calls <> 0 OR
@@ -89,8 +87,10 @@ BEGIN
  END IF;
  RETURN NEW;
 END;
-$;
+$pgi$;
 CREATE TRIGGER voice_gateway_legacy_destination_guard
  BEFORE UPDATE ON tenant_call_destinations
  FOR EACH ROW EXECUTE FUNCTION voice_gateway_guard_legacy_destination();
+REVOKE ALL ON FUNCTION voice_gateway_bind_destination() FROM PUBLIC;
+REVOKE ALL ON FUNCTION voice_gateway_guard_legacy_destination() FROM PUBLIC;
 COMMIT;
