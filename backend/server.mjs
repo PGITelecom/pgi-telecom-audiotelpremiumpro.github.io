@@ -14,6 +14,7 @@ import {reconcileWholesalePreview,reconcileWholesaleLedger} from "./src/wholesal
 import {wholesaleIndependenceSnapshot,compareVoiceReception} from "./src/wholesale-independence.mjs";
 import {normalizeCarrierCsv,reconcileCarrierCsv} from "./src/carrier-csv-import.mjs";
 import {planEconomicRouting} from "./src/economic-voice-routing.mjs";
+import {compareInternalizationTco} from "./src/internalization-tco.mjs";
 import {startWorkers} from "./src/workers.mjs";
 import {createPortabilityQueueHandlers} from "./src/portability-automation.mjs";
 import {createOutboundPortabilityQueueHandlers} from "./src/outbound-portability-automation.mjs";
@@ -807,6 +808,12 @@ export function createBackend(options={}){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
         return done(res,metrics,started,"platform.wholesale_economic_routing",200,await planEconomicRouting(store,body));
+      }
+
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/internalization-tco"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_internalization_tco",200,compareInternalizationTco(body));
       }
 
       // A read-only release dossier is available even before the preparatory migrations.
