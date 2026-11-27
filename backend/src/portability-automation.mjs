@@ -183,6 +183,7 @@ async function callOperator({task,action,request,endpoint,env,fetchImpl,config})
   const settings=objectValue(task.api_settings);
   let endpointUrl;
   try{endpointUrl=new URL(endpoint);}catch{throw codedError("PORTABILITY_OPERATOR_ENDPOINT_INVALID",true);}
+  if(endpointUrl.username||endpointUrl.password||endpointUrl.hash||!["http:","https:"].includes(endpointUrl.protocol))throw codedError("PORTABILITY_OPERATOR_ENDPOINT_INVALID",true);
   if(config?.mode==="production"&&endpointUrl.protocol!=="https:")throw codedError("PORTABILITY_OPERATOR_HTTPS_REQUIRED",true);
   const secretRef=String(task.api_secret_ref||"").trim();
   const secret=secretRef?String(env?.[secretRef]||""):"";
@@ -205,7 +206,7 @@ async function callOperator({task,action,request,endpoint,env,fetchImpl,config})
   try{
     const method=action==="status"?"GET":"POST";
     const response=await fetchImpl(endpoint,{
-      method,headers,signal:controller.signal,
+      method,headers,signal:controller.signal,redirect:"error",
       body:method==="GET"?undefined:JSON.stringify(request)
     });
     const contentType=String(response.headers?.get?.("content-type")||"").toLowerCase();
@@ -350,7 +351,7 @@ async function processCancellation(requestId,{store,config,env,fetchImpl}){
     return;
   }
   await markAutomation(store,requestId,{state:"cancelling",nextSeconds:300,error:null,incrementAttempts:true});
-  const response=await callOperator({task,action:"cancel",request:buildOperatorRequest(task,"cancel"),endpoint,env,fetchImpl});
+  const response=await callOperator({task,action:"cancel",request:buildOperatorRequest(task,"cancel"),endpoint,env,fetchImpl,config});
   await recordOperatorEvent(store,task,"cancel",response);
   await markAutomation(store,requestId,{state:"cancelled",nextSeconds:86400,error:null,operatorStatus:normalizeOperatorState(response.body)||"cancelled"});
   await auditAutomation(store,task,"portability.automation.cancelled",{operator_reference:task.operator_portability_reference});
