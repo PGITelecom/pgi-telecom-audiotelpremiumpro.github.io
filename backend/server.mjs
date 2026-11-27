@@ -10,7 +10,7 @@ import {securityHeaders,readJson,json,text,problemJson,routeMatch,clientIp} from
 import {normalizeFreeSwitchCdr} from "./src/cdr-freeswitch.mjs";
 import {compareWholesaleOffers} from "./src/wholesale-offer-comparison.mjs";
 import {normalizeCarrierExport} from "./src/carrier-export-normalizer.mjs";
-import {reconcileWholesalePreview} from "./src/wholesale-reconciliation-preview.mjs";
+import {reconcileWholesalePreview,reconcileWholesaleLedger} from "./src/wholesale-reconciliation-preview.mjs";
 import {wholesaleIndependenceSnapshot,compareVoiceReception} from "./src/wholesale-independence.mjs";
 import {startWorkers} from "./src/workers.mjs";
 import {createPortabilityQueueHandlers} from "./src/portability-automation.mjs";
@@ -779,6 +779,11 @@ export function createBackend(options={}){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
         return done(res,metrics,started,"platform.wholesale_reconcile",200,reconcileWholesalePreview(body));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/reconcile-ledger"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_reconcile_ledger",200,await reconcileWholesaleLedger(store,body));
       }
       if(method==="POST"&&pathname==="/api/v1/platform/wholesale/voice-cost"){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
