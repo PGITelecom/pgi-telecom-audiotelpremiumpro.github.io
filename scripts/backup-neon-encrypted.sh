@@ -59,9 +59,16 @@ fi
 # Verify that the private recovery identity can decrypt and pg_restore can
 # parse the backup. A full isolated restore is still required before release.
 if ! (age -d -i "$PGI_BACKUP_AGE_IDENTITY_FILE" "$partial" |
-       pg_restore --list > /dev/null 2>"$tmpdir/restore.log"); then
+       pg_restore --list > "$tmpdir/catalog.txt" 2>"$tmpdir/restore.log"); then
   fail "archive decryption or PostgreSQL archive validation failed"
 fi
+# The wrong database can produce a perfectly readable archive. Refuse to
+# publish a backup that lacks Audiotel's three baseline application tables.
+for table in calls experts outbox_events; do
+  if ! grep -Eq "[[:space:]]TABLE[[:space:]]public[[:space:]]${table}([[:space:]]|$)" "$tmpdir/catalog.txt"; then
+    fail "encrypted backup does not contain required application tables"
+  fi
+done
 
 hash="$(sha256sum "$partial")"
 hash="${hash%% *}"
