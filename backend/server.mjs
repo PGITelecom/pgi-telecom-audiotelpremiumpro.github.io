@@ -8,6 +8,8 @@ import {MemoryStore} from "./src/store-memory.mjs";
 import {parseCookies,hashPassword,verifyPassword,issueSession,verifySession,constantTimeTokenEqual,sessionCookie,csrfCookie,clearSessionCookies,customerSessionCookie,customerCsrfCookie,clearCustomerSessionCookies} from "./src/security.mjs";
 import {securityHeaders,readJson,json,text,problemJson,routeMatch,clientIp} from "./src/http.mjs";
 import {normalizeFreeSwitchCdr} from "./src/cdr-freeswitch.mjs";
+import {compareWholesaleOffers} from "./src/wholesale-offer-comparison.mjs";
+import {normalizeCarrierExport} from "./src/carrier-export-normalizer.mjs";
 import {startWorkers} from "./src/workers.mjs";
 import {createPortabilityQueueHandlers} from "./src/portability-automation.mjs";
 import {createOutboundPortabilityQueueHandlers} from "./src/outbound-portability-automation.mjs";
@@ -754,6 +756,18 @@ export function createBackend(options={}){
         if(!current||current.enabled!==true||current.role!==actor.role||Number(current.session_version||1)!==Number(actor.session_version)|| (current.locked_until&&Date.now()<Date.parse(current.locked_until)))actor=null;
       }
       const customerActor=authenticateCustomer(req,config);
+
+      // Admin-only, read-only scenario previews: never activate a carrier or write a ledger.
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/compare"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_compare",200,compareWholesaleOffers(body));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/normalize-export"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_normalize",200,normalizeCarrierExport(body));
+      }
 
       // A read-only release dossier is available even before the preparatory migrations.
       if(method==="GET"&&pathname==="/api/v1/platform/direct-sva-release-readiness"){
