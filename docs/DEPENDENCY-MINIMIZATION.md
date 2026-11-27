@@ -165,3 +165,15 @@ preuves contractuelles de chaque opérateur.
 
 Ce périmètre ne modifie ni Vercel, ni Neon, ni Stripe, ni les autres prestataires techniques.
 Aucune activation commerciale du pôle Distribution n'est effectuée.
+
+
+### Outils supplémentaires d'indépendance télécom
+
+Le cockpit « Abonnement & opérateur » contient désormais un module d'analyse chargé à la demande : inventaire réel des blocs et contrats enregistrés, routes actives et de secours, agrégats financiers EUR des 30 derniers jours. Les preuves réglementaires et bancaires ne sont pas déduites de simples états enregistrés.
+
+- `GET /api/v1/platform/wholesale/independence` : observation de l'inventaire et des flux enregistrés.
+- `POST /api/v1/platform/wholesale/reconcile` : comparaison de deux séries déclaratives.
+- `POST /api/v1/platform/wholesale/reconcile-ledger` : comparaison avec les attentes CDR PGI de la base primaire, pour un opérateur existant et une fenêtre UTC complète de 31 jours maximum et 1 000 appels maximum. Au-delà, scinder la fenêtre. Les lignes importées restent non authentifiées et les écarts ne prouvent pas à eux seuls une créance.
+- `POST /api/v1/platform/wholesale/voice-cost` : estimation des économies de réception WebRTC, y compris les minutes de repli PSTN, frais fixes et investissement initial.
+
+Le comparateur exige également la catégorie du numéro et le tarif service HT déclaré, soumis aux plafonds configurés du modèle de marge existant. Les coûts, preuves, tarifs et autorisations doivent être confirmés indépendamment. Aucun serveur média ou trunk SIP réel n'est déployé par ces fonctions. Les formulaires avancés utilisent du JSON et ne persistent aucune saisie. Les routes POST sont réservées aux administrateurs avec CSRF. Aucun changement de schéma ni de fournisseur informatique n'est nécessaire.
