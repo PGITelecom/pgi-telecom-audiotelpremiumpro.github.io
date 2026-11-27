@@ -1,5 +1,7 @@
 // Loaded only when an administrator opens the wholesale tools in the existing cockpit.
 const specs=Object.freeze({
+ "voice-edge-plan":{label:"Préparer le raccordement SIP et la capacité média",template:{business_unit:"audiotel_platform",carrier_profile:null,signaling_peer_ipv4:[],media_peer_ipv4:[],sip_listen_port:null,rtp_start_port:null,rtp_end_port:null,target_concurrent_calls:null,media_legs_per_call:2,estimated_kbps_per_media_leg_per_direction:null,reserve_percent:25,evidence:{}}},
+ "voice-risk":{label:"Contrôler la qualité et les anomalies des appels",template:{business_unit:"audiotel_platform"}},
  "volume-tiers":{"label":"Négocier les paliers de volume et minimums","template":{"business_unit":"audiotel_platform","currency":"EUR","billing_basis":"minute","category":"089","retail_service_micro_eur_per_min":null,"publisher_micro_eur_per_min":null,"other_variable_micro_eur_per_min":null,"target_contribution_micro_eur_per_min":null,"monthly_fixed_micro_eur":null,"minimum_network_spend_micro_eur":null,"one_off_micro_eur":null,"horizon_months":12,"low_monthly_minutes":null,"base_monthly_minutes":null,"high_monthly_minutes":null,"tier_mode":"marginal","tiers":[{"from_minutes":0,"operator_net_micro_eur_per_min":null,"network_micro_eur_per_min":null}],"evidence":{}}},
  "call-economics":{label:"Contribution enregistrée par numéro et destination",template:{business_unit:"audiotel_platform",currency:"EUR",from_utc:null,to_utc:null}},
  "internalization-tco":{"label":"Comparer le coût total des outils gratuits et payants","template":{"business_unit":"audiotel_platform","currency":"EUR","unit":"minute","horizon_months":12,"low_monthly_units":null,"base_monthly_units":null,"high_monthly_units":null,"current":{"monthly_cost_micro_eur":{"license":null,"hosting":null,"maintenance":null,"security_backup":null,"compliance":null,"support":null,"other":null},"one_off_cost_micro_eur":{"setup":null,"migration":null,"exit":null,"parallel_run":null,"hardware":null},"included_monthly_units":null,"excess_unit_micro_eur":null,"verified_monthly_capacity":null,"internal_monthly_minutes":null,"internal_hourly_cost_micro_eur":null,"evidence":{}},"alternative":{"monthly_cost_micro_eur":{"license":null,"hosting":null,"maintenance":null,"security_backup":null,"compliance":null,"support":null,"other":null},"one_off_cost_micro_eur":{"setup":null,"migration":null,"exit":null,"parallel_run":null,"hardware":null},"included_monthly_units":null,"excess_unit_micro_eur":null,"verified_monthly_capacity":null,"internal_monthly_minutes":null,"internal_hourly_cost_micro_eur":null,"evidence":{}}}},
@@ -18,7 +20,16 @@ function line(root,label,value){const p=el("p");p.append(el("strong",label+" : "
 function apiBase(){const b=String(window.PGI_CONFIG?.apiBaseUrl||"").replace(/\/$/,"");if(!b)throw Error("API_NOT_CONFIGURED");return b;}
 function renderResult(root,result){
  root.replaceChildren();
- if(result.schema_version==="pgi-recorded-call-economics/1"){
+ if(result.schema_version==="pgi-voice-edge-plan/1"){
+  line(root,"Capacité cible",result.capacity.target_concurrent_calls+" appels simultanés");
+  line(root,"Ports RTP",result.capacity.required_rtp_ports+" nécessaires / "+result.capacity.available_rtp_ports+" disponibles");
+  line(root,"Bande passante estimée",result.capacity.estimated_mbps_per_direction+" Mbit/s par sens");
+  line(root,"Contrôles",result.review_items.join(", ")||"Dossier déclaratif à vérifier");
+ }else if(result.schema_version==="pgi-recorded-voice-risk/1"){
+  line(root,"État",result.status==="no_recorded_calls"?"Aucun appel enregistré":result.status==="volume_limit_reached"?"Volume trop élevé pour cette analyse bornée":"Analyse des données enregistrées");
+  for(const g of result.groups)line(root,g.carrier_name||"Opérateur non identifié",g.alerts.map(x=>x.code).join(", ")||g.status);
+  line(root,"Réserve","Aucun signal ne constitue une preuve de fraude");
+ }else if(result.schema_version==="pgi-recorded-call-economics/1"){
   line(root,"Appels examinés",result.scoped_calls);
   line(root,"Groupes",result.total_groups);
   for(const g of result.groups)line(root,[g.display_number||"Numéro non identifié",g.carrier_name||"Opérateur non identifié",g.destination_type||"Destination non identifiée"].join(" / "),g.contribution_ht===null?"Données insuffisantes":g.contribution_ht+" € HT de contribution enregistrée ; "+g.evaluable_calls+"/"+g.calls+" appels évaluables");
