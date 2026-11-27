@@ -33,16 +33,22 @@ function compact(raw){
  const v=raw?.variables;
  if(!v||typeof v!=="object"||Array.isArray(v))fail("CDR_STAGE_VARIABLES");
  // Preserve precisely the fields consumed by normalizeFreeSwitchCdr.
- const keys=["uuid","start_epoch","start_uepoch","start_stamp","answer_epoch","answer_uepoch","answer_stamp","end_epoch","end_uepoch","end_stamp","progress_epoch","progress_uepoch","progress_stamp","progress_media_epoch","progress_media_uepoch","progress_media_stamp","duration","billsec","hangup_cause","bridge_hangup_cause","caller_id_number","ani","destination_number","pgi_ivr_epoch","pgi_ivr_stamp","pgi_queue_epoch","pgi_queue_stamp","pgi_origin_carrier","pgi_origin_type","pgi_expert_id","pgi_expert_name","pgi_call_destination_id","pgi_host_carrier","pgi_hangup_party","sip_hangup_disposition","sip_term_status","last_bridge_proto_specific_hangup_cause","read_codec","write_codec","rtp_audio_in_packet_loss_percent","rtp_audio_in_jitter_max_variance","rtp_audio_in_rtt","rtp_audio_in_mos","rtp_audio_in_packet_count","rtp_audio_out_packet_count","rtp_audio_in_packet_loss","rtp_audio_in_media_bytes","rtp_audio_out_media_bytes","pgi_dtmf_errors"];
+ const keys=["uuid","start_epoch","start_uepoch","start_stamp","answer_epoch","answer_uepoch","answer_stamp","end_epoch","end_uepoch","end_stamp","progress_epoch","progress_uepoch","progress_stamp","progress_media_epoch","progress_media_uepoch","progress_media_stamp","duration","billsec","hangup_cause","bridge_hangup_cause","caller_id_number","ani","destination_number","pgi_ivr_epoch","pgi_ivr_stamp","pgi_queue_epoch","pgi_queue_stamp","pgi_origin_carrier","pgi_origin_type","pgi_expert_id","pgi_expert_name","pgi_call_destination_id","call_destination_id","pgi_host_carrier","pgi_hangup_party","sip_hangup_disposition","sip_term_status","last_bridge_proto_specific_hangup_cause","read_codec","write_codec","rtp_audio_in_packet_loss_percent","rtp_audio_in_jitter_max_variance","rtp_audio_in_rtt","rtp_audio_in_mos","rtp_audio_in_packet_count","rtp_audio_out_packet_count","rtp_audio_in_packet_loss","rtp_audio_in_media_bytes","rtp_audio_out_media_bytes","pgi_dtmf_errors"];
  const variables={};
  for(const k of keys)if(Object.hasOwn(v,k)){
   const value=v[k];if(value!==null&&typeof value!=="string"&&typeof value!=="number")fail("CDR_STAGE_VARIABLE_TYPE");
   if(typeof value==="string"&&value.length>512)fail("CDR_STAGE_VARIABLE_LENGTH");
   variables[k]=value;
  }
- // Native FreeSWITCH variables are unencoded; optional callStats intentionally
- // not copied because this producer's source is mod_json_cdr, not arbitrary JSON.
- return {variables};
+ // Keep only numeric media observations consumed by the existing normalizer.
+ const audio=raw.callStats?.audio,callStats={audio:{}};
+ for(const [side,fields] of Object.entries({inbound:["packet_loss_percent","jitter_ms","latency_ms","rtt_ms","round_trip_time_ms","mos","packets_received","packets_lost","bytes_received"],outbound:["packets_sent","bytes_sent"]})){
+  const values={};
+  for(const key of fields){const value=audio?.[side]?.[key];if(typeof value==="number"&&Number.isFinite(value))values[key]=value;}
+  if(Object.keys(values).length)callStats.audio[side]=values;
+ }
+ if(typeof audio?.dtmf_errors==="number"&&Number.isFinite(audio.dtmf_errors))callStats.audio.dtmf_errors=audio.dtmf_errors;
+ return Object.keys(callStats.audio).length?{variables,callStats}:{variables};
 }
 export async function stageNativeCdrs({source,spool,batch=100,minAgeMs=30000,now=Date.now()}={}){
  if(!Number.isSafeInteger(batch)||batch<1||batch>200||!Number.isSafeInteger(minAgeMs)||minAgeMs<1000||!Number.isFinite(now))fail("CDR_STAGE_LIMIT");
