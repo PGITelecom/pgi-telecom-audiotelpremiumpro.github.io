@@ -35,3 +35,21 @@ test("invalid CDR and busy writer never create a pending file",()=>withSpool(asy
  await assert.rejects(publishCompletedCdr(spool,body),/CDR_PUBLISH_BUSY/);
  assert.deepEqual(await readdir(pending),[]);
 }));
+
+test("health report detects delayed CDRs, disk pressure and stale locks without exposing identifiers",()=>withSpool(async(spool,pending)=>{
+ const {inspectCdrSpool}=await import("../telephony/cdr-spool-health.mjs");
+ const {utimes}=await import("node:fs/promises");
+ await publishCompletedCdr(spool,body);
+ const file=path.join(pending,uuid+".json");
+ const past=new Date(Date.now()-3600000);
+ await utimes(file,past,past);
+ await writeFile(path.join(spool,"publish.lock"),"",{mode:0o600});
+ await utimes(path.join(spool,"publish.lock"),past,past);
+ const result=await inspectCdrSpool(spool,{minFreeBytes:Number.MAX_SAFE_INTEGER});
+ assert.equal(result.healthy,false);
+ assert.equal(result.pending.records,1);
+ assert.ok(result.alerts.includes("CDR_DELIVERY_DELAY"));
+ assert.ok(result.alerts.includes("CDR_PUBLISH_LOCK_REVIEW"));
+ assert.ok(!JSON.stringify(result).includes(uuid));
+ assert.deepEqual(await readFile(file),body);
+}));
