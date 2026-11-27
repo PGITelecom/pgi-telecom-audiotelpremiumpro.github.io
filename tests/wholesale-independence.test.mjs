@@ -6,7 +6,7 @@ const evidence=Object.fromEntries(["signed_offer","numbering_authority","interco
 const offer=(provider_key,rate,intermediary=0)=>({provider_key,operator_net_micro_eur_per_min:rate,
  variable_cost_micro_eur_per_min:{network:10000,payment:5000,other:5000,intermediary},
  fixed_cost_micro_eur:{monthly_fee:0,minimum_commitment_topup:0,setup_fee:0,switching_fee:0,termination_fee:0},evidence:{...evidence},costs_verified:true});
-const scenario=(offers)=>({business_unit:"audiotel_platform",currency:"EUR",billing_basis:"minute",monthly_minutes:100000,horizon_months:12,publisher_micro_eur_per_min:400000,publisher_contract_verified:true,offers});
+const scenario=(offers)=>({business_unit:"audiotel_platform",currency:"EUR",billing_basis:"minute",category:"089",retail_service_micro_eur_per_min:650000,monthly_minutes:100000,horizon_months:12,publisher_micro_eur_per_min:400000,publisher_contract_verified:true,offers});
 test("direct wholesale ranking includes intermediary and one-time exit costs",()=>{
  const old=offer("reseller",520000,20000),direct=offer("direct",550000);
  direct.fixed_cost_micro_eur.switching_fee=1200000000;
@@ -52,4 +52,13 @@ test("carrier exports reject duplicate IDs, ambiguous dates, amounts and mapping
  assert.throws(()=>normalizeCarrierExport(batch([{...row,talk:61}])),/CHRONOLOGY/);
  assert.throws(()=>normalizeCarrierExport(batch([{...row,amount:0.54321}])),/DECIMAL_STRING/);
  assert.throws(()=>normalizeCarrierExport({...batch([row]),field_mapping:{...mapping,other:"external_call_id"}}),/MAPPING_INVALID/);
+});
+
+test("quotes cannot exceed the declared service tariff or bypass the configured tariff cap",()=>{
+ const s=scenario([offer("impossible",660000),offer("realistic",550000)]);
+ const r=compareWholesaleOffers(s);
+ assert.equal(r.candidate_provider_key,"realistic");
+ assert.ok(r.offers[0].blocked_reasons.includes("operator_rate_exceeds_declared_service_tariff"));
+ assert.throws(()=>compareWholesaleOffers({...s,retail_service_micro_eur_per_min:700000}),/RETAIL_RATE/);
+ assert.throws(()=>compareWholesaleOffers({...s,category:"unknown"}),/CATEGORY/);
 });
