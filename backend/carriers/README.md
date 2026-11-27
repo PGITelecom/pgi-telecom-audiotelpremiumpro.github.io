@@ -72,3 +72,17 @@ Ces fonctions sont des composants de préparation **sans endpoint public, sans i
 3. Produire une prévisualisation et relever toutes les conditions non prouvées.
 4. Faire valider l'interconnexion, la portabilité, le règlement et la sécurité indépendamment du code.
 5. Autoriser éventuellement une modification de configuration par un circuit distinct, authentifié et audité. Aucune méthode de préparation ne doit être réutilisée directement comme commande de production.
+
+## Continuité de la téléphonie SIP sous contrôle Audiotel
+
+Le moteur pur `sip-continuity-preview.mjs` prépare la décision de continuité des appels sans dépendre du tableau de bord d'un opérateur.
+
+- Préfère conserver la route primaire lorsque son état observé est sain.
+- En cas de défaillance signalée, propose d'abord une route SIP secondaire chez le même collecteur, puis une route auprès d'un autre collecteur si celle-ci est déclarée disponible.
+- Ne fabrique jamais de secours si toutes les routes sont indisponibles ou inconnues.
+- Rejette les routes incohérentes, doublons et numéros 089 hors du périmètre fourni.
+- **N'effectue aucune bascule** : pas de commande SIP, d'écriture dans Neon, de portabilité, de transfert d'argent ou de modification de la production.
+
+Le moteur reçoit des instantanés de santé et une liste de numéros qui doivent provenir, dans une intégration future, de contrôles authentifiés et cloisonnés par client. Il ne les authentifie pas lui-même. Une route secondaire SIP chez le même opérateur ne suffit pas si son réseau public de collecte 089 est tombé. Une bascule vers un autre opérateur nécessite ses propres contrats, la disponibilité effective du 089, les procédures de portage et les accords de règlement. Le statut de cette proposition ne vaut jamais validation réglementaire ni disponibilité nationale.
+
+Une évolution opérationnelle exigera une orchestration distincte et autorisée, avec contrôles de santé multi-sources, mécanismes antifraude, journal d'audit, confirmation de l'acheminement réel et procédures de retour arrière.
