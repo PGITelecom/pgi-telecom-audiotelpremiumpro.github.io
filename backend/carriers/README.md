@@ -55,3 +55,20 @@ Les valeurs réelles sont injectées depuis GitHub Secrets / le gestionnaire de 
 9. Garder l'ancien opérateur en standby pendant la fenêtre de rollback.
 
 Aucun changement du dashboard n'est requis.
+
+
+## Moteurs réutilisables d'indépendance, en mode préparation
+
+- `cdr-normalizer.mjs` : `previewCarrierCdrBatch` convertit un relevé de n'importe quel opérateur décrivant ses champs dans `cdr.fields` vers une structure CDR neutre. Le DNIS 089 doit être présent et appartenir à la liste de numéros autorisés. L'identité de l'appelant, les coordonnées bancaires et les champs arbitraires sont exclus. Un doublon ou un numéro hors périmètre rejette le lot entier. La liste autorisée doit être obtenue par une requête authentifiée et limitée à l'éditeur concerné ; le module ne certifie pas lui-même cette permission.
+- `switch-readiness.mjs` : `prepareCarrierSwitchPreview` prépare l'inventaire des capacités et des preuves indépendantes nécessaires pour remplacer un collecteur. Le même numéro, l'identifiant client, le routage métier et les données historiques demeurent notre source de vérité. La disponibilité d'une capacité déclarée par un candidat n'autorise jamais le portage, le changement de route ou un versement.
+- `config/carriers/_template.json` documente désormais le champ DNIS dans le mapping des relevés d'appels : `called_dnis` vers `called_number`. Aucun vrai identifiant opérateur ni secret n'est stocké dans ce modèle.
+
+Ces fonctions sont des composants de préparation **sans endpoint public, sans import SQL, sans connexion SIP et sans activation d'opérateur**. Un raccordement en production requiert séparément des preuves Arcep, des contrats réseau/SVA, un cadre conforme de paiement, des droits client vérifiés et une procédure de bascule et de reprise réellement exercée.
+
+### Ordre d'intégration
+
+1. Vérifier le schéma et le contrat d'un fournisseur, sans l'activer.
+2. Préparer ses mappings de CDR et de règlement, avec des exemples **anonymisés** et des numéros 089 appartenant au bon éditeur.
+3. Produire une prévisualisation et relever toutes les conditions non prouvées.
+4. Faire valider l'interconnexion, la portabilité, le règlement et la sécurité indépendamment du code.
+5. Autoriser éventuellement une modification de configuration par un circuit distinct, authentifié et audité. Aucune méthode de préparation ne doit être réutilisée directement comme commande de production.
