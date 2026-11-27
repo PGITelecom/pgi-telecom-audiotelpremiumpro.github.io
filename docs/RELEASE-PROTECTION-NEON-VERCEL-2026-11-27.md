@@ -47,3 +47,19 @@ Pour eviter un abonnement supplementaire, preparer desormais une sauvegarde exte
 6. Seulement apres cette etape, examiner individuellement les huit anciennes branches archivees et le snapshot historique pour determiner quels doublons peuvent etre supprimes, **avec une approbation explicite et sans supprimer la branche `main` ni l'unique copie recentement validee**. Garder les versions de restauration requises pour l'activite et les obligations legales. Une archive ne devient pas inutile du seul fait de son age.
 
 **Statut concret :** le script et ses verifications CI sont prepares mais aucune sauvegarde reelle Neon n'a ete obtenue par ce script ; aucune copie externe et aucune restauration isolee ne sont confirmees. Il faut un contexte de sauvegarde de confiance et les identifiants Neon disponibles sans les exposer. Aucun espace Neon n'a encore ete libere. Ne pas annoncer le deployement pret.
+
+
+## Veritable exercice de restauration, validation de l'environnement et statut
+
+Le script `scripts/restore-neon-encrypted-drill.sh` complete `scripts/backup-neon-encrypted.sh` : il refuse une archive ou une empreinte invalide, impose une connexion PostgreSQL **uniquement a 127.0.0.1**, cree une base de restauration temporaire distincte, dechiffre l'archive *directement en flux* vers `pg_restore` avec transaction et interruption sur erreur, puis verifie la presence des tables `public.calls`, `public.experts` et `public.outbox_events`. Il supprime ensuite la base temporaire, sans appeler Neon ni exposer les lignes clients dans les journaux. Executer cet exercice exclusivement sur un hote de reprise fiable, et non dans un CI public ou sur un poste tiers.
+
+Le script de creation des sauvegardes refuse aussi d'annoncer qu'une archive est valide si le catalogue restaure ne contient pas ces trois tables. Il exige une cle privee de verification conservée hors de GitHub, des droits de fichiers restreints, un chemin de stockage externe et une connexion TLS a la base source. Le chiffrement protege la confidentialite de l'archive externe. Une empreinte SHA-256 sans signature distincte ne protege pas contre la substitution coordonnee du fichier et de son manifeste ; conserver une preuve datée sur un support de confiance.
+
+**Limites explicites :**
+- Ces deux scripts sont du code, et non des preuves qu'une sauvegarde des donnees actuelles a ete creee ni restauree. Ne pas cocher le pre-requis de deploiement tant que l'exercice n'est pas execute sur une archive reelle.
+- Le format `pg_dump --no-owner --no-acl` ne restaure pas les comptes PostgreSQL, leurs roles ni les droits d'acces d'origine. Documenter et verifier ces elements separement avant toute reprise complete de production.
+- Pour reduire les couts, privilegier deux copies chiffrees sur deux supports independants deja possedes. La rotation peut economiser de l'espace **apres** validation des copies recentes et de leur restauration, mais aucune suppression automatique n'est autorisee ici.
+- L'exercice exige un PostgreSQL local temporaire, les outils disponibles et des identifiants de sauvegarde/reprise accessibles seulement au processus autorise. Ne jamais coller ces secrets dans ChatGPT, GitHub public ou dans le Google Sheet.
+- Un test syntaxique GitHub CI reussi ne remplace pas un exercice reel sur les donnees Neon. Les tests automatiques sont inoffensifs sur CI et ne contactent aucune base client.
+
+**Decision :** gel maintenu sur les migrations Neon et le deploiement de la PR #207 jusqu'a obtention d'un export recent, deux copies protegees et preuve de restauration, puis verification independante des droits et de l'application.
