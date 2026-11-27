@@ -20,7 +20,9 @@
     "dnIsFormat": "e164",
     "cliFormat": "e164",
     "dtmf": "rfc2833",
-    "codecs": ["PCMA"],
+    "codecs": [
+      "PCMA"
+    ],
     "secretRef": null
   },
   "cdr": {
@@ -28,6 +30,7 @@
     "timezone": "Europe/Paris",
     "fields": {
       "carrier_call_id": "external_call_id",
+      "called_dnis": "called_number",
       "started_at": "started_at",
       "ended_at": "ended_at",
       "connected_seconds": "conversation_seconds",
