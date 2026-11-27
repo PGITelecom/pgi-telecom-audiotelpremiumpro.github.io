@@ -515,12 +515,12 @@ export function createBackend(options={}){
         const staff=typeof store.staffLoginIdentity==="function"?await store.staffLoginIdentity(username):null;
         const staffLocked=Boolean(staff?.locked_until&&Date.now()<Date.parse(staff.locked_until));
         const staffOk=Boolean(staff&&!staffLocked&&staff.enabled!==false&&verifyPassword(password,staff.password_hash));
-        const legacyOk=constantTimeTokenEqual(username,config.adminUsername)&&verifyPassword(password,config.adminPasswordHash);
+        const legacyOk=(!staff||(!staff.password_hash&&staff.enabled===true&&!staffLocked&&staff.role==="admin"))&&constantTimeTokenEqual(username,config.adminUsername)&&verifyPassword(password,config.adminPasswordHash);
         let user=null;
         if(staffOk)user=staff;
         else if(legacyOk&&typeof store.ensureLegacyStaffIdentity==="function")user=await store.ensureLegacyStaffIdentity(config.adminUsername);
         else if(legacyOk)user={id:"admin",role:"admin",display_name:"Administrator"};
-        if(!user){
+        if(!user||user.enabled===false){
           if(staff?.id&&typeof store.recordStaffAuthFailure==="function")await store.recordStaffAuthFailure(staff.id,config.authMaxFailures,config.authFailureWindowSeconds);
           metrics.authFailures++;
           recordAuthFailure(authKey,config,authBuckets);
@@ -748,7 +748,11 @@ export function createBackend(options={}){
         });
       }
 
-      const actor=authenticate(req,config);
+      let actor=authenticate(req,config);
+      if(actor&&config.authMode==="session"&&typeof store.staffCredentialById==="function"){
+        const current=await store.staffCredentialById(actor.sub);
+        if(!current||current.enabled!==true||current.role!==actor.role||Number(current.session_version||1)!==Number(actor.session_version)|| (current.locked_until&&Date.now()<Date.parse(current.locked_until)))actor=null;
+      }
       const customerActor=authenticateCustomer(req,config);
 
       // A read-only release dossier is available even before the preparatory migrations.
@@ -2902,7 +2906,8 @@ function authenticate(req,config){
     return {sub:"local-admin",role:"admin",name:"Local Simulator",csrf:"disabled"};
   }
   const cookies=parseCookies(req.headers.cookie||"");
-  return verifySession(cookies["__Host-pgi_session"],config.sessionSecret);
+  const actor=verifySession(cookies["__Host-pgi_session"],config.sessionSecret);
+  return actor&&actor.actor_type!=="customer"?actor:null;
 }
 function authenticateCustomer(req,config){
   if(config.authMode!=="session")return null;
@@ -2918,6 +2923,7 @@ function requireRole(actor,roles){
   if(!roles.includes(actor.role)){const e=new Error("Forbidden");e.status=403;e.code="FORBIDDEN";throw e;}
 }
 function requireCsrf(req,actor,config){
+  requireActor(actor);
   if(config.authMode==="disabled")return;
   const cookies=parseCookies(req.headers.cookie||"");
   const header=String(req.headers["x-csrf-token"]||"");
