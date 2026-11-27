@@ -35,8 +35,10 @@ export async function planEconomicRouting(store,input={}){
  if(!selected)return Object.freeze({status:"no_available_destination",selected_destination_id:null,candidate_destination_id:null,routing_change_authorized:false});
  // Only alternatives already available for the same number, at the same
  // customer-defined priority and number specificity. No cross-tenant routing.
- const eligible=sim.candidates.filter(x=>x.eligible===true&&x.priority===selected.priority&&
-   (x.sva_number_id==null)===(selected.sva_number_id==null));
+ const currentRow=sim.candidates.find(x=>x.id===selected.id&&x.eligible===true);
+ if(!currentRow)fail("ROUTE_SIMULATION_INCONSISTENT",503);
+ const eligible=sim.candidates.filter(x=>x.eligible===true&&x.priority===currentRow.priority&&
+   (x.sva_number_id==null)===(currentRow.sva_number_id==null));
  const ids=new Set(sim.candidates.map(x=>x.id));
  for(const k of quotes.keys())if(!ids.has(k))fail("ROUTE_QUOTE_OUTSIDE_TENANT_OR_NUMBER");
  const rows=eligible.map(d=>{
