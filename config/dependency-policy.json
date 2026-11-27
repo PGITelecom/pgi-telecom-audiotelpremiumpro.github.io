@@ -47,5 +47,33 @@
     "carrier_specific_crm",
     "carrier_specific_business_routing",
     "carrier_specific_data_model"
-  ]
+  ],
+  "costGovernance": {
+    "defaultForNewPaidServices": "deny_without_proven_need",
+    "preferExistingOwnedModules": true,
+    "chooseLowestVerifiedTotalCostNotFewestVendors": true,
+    "securityComplianceCannotBeWaived": true,
+    "requireBeforePaidService": [
+      "documented_unavoidable_gap",
+      "actual_complete_quote",
+      "security_and_legal_review",
+      "export_and_exit_path",
+      "net_margin_check"
+    ],
+    "noPaidTelecomHostingBeforeNetworkContract": true,
+    "directInterconnectionIsNotCostFree": true,
+    "supplierCancellationRequiresEvidenceOfEquivalentService": true
+  },
+  "numberingAndInterconnection": {
+    "own089Block": "requires_explicit_arcep_allocation",
+    "currentExternalNetworkMode": "wholesale_partner_not_contracted",
+    "candidateNetworkModes": [
+      "wholesale_partner",
+      "owned_sip_with_wholesale_collection",
+      "direct_bilateral_interconnection"
+    ],
+    "directInterconnectionRequiresOperatorContracts": true,
+    "originNetworkReachabilityNeverAssumed": true,
+    "collectionAndSettlementNeverAssumed": true
+  }
 }
