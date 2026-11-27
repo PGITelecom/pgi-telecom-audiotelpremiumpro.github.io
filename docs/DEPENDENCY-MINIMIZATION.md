@@ -171,3 +171,16 @@ L'opérateur/adaptateur encapsule cette relation. Si le modèle contractuel impo
 - **Paiements :** l'encaissement pour compte de tiers peut relever de services de paiement ; la qualification exacte dépend du montage. Privilégier, si juridiquement valide, les versements directs opérateur/PSP aux éditeurs pour ne pas immobiliser de fonds. Source : https://acpr.banque-france.fr/en/node/26817 .
 
 Aucun engagement, déploiement ni interconnexion ne découle de ce dossier de négociation. Les contrôles de conformité et de cybersécurité restent obligatoires même lorsqu'ils ont un coût.
+
+
+## Maximiser le rendement réel par appel, sans frais supplémentaires
+
+Le simulateur pur `evaluatePerCallContribution` du module `assets/autonomy-cost-engine.mjs` évalue une **contribution économique HT prévisionnelle par appel**, sans appeler aucun opérateur, sans changer le tarif du client et sans utiliser une base de données. Les huit paramètres obligatoires sont : secondes de service facturables, revenu HT de la composante service contractuellement dû à Audiotel avant partage, part de l'éditeur, coûts opérateur/collecte, exploitation variable, provision prudente pour fraude/impayés, frais fixes mensuels affectés et nombre mensuel d'appels.
+
+La contribution unitaire = revenu service HT contractuel - part éditeur - collecte/réseau - autres coûts variables - provision de risque - quote-part des frais fixes. Le résultat **n'est pas le bénéfice net personnel après fiscalité** ; l'impôt, les cotisations et les conditions effectives d'encaissement doivent être instruits séparément. Ne pas appliquer la recette totale facturée par l'opérateur au client comme revenu Audiotel, ne pas compter deux fois un frais déjà déduit par contrat, et ne pas afficher une marge comme « confirmée » sans pièces et réconciliation.
+
+Le moteur refuse les valeurs manquantes, volumes nuls pour la répartition mensuelle et montants ambigus ; il expose aussi les marges négatives. Aucune hypothèse commerciale n'est préremplie. Les valeurs des tests automatiques sont **fictives et non assimilables à des tarifs négociés**.
+
+Pour optimiser le rendement, comparer la marge unitaire réellement recouvrée **et** le nombre d'appels légitimes, la satisfaction client et la rétention des éditeurs. Respecter strictement la signalétique SVA, le message gratuit d'information tarifaire, les plafonds réglementaires et la tarification autorisée. Ne jamais améliorer la marge par facturation fictive, prolongation abusive des appels, trafic artificiel, opacité du tarif ou manipulation des CDR.
+
+Références : https://www.arcep.fr/mes-demarches-et-services/consommateurs/fiches-pratiques/les-numeros-08-et-les-numeros-courts.html et https://www.economie.gouv.fr/particuliers/eviter-les-arnaques/numeros-commencant-par-08-quels-sont-les-tarifs
