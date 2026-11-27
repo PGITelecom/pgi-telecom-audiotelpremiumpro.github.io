@@ -23,6 +23,29 @@ async function mountOptInAutonomyWorkbench(overview){
  finally{delete panel.dataset.awcLoading;}
 }
 
+// Explicitly opt-in admin-only scenario, independent of commercial SVA switches.
+async function mountOptInCarrierContinuity(overview){
+ const id="audiotel-carrier-continuity-console";
+ if(window.PGI_CONFIG?.carrierContinuityPreviewEnabled!==true){
+  document.getElementById(id)?.remove();return;
+ }
+ let panel=document.getElementById(id);
+ if(!panel){
+  panel=document.createElement("section");
+  panel.id=id;panel.hidden=true;
+  overview.prepend(panel);
+ }
+ if(panel.dataset.accLoading==="true"||panel.dataset.accReady==="true")return;
+ panel.dataset.accLoading="true";
+ try{
+  const mod=await import("./carrier-continuity-console.js");
+  if(!panel.isConnected)return;
+  mod.mountCarrierContinuityConsole(panel);
+  if(panel.dataset.accReady==="true")panel.hidden=false;
+ }catch(_error){panel.remove();}
+ finally{delete panel.dataset.accLoading;}
+}
+
 // Lazily mount only for an authenticated administrator on the main Cockpit.
 // Never exposes the commercial activation lock or duplicates controls in accounting.
 export async function mountDirectSvaCockpitControls(user){
@@ -32,10 +55,12 @@ export async function mountDirectSvaCockpitControls(user){
  if(user?.role!=="admin"){
   host?.remove();
   document.getElementById("audiotel-autonomy-cost-workbench")?.remove();
+  document.getElementById("audiotel-carrier-continuity-console")?.remove();
   return;
  }
  // Read-only decision support runs independently of the existing SVA switches.
  void mountOptInAutonomyWorkbench(overview);
+ void mountOptInCarrierContinuity(overview);
  if(!host){
   host=document.createElement("section");
   host.id="direct-sva-cockpit-controls";
