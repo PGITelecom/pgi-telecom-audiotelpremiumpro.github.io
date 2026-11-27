@@ -208,7 +208,7 @@ export async function createStripeReferralOnboardingLink(config,accountId,input=
 export async function createStripeReferralTransfer(config,input={}){
   const destination=String(input.destination_account||"").trim();
   if(!/^acct_[A-Za-z0-9]+$/.test(destination))throw error(400,"INVALID_REFERRAL_PAYOUT_DESTINATION");
-  const amount=Math.trunc(Number(input.amount_minor));
+  const amount=minorUnits(input.amount_minor);
   if(!Number.isInteger(amount)||amount<=0||amount>100000000)throw error(400,"INVALID_REFERRAL_PAYOUT_AMOUNT");
   const currency=String(input.currency||"EUR").trim().toLowerCase();
   if(!/^[a-z]{3}$/.test(currency))throw error(400,"INVALID_REFERRAL_PAYOUT_CURRENCY");
@@ -257,9 +257,20 @@ export async function createStripeConnectOnboardingLink(config,accountId,input={
   return {url:link.url,expires_at:link.expires_at||null};
 }
 
+function minorUnits(value){
+  if(typeof value==="number")return Number.isSafeInteger(value)?value:NaN;
+  if(typeof value==="string"&&/^(0|[1-9][0-9]{0,15})$/.test(value)){
+    const n=Number(value);return Number.isSafeInteger(n)?n:NaN;
+  }
+  return NaN;
+}
+function paymentEvidence(amount,currency){
+  return {verified_amount_minor:Number.isSafeInteger(amount)&&amount>0?amount:null,verified_currency:typeof currency==="string"&&/^[a-z]{3}$/i.test(currency)?currency.toUpperCase():null};
+}
+
 export function calculateApplicationFee(amountMinor,bps=STRIPE_CONNECT_APPLICATION_FEE_BPS){
-  const amount=Math.trunc(Number(amountMinor));
-  const rate=Math.trunc(Number(bps));
+  const amount=minorUnits(amountMinor);
+  const rate=minorUnits(bps);
   if(!Number.isInteger(amount)||amount<100||amount>100000000)throw error(400,"INVALID_CARD_PAYMENT_AMOUNT");
   if(!Number.isInteger(rate)||rate<0||rate>3000)throw error(500,"INVALID_APPLICATION_FEE_CONFIGURATION");
   return Math.min(amount,Math.max(0,Math.round(amount*rate/10000)));
@@ -268,7 +279,7 @@ export function calculateApplicationFee(amountMinor,bps=STRIPE_CONNECT_APPLICATI
 export async function createStripeCardCheckout(config,input={}){
   const accountId=String(input.connected_account||"");
   if(!/^acct_[A-Za-z0-9]+$/.test(accountId))throw error(400,"INVALID_CONNECT_ACCOUNT");
-  const amount=Math.trunc(Number(input.amount_minor)),bps=Math.trunc(Number(input.application_fee_bps||STRIPE_CONNECT_APPLICATION_FEE_BPS));
+  const amount=minorUnits(input.amount_minor),bps=minorUnits(input.application_fee_bps??STRIPE_CONNECT_APPLICATION_FEE_BPS);
   const fee=calculateApplicationFee(amount,bps);
   const currency=String(input.currency||"EUR").trim().toLowerCase();
   if(!/^[a-z]{3}$/.test(currency))throw error(400,"INVALID_CARD_PAYMENT_CURRENCY");
@@ -374,7 +385,8 @@ export async function normalizeStripeConnectPaymentEvent(config,event={}){
       connected_account_reference:connectedAccount,request_public_id:requestId,status,
       provider_checkout_session_reference:stripeObjectId(obj.id,"cs_"),
       provider_payment_intent_reference:stripeObjectId(obj.payment_intent,"pi_"),
-      provider_charge_reference:null
+      provider_charge_reference:null,
+      ...paymentEvidence(obj.amount_total,obj.currency)
     };
   }
 
@@ -387,7 +399,8 @@ export async function normalizeStripeConnectPaymentEvent(config,event={}){
       status:type==="payment_intent.succeeded"?"paid":"failed",
       provider_checkout_session_reference:null,
       provider_payment_intent_reference:stripeObjectId(obj.id,"pi_"),
-      provider_charge_reference:stripeObjectId(obj.latest_charge,"ch_")
+      provider_charge_reference:stripeObjectId(obj.latest_charge,"ch_"),
+      ...paymentEvidence(obj.amount_received,obj.currency)
     };
   }
 
@@ -441,12 +454,14 @@ export async function retrieveStripeCardCheckout(config,connectedAccount,session
   if(!/^acct_[A-Za-z0-9]+$/.test(String(connectedAccount||"")))throw error(400,"INVALID_CONNECT_ACCOUNT");
   if(!/^cs_[A-Za-z0-9_]+$/.test(String(sessionId||"")))throw error(400,"INVALID_CHECKOUT_SESSION");
   const session=await jsonRequest(config,"/v1/checkout/sessions/"+encodeURIComponent(sessionId),{connectedAccount});
+  if(session?.id!==sessionId)throw error(502,"STRIPE_CHECKOUT_SESSION_MISMATCH");
   const paymentStatus=String(session?.payment_status||"").toLowerCase(),sessionStatus=String(session?.status||"").toLowerCase();
   return {
-    provider_checkout_session_reference:String(session.id||sessionId),
+    provider_checkout_session_reference:String(session.id||""),
     provider_payment_intent_reference:stripeObjectId(session.payment_intent,"pi_"),
     status:paymentStatus==="paid"?"paid":sessionStatus==="expired"?"expired":"open",
     payment_status:paymentStatus,
-    session_status:sessionStatus
+    session_status:sessionStatus,
+    ...paymentEvidence(session.amount_total,session.currency)
   };
 }
