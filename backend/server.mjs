@@ -45,12 +45,12 @@ import {directSvaComplaintPreparatoryOverview} from "./src/direct-sva-complaint-
 import {runDailyReportCron} from "./src/daily-report.mjs";
 import {monthlySettlementIndex,monthlySettlementReport,createMonthlySettlementPdf} from "./src/customer-financial-documents.mjs";
 
-export async function createDefaultBackend(){
+export async function createDefaultBackend({verifySchema}={}){
   const config=loadConfig();
   const eventBus=new EventBus();
   if(config.mode==="production"){
     const {PostgresStore}=await import("./src/store-postgres.mjs");
-    const store=await PostgresStore.connect(config,eventBus);
+    const store=await PostgresStore.connect(config,eventBus,{verifySchema});
     try{
       await eventBus.attachPostgres(store.sql,{listen:config.processRole!=="worker"});
     }catch(error){
