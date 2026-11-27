@@ -1,0 +1,12 @@
+// Daily read-only actionable exceptions. No new scheduler or automatic payouts.
+// Amounts remain PostgreSQL numeric text, with no floating-point conversion.
+function fail(code,status=400){const e=new Error(code);e.code=code;e.status=status;throw e;}
+export async function collectWholesaleExceptions(store){
+ const sql=store?.sql;
+ if(typeof sql?.unsafe!=="function")fail("WHOLESALE_PRIMARY_REQUIRED",503);
+ const [settlements,expiries]=await Promise.all([
+  sql.unsafe("SELECT c.name AS carrier_name, count(*)::int AS overdue_count, min(s.payment_due_date)::text AS oldest_due, sum(greatest(s.confirmed_amount_ht-s.paid_amount_ht,0))::text AS recorded_outstanding_ht FROM carrier_settlements s JOIN carriers c ON c.id=s.carrier_id WHERE s.currency='EUR' AND s.payment_due_date < (now() AT TIME ZONE 'Europe/Paris')::date AND s.status IN ('reconciled','invoiced') AND s.confirmed_amount_ht IS NOT NULL AND s.paid_amount_ht IS NOT NULL AND s.confirmed_amount_ht>s.paid_amount_ht GROUP BY c.id,c.name ORDER BY sum(greatest(s.confirmed_amount_ht-s.paid_amount_ht,0)) DESC LIMIT 100"),
+  sql.unsafe("SELECT (SELECT count(*)::int FROM carrier_contracts WHERE valid_to BETWEEN (now() AT TIME ZONE 'Europe/Paris')::date AND (now() AT TIME ZONE 'Europe/Paris')::date+30) AS carrier_contracts_expiring, (SELECT count(*)::int FROM direct_sva_interconnections WHERE contract_status='signed' AND valid_until BETWEEN (now() AT TIME ZONE 'Europe/Paris')::date AND (now() AT TIME ZONE 'Europe/Paris')::date+30) AS direct_contracts_expiring, (SELECT count(*)::int FROM direct_sva_number_blocks WHERE allocation_status='granted' AND expires_at BETWEEN (now() AT TIME ZONE 'Europe/Paris')::date AND (now() AT TIME ZONE 'Europe/Paris')::date+30) AS grants_expiring, (SELECT count(*)::int FROM carrier_settlements WHERE currency='EUR' AND status IN ('reconciled','invoiced') AND (payment_due_date IS NULL OR confirmed_amount_ht IS NULL OR paid_amount_ht IS NULL)) AS incomplete_settlements, (SELECT count(*)::int FROM carrier_settlements WHERE currency='EUR' AND status='disputed') AS disputed_settlements")
+ ]);
+ return Object.freeze({schema_version:"pgi-wholesale-exceptions/1",currency:"EUR",overdue_candidates:settlements,expiry_and_review_counts:expiries[0]??null,overdue_group_limit:100,bank_receipts_verified:false,contract_evidence_independently_verified:false,payout_authorized:false,automatic_collection_authorized:false});
+}

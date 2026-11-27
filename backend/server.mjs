@@ -8,6 +8,17 @@ import {MemoryStore} from "./src/store-memory.mjs";
 import {parseCookies,hashPassword,verifyPassword,issueSession,verifySession,constantTimeTokenEqual,sessionCookie,csrfCookie,clearSessionCookies,customerSessionCookie,customerCsrfCookie,clearCustomerSessionCookies} from "./src/security.mjs";
 import {securityHeaders,readJson,json,text,problemJson,routeMatch,clientIp} from "./src/http.mjs";
 import {normalizeFreeSwitchCdr} from "./src/cdr-freeswitch.mjs";
+import {compareWholesaleOffers} from "./src/wholesale-offer-comparison.mjs";
+import {normalizeCarrierExport} from "./src/carrier-export-normalizer.mjs";
+import {reconcileWholesalePreview,reconcileWholesaleLedger} from "./src/wholesale-reconciliation-preview.mjs";
+import {wholesaleIndependenceSnapshot,compareVoiceReception} from "./src/wholesale-independence.mjs";
+import {normalizeCarrierCsv,reconcileCarrierCsv} from "./src/carrier-csv-import.mjs";
+import {planEconomicRouting} from "./src/economic-voice-routing.mjs";
+import {compareInternalizationTco} from "./src/internalization-tco.mjs";
+import {callEconomicsSnapshot} from "./src/call-economics.mjs";
+import {evaluateWholesaleTiers} from "./src/wholesale-tier-economics.mjs";
+import {planVoiceEdge} from "./src/voice-edge-plan.mjs";
+import {voiceRiskSnapshot} from "./src/voice-risk-review.mjs";
 import {startWorkers} from "./src/workers.mjs";
 import {createPortabilityQueueHandlers} from "./src/portability-automation.mjs";
 import {createOutboundPortabilityQueueHandlers} from "./src/outbound-portability-automation.mjs";
@@ -754,6 +765,84 @@ export function createBackend(options={}){
         if(!current||current.enabled!==true||current.role!==actor.role||Number(current.session_version||1)!==Number(actor.session_version)|| (current.locked_until&&Date.now()<Date.parse(current.locked_until)))actor=null;
       }
       const customerActor=authenticateCustomer(req,config);
+
+      // Admin-only, read-only scenario previews: never activate a carrier or write a ledger.
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/compare"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_compare",200,compareWholesaleOffers(body));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/normalize-export"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_normalize",200,normalizeCarrierExport(body));
+      }
+
+      if(method==="GET"&&pathname==="/api/v1/platform/wholesale/independence"){
+        requireRole(actor,["admin"]);
+        return done(res,metrics,started,"platform.wholesale_independence",200,await wholesaleIndependenceSnapshot(store));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/reconcile"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_reconcile",200,reconcileWholesalePreview(body));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/reconcile-ledger"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_reconcile_ledger",200,await reconcileWholesaleLedger(store,body));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/voice-cost"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_voice_cost",200,compareVoiceReception(body));
+      }
+
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/normalize-csv"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_normalize_csv",200,normalizeCarrierCsv(body));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/reconcile-csv"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_reconcile_csv",200,await reconcileCarrierCsv(store,body));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/economic-routing"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_economic_routing",200,await planEconomicRouting(store,body));
+      }
+
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/internalization-tco"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_internalization_tco",200,compareInternalizationTco(body));
+      }
+
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/call-economics"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_call_economics",200,await callEconomicsSnapshot(store,body));
+      }
+
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/volume-tiers"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_volume_tiers",200,evaluateWholesaleTiers(body));
+      }
+
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/voice-edge-plan"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_voice_edge",200,planVoiceEdge(body));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/voice-risk"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        if(body?.business_unit!=="audiotel_platform"){const e=new Error("VOICE_RISK_SCOPE");e.status=400;e.code="VOICE_RISK_SCOPE";throw e;}
+        return done(res,metrics,started,"platform.wholesale_voice_risk",200,await voiceRiskSnapshot(store));
+      }
 
       // A read-only release dossier is available even before the preparatory migrations.
       if(method==="GET"&&pathname==="/api/v1/platform/direct-sva-release-readiness"){

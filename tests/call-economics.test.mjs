@@ -1,0 +1,31 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {callEconomicsSnapshot,CALL_ECONOMICS_SQL} from "../backend/src/call-economics.mjs";
+const window={business_unit:"audiotel_platform",currency:"EUR",from_utc:"2026-10-01T00:00:00Z",to_utc:"2026-10-02T00:00:00Z"};
+const now=new Date("2026-10-03T00:00:00Z");
+test("call economics uses the primary and preserves signed contribution, unknowns and explicit accounting basis",async()=>{
+ const groups=[{sva_number_id:"1",calls:3,evaluable_calls:1,missing_allocations:1,multiple_allocations:1,contribution_ht:"-0.123456",contribution_ht_per_eligible_minute:"-0.123456"}];
+ const store={sql:{unsafe:async(sql,args)=>{assert.equal(sql,CALL_ECONOMICS_SQL);assert.deepEqual(args,["2026-10-01T00:00:00.000Z","2026-10-02T00:00:00.000Z"]);return [{scoped_calls:3,total_groups:1,groups}];}}};
+ const r=await callEconomicsSnapshot(store,window,now);
+ assert.deepEqual(r.groups,groups);
+ assert.equal(r.bank_receipts_verified,false);
+ assert.equal(r.cost_completeness_verified,false);
+ assert.equal(r.payout_authorized,false);
+ assert.equal(r.automatic_tariff_change_authorized,false);
+ assert.match(CALL_ECONOMICS_SQL,/allocation_count=1/);
+ assert.match(CALL_ECONOMICS_SQL,/rc\.unallocated_amount_ht=0/);
+ assert.match(CALL_ECONOMICS_SQL,/fee-technical_cost_ht-expert_cost_ht/);
+ assert.match(CALL_ECONOMICS_SQL,/d\.tenant_id=s\.tenant_id/);
+ assert.match(CALL_ECONOMICS_SQL,/d\.currency='EUR'/);
+ assert.match(CALL_ECONOMICS_SQL,/LIMIT 10001/);
+});
+test("call economics refuses partial oversized windows and never substitutes missing financial data",async()=>{
+ const store={sql:{unsafe:async()=>[{scoped_calls:10001,total_groups:1,groups:[]}]}};
+ await assert.rejects(callEconomicsSnapshot(store,window,now),/SPLIT_WINDOW_REQUIRED/);
+ await assert.rejects(callEconomicsSnapshot(store,{...window,from_utc:"2026-09-31T00:00:00Z"},now),/INVALID_WINDOW/);
+ await assert.rejects(callEconomicsSnapshot(store,{...window,currency:"USD"},now),/INVALID_SCOPE/);
+ await assert.rejects(callEconomicsSnapshot({},window,now),/POSTGRES_REQUIRED/);
+ const empty=await callEconomicsSnapshot({sql:{unsafe:async()=>[{scoped_calls:0,total_groups:0,groups:[]}]}},window,now);
+ assert.equal(empty.scoped_calls,0);
+ assert.deepEqual(empty.groups,[]);
+});

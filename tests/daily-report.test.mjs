@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import {dailyReportScheduleState,buildDailyReportText} from "../backend/src/daily-report.mjs";
+import {dailyReportScheduleState,buildDailyReportText,collectDailyWholesaleReport,collectDailyWholesaleExceptions} from "../backend/src/daily-report.mjs";
 
 const vercel=JSON.parse(fs.readFileSync(new URL("../vercel.json",import.meta.url),"utf8"));
 const server=fs.readFileSync(new URL("../backend/server.mjs",import.meta.url),"utf8");
@@ -47,4 +47,38 @@ test("daily report audit filters use the real timestamp column for both day boun
   assert.match(filter,/\boccurred_at</);
   assert.doesNotMatch(filter,/\bcreated_at\b/);
   assert.match(store,/AT TIME ZONE 'Europe\/Paris'/);
+});
+
+test("daily telecom monitoring observes existing records and isolates failures",async()=>{
+ const sql={unsafe:async query=>{
+  if(query.includes("logical_carrier_routes"))return [{active_carrier:"Carrier A",active_connection_state:"active",standby_carrier:null}];
+  if(query.includes("direct_sva_number_blocks"))return [{recorded_current_grants:0,inventory_records:0,recorded_current_contracts:0}];
+  return [{carrier_name:"Carrier A",expected_ht:"12.30",confirmed_ht:"10.00",recorded_paid_ht:"5.00",technical_cost_ht:"1.00"}];
+ }};
+ const wholesale=await collectDailyWholesaleReport({readSql:sql});
+ assert.equal(wholesale.available,true);
+ const report=buildDailyReportText("2026-11-27",{wholesale});
+ assert.match(report,/Routes actives enregistrées : 1/);
+ assert.match(report,/Routes sans opérateur de secours prêt : 1/);
+ assert.match(report,/12\.30 EUR HT/);
+ assert.match(report,/ne sont pas nécessairement des impayés échus/);
+ const unavailable=await collectDailyWholesaleReport({readSql:{unsafe:async()=>{throw Error("unavailable");}}});
+ assert.deepEqual(unavailable,{available:false});
+ assert.match(buildDailyReportText("2026-11-27",{wholesale:unavailable}),/Indépendance télécom : données indisponibles/);
+});
+
+test("daily report automatically identifies overdue candidates and upcoming expiries without treating them as verified receivables",async()=>{
+ const statements=[];
+ const store={sql:{unsafe:async query=>{statements.push(query);return query.includes("GROUP BY")?[{carrier_name:"Carrier A",overdue_count:2,oldest_due:"2026-10-01",recorded_outstanding_ht:"125.40"}]:[{carrier_contracts_expiring:1,direct_contracts_expiring:0,grants_expiring:2,incomplete_settlements:3,disputed_settlements:4}];}}};
+ const section=await collectDailyWholesaleExceptions(store);
+ assert.equal(section.available,true);
+ assert.equal(statements.length,2);
+ assert.ok(statements.every(q=>q.startsWith("SELECT ")));
+ assert.match(statements[0],/confirmed_amount_ht>s.paid_amount_ht/);
+ assert.equal(section.data.automatic_collection_authorized,false);
+ const report=buildDailyReportText("2026-11-27",{wholesale_exceptions:section});
+ assert.match(report,/125\.40 EUR HT/);
+ assert.match(report,/Attributions de numérotation à échéance dans les 30 jours : 2/);
+ assert.match(report,/Aucun recouvrement ni paiement automatique/);
+ assert.deepEqual(await collectDailyWholesaleExceptions({}),{available:false});
 });

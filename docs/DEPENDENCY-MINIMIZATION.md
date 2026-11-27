@@ -138,3 +138,137 @@ Aucune refonte applicative.
 Si l'opérateur utilise un établissement de paiement en sous-jacent pour les reversements, PGI ne doit pas en dépendre techniquement dans le cœur.
 
 L'opérateur/adaptateur encapsule cette relation. Si le modèle contractuel impose une relation directe avec un PSP, elle reste une dépendance financière périphérique, jamais une dépendance téléphonique ou applicative.
+
+
+## Comparateur wholesale et normalisation des relevés
+
+Les routes POST `/api/v1/platform/wholesale/compare` et
+`/api/v1/platform/wholesale/normalize-export` sont réservées aux administrateurs authentifiés
+avec CSRF. Aucun changement de fournisseur, écriture comptable, paiement, affectation de numéro
+ou appel à un opérateur ne peut être déclenché par ces routes.
+
+Le comparateur travaille en micro-euros HT entiers (1 EUR = 1 000 000 micro-EUR).
+La marge minimale de contribution est de 70 000 micro-EUR/minute, après coûts variables
+et frais fixes amortis sur l'horizon renseigné, avant impôts et autres charges non saisies.
+Chaque coût est obligatoire, y compris les frais d'intermédiaire, les frais de sortie
+et les compléments au minimum de facturation. Une offre non documentée reste bloquée
+même si sa marge estimée est élevée. Les indicateurs de preuve saisis sont déclaratifs,
+pas une certification indépendante ni une autorisation de mise en service.
+
+Le normaliseur accepte les lignes JSON déjà extraites des relevés fournisseur, avec
+mapping explicite, dates ISO horodatées avec fuseau, montants décimaux textuels et
+identifiants d'appel uniques. Il produit un aperçu canonique et une empreinte stable.
+Un montant déclaré par un fournisseur n'est jamais assimilé à un encaissement vérifié.
+Les champs personnels inutiles ne sont pas retournés. L'importeur CSV/SFTP, le rapprochement
+avec les écritures réelles et le raccordement SIP nécessitent les spécifications et les
+preuves contractuelles de chaque opérateur.
+
+Ce périmètre ne modifie ni Vercel, ni Neon, ni Stripe, ni les autres prestataires techniques.
+Aucune activation commerciale du pôle Distribution n'est effectuée.
+
+
+### Outils supplémentaires d'indépendance télécom
+
+Le cockpit « Abonnement & opérateur » contient désormais un module d'analyse chargé à la demande : inventaire réel des blocs et contrats enregistrés, routes actives et de secours, agrégats financiers EUR des 30 derniers jours. Les preuves réglementaires et bancaires ne sont pas déduites de simples états enregistrés.
+
+- `GET /api/v1/platform/wholesale/independence` : observation de l'inventaire et des flux enregistrés.
+- `POST /api/v1/platform/wholesale/reconcile` : comparaison de deux séries déclaratives.
+- `POST /api/v1/platform/wholesale/reconcile-ledger` : comparaison avec les attentes CDR PGI de la base primaire, pour un opérateur existant et une fenêtre UTC complète de 31 jours maximum et 1 000 appels maximum. Au-delà, scinder la fenêtre. Les lignes importées restent non authentifiées et les écarts ne prouvent pas à eux seuls une créance.
+- `POST /api/v1/platform/wholesale/voice-cost` : estimation des économies de réception WebRTC, y compris les minutes de repli PSTN, frais fixes et investissement initial.
+
+Le comparateur exige également la catégorie du numéro et le tarif service HT déclaré, soumis aux plafonds configurés du modèle de marge existant. Les coûts, preuves, tarifs et autorisations doivent être confirmés indépendamment. Aucun serveur média ou trunk SIP réel n'est déployé par ces fonctions. Les formulaires avancés utilisent du JSON et ne persistent aucune saisie. Les routes POST sont réservées aux administrateurs avec CSRF. Aucun changement de schéma ni de fournisseur informatique n'est nécessaire.
+
+
+### Internalisation supplémentaire : fichiers opérateurs et coût des destinations
+
+Les routes administrateur POST `/api/v1/platform/wholesale/normalize-csv`,
+`/api/v1/platform/wholesale/reconcile-csv` et
+`/api/v1/platform/wholesale/economic-routing` sont protégées par session et CSRF.
+Le cockpit accepte un fichier CSV local (180 000 octets maximum, 1 000 lignes de données,
+64 colonnes), avec séparateur explicite et correspondance de colonnes.
+Les fichiers sont analysés sans SDK propriétaire ni convertisseur externe.
+Le rapprochement utilise les attentes de la base PGI et conserve les empreintes du texte
+UTF-8 reçu et de l'export canonique. Les montants déclarés et les écarts ne constituent
+pas une preuve de règlement. Les dates, unités et conventions opérateur doivent être
+confirmées ; aucun CSV ne déclenche un paiement ou une modification du journal.
+
+Le calcul de terminaison utilise des entiers en micro-euros et tient compte du minimum
+facturable, de l'incrément de durée et du forfait de connexion. Il s'agit d'une estimation
+selon la convention explicitée, et non d'une substitution aux tarifs du contrat.
+L'analyse de routage s'appuie sur la simulation PGI existante, pour un tenant et un numéro
+déterminés : seules les destinations disponibles, de même priorité et de même
+spécificité peuvent être comparées. Les preuves de qualité, coût et accord client
+sont déclaratives et exigent validation. Le moteur ne modifie aucun routage réel.
+
+Restent hors périmètre : la mise en service d'un SBC, d'un serveur média/SVI FreeSWITCH,
+d'un serveur TURN/WebRTC, les interconnexions, la collecte SVA, la portabilité réseau
+et les autorisations de numérotation. Leurs paramètres, certificats, accès opérateurs
+et conditions contractuelles réelles restent nécessaires. Conserver Stripe, Neon,
+Vercel et les autres fournisseurs informatiques, ainsi que les garde-fous de conformité.
+
+
+### Gratuité intelligente et coût total
+
+Le comparateur administrateur `POST /api/v1/platform/wholesale/internalization-tco`
+compare le coût incrémental de la prestation actuelle et d'une alternative sur
+trois volumes (bas, central, haut) et un horizon de 1 à 60 mois.
+Chaque poste doit être renseigné explicitement, même si sa valeur vérifiée est zéro.
+Les coûts comprennent licences, hébergement, maintenance, sécurité et sauvegardes,
+conformité, support, travail interne, dépassement du volume inclus, matériel,
+installation, migration, coexistence temporaire et sortie. Le moteur bloque une
+recommandation si l'économie n'est pas positive dans tous les scénarios, si la
+capacité est insuffisante ou si les preuves déclaratives manquent (usage commercial
+de la licence, coûts, capacité, qualité, sécurité, continuité, conformité, sortie).
+Il ne remplace ni une étude financière complète ni une décision d'achat.
+Priorité : réutiliser l'existant, puis logiciels libres et quotas gratuits compatibles
+avec un usage professionnel, sans remplacer Vercel, Neon, Stripe ou les autres
+prestataires informatiques actuels. Aucun abonnement, résiliation, déploiement
+ou engagement financier automatique. Aucun gain comptabilisé sans preuve réelle.
+
+
+### Rentabilité par appel et négociation des paliers
+
+Les outils privés `POST /api/v1/platform/wholesale/call-economics` et
+`POST /api/v1/platform/wholesale/volume-tiers` sont réservés aux administrateurs
+avec CSRF. Le premier lit la base primaire sans modifier les écritures. Il
+examine les appels connectés EUR des clients externes, avec une seule allocation
+financière concordante et complète. Il distingue les allocations absentes,
+multiples et non évaluables. La contribution enregistrée est la commission PGI
+allouée moins les coûts techniques et experts enregistrés. Elle n'est ni un
+bénéfice net ni une preuve bancaire ; les coûts non enregistrés, les frais
+généraux, la fiscalité et les règlements directs sans allocation sont exclus.
+Fenêtre UTC de 31 jours maximum, 10 000 appels maximum (scinder au-delà),
+100 groupes maximum, classés par contribution croissante avec les données
+insuffisantes en premier. Les montants numériques SQL restent textuels.
+
+Le second évalue des paliers wholesale marginaux ou rétroactifs sur trois
+hypothèses de volume. `from_minutes` représente le nombre de minutes déjà
+franchies : le nouveau palier s'applique à partir de la minute suivante.
+Le minimum de dépenses réseau n'est facturé que sous forme de complément
+au coût réseau déjà comptabilisé. Saisir exclusivement des conventions
+tarifaires compatibles avec le contrat réel, sans compter deux fois une
+déduction déjà comprise dans le reversement net opérateur. Les frais fixes,
+les coûts variables, les reversements éditeurs et les dépenses ponctuelles
+sont explicites. Le seuil de contribution est fourni par l'administrateur.
+Les preuves saisies restent déclaratives. Aucune négociation contractuelle,
+modification de tarif, bascule, dépense ou paiement n'est déclenché.
+Aucune tâche planifiée ni migration de base n'est ajoutée.
+
+
+### Préparation voix indépendante, capacité et surveillance
+
+Le validateur natif de profils opérateurs est désormais exécuté par
+`npm run check:carriers` : format, capacités, mappings exacts, fuseau
+horaire, références de secrets et cohérence TLS. Un profil valide
+ne prouve pas une convention ni une recette technique.
+
+Deux outils administrateur avec CSRF sont disponibles dans le code :
+`POST /api/v1/platform/wholesale/voice-edge-plan` (préparation déclarative
+ACL SIP/RTP et capacité) et `POST /api/v1/platform/wholesale/voice-risk`
+(lecture des appels et mesures MOS enregistrés dans PGI, sept jours
+horaires complets, 10 000 appels et 100 groupes maximum).
+Au-delà du volume, le contrôle signale sa limite plutôt que présenter
+un résultat partiel comme complet. Les seuils de trafic et de qualité
+sont des indicateurs de revue, non une preuve de fraude. Aucun blocage
+automatique d'appel, changement de route, paiement, achat ou déploiement.
+Aucune tâche planifiée n'est ajoutée ou modifiée.
