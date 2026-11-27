@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {reconcileWholesalePreview} from "../backend/src/wholesale-reconciliation-preview.mjs";
+import {reconcileWholesalePreview,reconcileWholesaleLedger} from "../backend/src/wholesale-reconciliation-preview.mjs";
 import {compareVoiceReception,wholesaleIndependenceSnapshot} from "../backend/src/wholesale-independence.mjs";
 const reconciliation={business_unit:"audiotel_platform",currency:"EUR",provider_key:"carrier-a",period:"2026-11",
  expected_rows:[{external_call_id:"a",expected_micro_eur:100000},{external_call_id:"b",expected_micro_eur:200000},{external_call_id:"c",expected_micro_eur:300000}],
@@ -42,4 +42,18 @@ test("independence snapshot uses read-only aggregate queries and never grants au
  assert.equal(r.payout_authorized,false);
  assert.equal(r.number_assignment_authorized,false);
  await assert.rejects(wholesaleIndependenceSnapshot({}),/POSTGRES_REQUIRED/);
+});
+
+test("stored CDR reconciliation binds carrier and time parameters, ignores supplied expected rows",async()=>{
+ const statements=[];
+ const store={readSql:{unsafe:async(q,args)=>{statements.push({q,args});return q.includes("FROM carriers")?[{id:7}]:[{external_call_id:"a",expected_ht:"0.100000"}];}}};
+ const input={business_unit:"audiotel_platform",currency:"EUR",carrier_id:7,from_utc:"2026-10-01T00:00:00Z",to_utc:"2026-10-02T00:00:00Z",expected_rows:[],reported_rows:[{external_call_id:"a",reported_micro_eur:80000}]};
+ const r=await reconcileWholesaleLedger(store,input);
+ assert.equal(r.gross_shortfall_micro_eur,20000);
+ assert.equal(r.expected_source,"pgi_stored_connected_call_expectations");
+ assert.deepEqual(statements[1].args,[7,"2026-10-01T00:00:00.000Z","2026-10-02T00:00:00.000Z"]);
+ assert.equal(r.report_coverage_verified,false);
+ await assert.rejects(reconcileWholesaleLedger(store,{...input,from_utc:"2026-09-31T00:00:00Z"}),/UTC_WINDOW/);
+ const tooLarge={readSql:{unsafe:async q=>q.includes("FROM carriers")?[{id:7}]:Array(1001).fill({})}};
+ await assert.rejects(reconcileWholesaleLedger(tooLarge,input),/SPLIT_WINDOW_REQUIRED/);
 });
