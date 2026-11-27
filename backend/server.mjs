@@ -1134,6 +1134,8 @@ export function createBackend(options={}){
                   status:item.snapshot.status,
                   provider_checkout_session_reference:item.snapshot.provider_checkout_session_reference,
                   provider_payment_intent_reference:item.snapshot.provider_payment_intent_reference,
+                  verified_amount_minor:item.snapshot.verified_amount_minor,
+                  verified_currency:item.snapshot.verified_currency,
                   payload_sha256:"0".repeat(64)
                 });
                 changed=changed||Boolean(applied.updated);
@@ -1193,7 +1195,7 @@ export function createBackend(options={}){
         const body=await readJson(req,config.bodyLimitBytes);
         const account=await store.customerCardPaymentAccount(context.tenant_id);
         if(!account||account.status!=="active"||account.charges_enabled!==true)return done(res,metrics,started,"customer.card_payments.checkout",409,{error:{code:"CARD_PAYMENT_ACCOUNT_NOT_READY"},provider:stripeConnectState(config),account});
-        const amountMinor=Math.trunc(Number(body.amount_minor));
+        const amountMinor=typeof body.amount_minor==="number"?body.amount_minor:typeof body.amount_minor==="string"&&/^[1-9][0-9]{0,8}$/.test(body.amount_minor)?Number(body.amount_minor):NaN;
         if(!Number.isInteger(amountMinor)||amountMinor<500||amountMinor>100000000){const e=new Error("Card payment amount must be between 5 EUR and 1,000,000 EUR equivalent");e.status=400;e.code="INVALID_CARD_PAYMENT_AMOUNT";throw e;}
         const request=await store.createCustomerCardPaymentRequest(context.tenant_id,context.id,{
           amount_minor:amountMinor,currency:String(body.currency||"EUR").toUpperCase(),description:body.description,customer_email:body.customer_email||null,
