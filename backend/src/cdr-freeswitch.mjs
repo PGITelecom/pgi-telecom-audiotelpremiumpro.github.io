@@ -43,6 +43,7 @@ export function normalizeFreeSwitchCdr(raw,{uuid,callerHashKey}){
     origin_type:String(v.pgi_origin_type||"unknown"),
     sva_number:destination,
     expert_id:nullableInt(v.pgi_expert_id),
+    call_destination_id:positiveOptionalId(v.pgi_call_destination_id??v.call_destination_id),
     expert_name:String(v.pgi_expert_name||""),
     sip_final_code:nullableInt(v.sip_term_status||v.last_bridge_proto_specific_hangup_cause),
     hangup_cause:hangup,
@@ -51,6 +52,7 @@ export function normalizeFreeSwitchCdr(raw,{uuid,callerHashKey}){
     quality:qualityFrom(v,raw.callStats)
   };
   if(v.pgi_host_carrier)payload.host_carrier=String(v.pgi_host_carrier);
+  if(payload.expert_id!=null&&payload.call_destination_id!=null)throw problem(400,"FREESWITCH_ROUTE_ID_CONFLICT");
   return {
     source:"freeswitch",
     source_event_id:id,
@@ -73,10 +75,11 @@ function qualityFrom(v,stats){
   const packetsLost=firstNumber(v.rtp_audio_in_packet_loss,stats?.audio?.inbound?.packets_lost);
   const bytesIn=firstNumber(v.rtp_audio_in_media_bytes,stats?.audio?.inbound?.bytes_received);
   const bytesOut=firstNumber(v.rtp_audio_out_media_bytes,stats?.audio?.outbound?.bytes_sent);
-  if(packetLoss==null&&jitter==null&&latency==null&&rtt==null&&mos==null&&packetsIn==null&&packetsOut==null&&packetsLost==null&&bytesIn==null&&bytesOut==null)return null;
+  const dtmf=firstNumber(v.pgi_dtmf_errors,stats?.audio?.dtmf_errors);
+  if(packetLoss==null&&jitter==null&&latency==null&&rtt==null&&mos==null&&packetsIn==null&&packetsOut==null&&packetsLost==null&&bytesIn==null&&bytesOut==null&&dtmf==null)return null;
   return {
     packet_loss_percent:packetLoss,jitter_ms:jitter,latency_ms:latency,rtt_ms:rtt,mos,
-    packets_in:packetsIn,packets_out:packetsOut,packets_lost:packetsLost,bytes_in:bytesIn,bytes_out:bytesOut
+    packets_in:packetsIn,packets_out:packetsOut,packets_lost:packetsLost,bytes_in:bytesIn,bytes_out:bytesOut,dtmf_errors:dtmf
   };
 }
 function hangupParty(v,status){
@@ -94,6 +97,11 @@ function firstNumber(...xs){
     const n=Number(x);if(Number.isFinite(n))return n;
   }
   return null;
+}
+function positiveOptionalId(v){
+  if(v==null||v==="")return null;
+  if((typeof v!=="number"&&typeof v!=="string")||!/^\d+$/.test(String(v)))throw problem(400,"FREESWITCH_DESTINATION_ID_INVALID");
+  const n=Number(v);if(!Number.isSafeInteger(n)||n<=0)throw problem(400,"FREESWITCH_DESTINATION_ID_INVALID");return n;
 }
 function nullableInt(v){
   if(v==null||v==="")return null;
