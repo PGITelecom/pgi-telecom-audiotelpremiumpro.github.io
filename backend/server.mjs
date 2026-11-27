@@ -17,6 +17,8 @@ import {planEconomicRouting} from "./src/economic-voice-routing.mjs";
 import {compareInternalizationTco} from "./src/internalization-tco.mjs";
 import {callEconomicsSnapshot} from "./src/call-economics.mjs";
 import {evaluateWholesaleTiers} from "./src/wholesale-tier-economics.mjs";
+import {planVoiceEdge} from "../telephony/voice-edge-plan.mjs";
+import {voiceRiskSnapshot} from "./src/voice-risk-review.mjs";
 import {startWorkers} from "./src/workers.mjs";
 import {createPortabilityQueueHandlers} from "./src/portability-automation.mjs";
 import {createOutboundPortabilityQueueHandlers} from "./src/outbound-portability-automation.mjs";
@@ -828,6 +830,18 @@ export function createBackend(options={}){
         requireRole(actor,["admin"]);requireCsrf(req,actor,config);
         const body=await readJson(req,config.bodyLimitBytes);
         return done(res,metrics,started,"platform.wholesale_volume_tiers",200,evaluateWholesaleTiers(body));
+      }
+
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/voice-edge-plan"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        return done(res,metrics,started,"platform.wholesale_voice_edge",200,planVoiceEdge(body));
+      }
+      if(method==="POST"&&pathname==="/api/v1/platform/wholesale/voice-risk"){
+        requireRole(actor,["admin"]);requireCsrf(req,actor,config);
+        const body=await readJson(req,config.bodyLimitBytes);
+        if(body?.business_unit!=="audiotel_platform"){const e=new Error("VOICE_RISK_SCOPE");e.status=400;e.code="VOICE_RISK_SCOPE";throw e;}
+        return done(res,metrics,started,"platform.wholesale_voice_risk",200,await voiceRiskSnapshot(store));
       }
 
       // A read-only release dossier is available even before the preparatory migrations.
