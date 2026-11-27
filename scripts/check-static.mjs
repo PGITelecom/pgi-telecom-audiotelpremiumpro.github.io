@@ -104,9 +104,9 @@ const buildSource=fs.readFileSync(path.join(root,"scripts/build-static.mjs"),"ut
 const buildFilesBlock=buildSource.match(/const files=\[([\s\S]*?)\n\];/);
 const publishedFiles=new Set(buildFilesBlock?[...buildFilesBlock[1].matchAll(/"([^"]+)"/g)].map(match=>match[1]):[]);
 for(const file of publishedFiles){
-  if(!file.endsWith(".js"))continue;
+  if(!file.endsWith(".js")&&!file.endsWith(".mjs"))continue;
   const source=fs.readFileSync(path.join(root,file),"utf8"),specifiers=[];
-  for(const pattern of [/(?:import|export)\s+(?:[^"']*?\sfrom\s*)?["'](\.\.?\/[^"']+\.(?:js|css))["']/g,/import\(\s*["'](\.\.?\/[^"']+\.(?:js|css))["']\s*\)/g,/new URL\(\s*["'](\.\.?\/[^"']+\.(?:js|css))["']/g]){
+  for(const pattern of [/(?:import|export)\s+(?:[^"']*?\sfrom\s*)?["'](\.\.?\/[^"']+\.(?:js|mjs|css))["']/g,/import\(\s*["'](\.\.?\/[^"']+\.(?:js|mjs|css))["']\s*\)/g,/new URL\(\s*["'](\.\.?\/[^"']+\.(?:js|mjs|css))["']/g]){
     for(const match of source.matchAll(pattern))specifiers.push(match[1]);
   }
   for(const specifier of specifiers){
