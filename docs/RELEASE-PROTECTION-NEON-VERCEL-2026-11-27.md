@@ -63,3 +63,19 @@ Le script de creation des sauvegardes refuse aussi d'annoncer qu'une archive est
 - Un test syntaxique GitHub CI reussi ne remplace pas un exercice reel sur les donnees Neon. Les tests automatiques sont inoffensifs sur CI et ne contactent aucune base client.
 
 **Decision :** gel maintenu sur les migrations Neon et le deploiement de la PR #207 jusqu'a obtention d'un export recent, deux copies protegees et preuve de restauration, puis verification independante des droits et de l'application.
+
+
+## Audit comparatif des branches candidates, 27 novembre 2026
+
+**Audit effectue en lecture seule, sans export de donnees personnelles.** Trois branches examinees :
+- `main` (branche principale, 3 tenants, 427 evenements de webhook e-mail, 85 migrations).
+- `validation-migrations-076-085-2026-10-11` (`br-noisy-band-auw2255q`, archivee, 1 tenant, 53 evenements, 85 migrations).
+- `preflight-prod-migrations-072-085-2026-10-11` (`br-shiny-river-auqpjd9i`, archivee, 1 tenant, 53 evenements, 85 migrations).
+
+**Niveau 1 :** controles de lignes exactes sur **518 tables physiques** des trois branches. Dans les deux branches historiques, les nombres de lignes sont identiques table par table et ne sont jamais superieurs a `main`. Les 53 identifiants d'evenements, combines avec l'empreinte du contenu e-mail, sont presents dans `main`. Les signatures de tenant examinees sont presentes dans `main` ; les 85 noms et checksums de migration correspondent a `main`.
+
+**Niveau 2 :** empreintes SHA-256/MD5 de comparaison de contenu pour les **31 tables peuplees** sur les branches historiques, en agregeant les empreintes de lignes sans transmettre les valeurs. Les deux branches historiques **ne sont pas identiques** : six tables ont des contenus differents (`direct_sva_admin_switches`, `direct_sva_integration_readiness`, `direct_sva_operator_controls`, `direct_sva_website_visibility`, `pgi_company_business_units`, `schema_migrations`). Par rapport a `main`, huit tables historiques ont des contenus differents, notamment les etats de configuration, l'horodatage de migration et les donnees de tenant/evenements.
+
+**Decision prudente :** les deux branches restent des candidates au nettoyage, mais ne doivent **pas** etre supprimees comme des doublons exacts. Certaines differences peuvent etre simplement des horodatages ou des scenarios de recette, d'autres portent sur la configuration metier SVA. Conserver avant toute suppression un export externe chiffre, une restauration en environnement isole et un inventaire des changements de configuration propres a chaque branche. Les 10 branches restent conservees pour le moment.
+
+Ce constat corrige toute interpretation selon laquelle « 85 migrations et memes nombres de lignes » prouveraient l'absence de donnees uniques. Aucun compte, numero, contrat, paiement ni route telecom n'a ete modifie. **Aucune branche supprimee.**
