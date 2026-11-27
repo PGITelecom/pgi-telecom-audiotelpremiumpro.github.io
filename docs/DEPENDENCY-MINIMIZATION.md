@@ -224,3 +224,32 @@ Priorité : réutiliser l'existant, puis logiciels libres et quotas gratuits com
 avec un usage professionnel, sans remplacer Vercel, Neon, Stripe ou les autres
 prestataires informatiques actuels. Aucun abonnement, résiliation, déploiement
 ou engagement financier automatique. Aucun gain comptabilisé sans preuve réelle.
+
+
+### Rentabilité par appel et négociation des paliers
+
+Les outils privés `POST /api/v1/platform/wholesale/call-economics` et
+`POST /api/v1/platform/wholesale/volume-tiers` sont réservés aux administrateurs
+avec CSRF. Le premier lit la base primaire sans modifier les écritures. Il
+examine les appels connectés EUR des clients externes, avec une seule allocation
+financière concordante et complète. Il distingue les allocations absentes,
+multiples et non évaluables. La contribution enregistrée est la commission PGI
+allouée moins les coûts techniques et experts enregistrés. Elle n'est ni un
+bénéfice net ni une preuve bancaire ; les coûts non enregistrés, les frais
+généraux, la fiscalité et les règlements directs sans allocation sont exclus.
+Fenêtre UTC de 31 jours maximum, 10 000 appels maximum (scinder au-delà),
+100 groupes maximum, classés par contribution croissante avec les données
+insuffisantes en premier. Les montants numériques SQL restent textuels.
+
+Le second évalue des paliers wholesale marginaux ou rétroactifs sur trois
+hypothèses de volume. `from_minutes` représente le nombre de minutes déjà
+franchies : le nouveau palier s'applique à partir de la minute suivante.
+Le minimum de dépenses réseau n'est facturé que sous forme de complément
+au coût réseau déjà comptabilisé. Saisir exclusivement des conventions
+tarifaires compatibles avec le contrat réel, sans compter deux fois une
+déduction déjà comprise dans le reversement net opérateur. Les frais fixes,
+les coûts variables, les reversements éditeurs et les dépenses ponctuelles
+sont explicites. Le seuil de contribution est fourni par l'administrateur.
+Les preuves saisies restent déclaratives. Aucune négociation contractuelle,
+modification de tarif, bascule, dépense ou paiement n'est déclenché.
+Aucune tâche planifiée ni migration de base n'est ajoutée.
