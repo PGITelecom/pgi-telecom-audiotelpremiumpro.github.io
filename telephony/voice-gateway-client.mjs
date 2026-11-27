@@ -2,6 +2,7 @@
 // On ambiguous timeout retry the same root call/event with a fresh nonce.
 import https from "node:https";
 import {randomUUID} from "node:crypto";
+import {voiceCallId} from "../backend/src/voice-reservation-lifecycle.mjs";
 import {signVoiceMachineRequest} from "../backend/src/voice-machine-auth.mjs";
 const PATHS=new Set(["/voice/v1/reserve","/voice/v1/observe"]);
 function fail(code){const e=new Error(code);e.code=code;return e;}
@@ -10,6 +11,7 @@ export async function voiceGatewayRequest({origin,node,keyId,secret,tls,path,pay
  try{url=new URL(origin);}catch{throw fail("VOICE_GATEWAY_ORIGIN_INVALID");}
  if(url.protocol!=="https:"||url.username||url.password||url.pathname!=="/"||url.search||url.hash||!PATHS.has(path))throw fail("VOICE_GATEWAY_ORIGIN_INVALID");
  if(!tls?.cert||!tls?.key||!tls?.ca||!Number.isSafeInteger(timeoutMs)||timeoutMs<1000||timeoutMs>20000)throw fail("VOICE_GATEWAY_CLIENT_INVALID");
+ const root=voiceCallId(payload?.call_id);
  const body=Buffer.from(JSON.stringify(payload));
  const timestamp=Math.floor(Date.now()/1000),nonce=randomUUID();
  const signature=signVoiceMachineRequest({node,keyId,timestamp,nonce,path,body},secret);
@@ -28,7 +30,7 @@ export async function voiceGatewayRequest({origin,node,keyId,secret,tls,path,pay
      const code=typeof data?.error==="string"&&/^VOICE_[A-Z0-9_]{1,80}$/.test(data.error)?data.error:"VOICE_GATEWAY_RESULT_UNKNOWN";
      return reject(fail(code));
     }
-    if(!data||typeof data!=="object"||data.call_id!==payload.call_id.toLowerCase()||data.node_id!==node)return reject(fail("VOICE_GATEWAY_RESPONSE_INVALID"));
+    if(!data||typeof data!=="object"||data.call_id!==root||data.node_id!==node)return reject(fail("VOICE_GATEWAY_RESPONSE_INVALID"));
     resolve(data);
    });
   });
