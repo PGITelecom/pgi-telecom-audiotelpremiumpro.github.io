@@ -77,33 +77,43 @@ export async function checkWithConfirmation(base,spec,opts={}){
     classification:second.pass?"transient":"confirmed_failure"};
 }
 export async function runProductionSmoke({target=process.env.PGI_PRODUCTION_URL||"https://audiotel-premium-pro.com",...opts}={}){
- const base=productionOrigin(target),checks=[];
- async function fetchCheck(name,path,expected,tokens=[],jsonCheck=null,contentType=null,security=false){
-   checks.push(await checkWithConfirmation(base,{name,path,expected,tokens,jsonCheck,contentType,security},opts));
+ const base=productionOrigin(target),specs=[];
+ function fetchCheck(name,path,expected,tokens=[],jsonCheck=null,contentType=null,security=false){
+   specs.push({name,path,expected,tokens,jsonCheck,contentType,security});
  }
-await fetchCheck("site.home","/",200,["Commencer ma demande","/demande-ouverture/","client.html"]);
-await fetchCheck("site.application","/demande-ouverture/",200,["id=\"order-form\""]);
-await fetchCheck("site.application.logic","/site/site.js",200,["/api/v1/public/hubspot/lead","client.html?opening=","sessionStorage"]);
-await fetchCheck("site.client","/client.html",200,["id=\"customer-login-form\"","id=\"client-billing-start\"","id=\"portability-open\"","id=\"service-incident-open\""]);
-await fetchCheck("site.cockpit","/cockpit.html",200,["id=\"auth-form\"","ACCÈS PRODUCTION"]);
-await fetchCheck("site.terms","/conditions-abonnement/",200,["4,90 € TTC par mois","durée indéterminée","résiliation à tout moment","2026-10-06-b2b-b2c-v5"]);
-await fetchCheck("site.privacy","/confidentialite/",200,["Politique de confidentialité","RGPD"]);
-await fetchCheck("site.legal","/mentions-legales/",200,["Mentions légales"]);
-await fetchCheck("site.terms-of-use","/conditions-utilisation/",200,["Conditions générales d’utilisation"]);
-await fetchCheck("site.cookies","/cookies-traceurs/",200,["Cookies et traceurs"]);
-await fetchCheck("site.cancellation","/resilier-contrat/",200,["Résilier votre contrat","client.html?action=cancel-subscription","cesse de se renouveler"]);
-await fetchCheck("site.withdrawal","/retractation/",200,["14 jours","Fonctionnalité en ligne obligatoire","id=\"withdrawal-form\""]);
-await fetchCheck("withdrawal.status","/api/v1/public/withdrawal/status",200,[],b=>b&&b.available===true);
-await fetchCheck("referral.status","/api/v1/public/referral-program",200,[],b=>b&&typeof b.enabled==="boolean"&&Number.isFinite(Number(b.reward_minor))&&typeof b.currency==="string");
-await fetchCheck("site.sitemap","/sitemap.xml",200,["<loc>https://audiotel-premium-pro.com/</loc>","/parrainage-audiotel/","/portabilite-prioritaire/"]);
-await fetchCheck("api.health","/api/v1/health",200,[],b=>b&&b.status==="ok"&&b.mode==="production");
-await fetchCheck("auth.boundary","/api/v1/customer/auth/me",401,["AUTH_REQUIRED"]);
-await fetchCheck("billing.boundary","/api/v1/customer/billing/status",401,["AUTH_REQUIRED"]);
-await fetchCheck("asset.client.logic","/assets/client-portal.js",200,["showApp","loadPortal"],null,"javascript");
-await fetchCheck("asset.client.styles","/assets/client-portal.css",200,[".cp-header",".cp-main"],null,"text/css");
-await fetchCheck("asset.cockpit.logic","/assets/app.js",200,["window.scrollTo"],null,"javascript");
-await fetchCheck("asset.site.styles","/site/site.css",200,[".site-header"],null,"text/css");
-await fetchCheck("security.headers","/",200,[],null,"text/html",true);
+fetchCheck("site.home","/",200,["Commencer ma demande","/demande-ouverture/","client.html"]);
+fetchCheck("site.application","/demande-ouverture/",200,["id=\"order-form\""]);
+fetchCheck("site.application.logic","/site/site.js",200,["/api/v1/public/hubspot/lead","client.html?opening=","sessionStorage"]);
+fetchCheck("site.client","/client.html",200,["id=\"customer-login-form\"","id=\"client-billing-start\"","id=\"portability-open\"","id=\"service-incident-open\""]);
+fetchCheck("site.cockpit","/cockpit.html",200,["id=\"auth-form\"","ACCÈS PRODUCTION"]);
+fetchCheck("site.terms","/conditions-abonnement/",200,["4,90 € TTC par mois","durée indéterminée","résiliation à tout moment","2026-10-06-b2b-b2c-v5"]);
+fetchCheck("site.privacy","/confidentialite/",200,["Politique de confidentialité","RGPD"]);
+fetchCheck("site.legal","/mentions-legales/",200,["Mentions légales"]);
+fetchCheck("site.terms-of-use","/conditions-utilisation/",200,["Conditions générales d’utilisation"]);
+fetchCheck("site.cookies","/cookies-traceurs/",200,["Cookies et traceurs"]);
+fetchCheck("site.cancellation","/resilier-contrat/",200,["Résilier votre contrat","client.html?action=cancel-subscription","cesse de se renouveler"]);
+fetchCheck("site.withdrawal","/retractation/",200,["14 jours","Fonctionnalité en ligne obligatoire","id=\"withdrawal-form\""]);
+fetchCheck("withdrawal.status","/api/v1/public/withdrawal/status",200,[],b=>b&&b.available===true);
+fetchCheck("referral.status","/api/v1/public/referral-program",200,[],b=>b&&typeof b.enabled==="boolean"&&Number.isFinite(Number(b.reward_minor))&&typeof b.currency==="string");
+fetchCheck("site.sitemap","/sitemap.xml",200,["<loc>https://audiotel-premium-pro.com/</loc>","/parrainage-audiotel/","/portabilite-prioritaire/"]);
+fetchCheck("api.health","/api/v1/health",200,[],b=>b&&b.status==="ok"&&b.mode==="production");
+fetchCheck("auth.boundary","/api/v1/customer/auth/me",401,["AUTH_REQUIRED"]);
+fetchCheck("billing.boundary","/api/v1/customer/billing/status",401,["AUTH_REQUIRED"]);
+fetchCheck("asset.client.logic","/assets/client-portal.js",200,["showApp","loadPortal"],null,"javascript");
+fetchCheck("asset.client.styles","/assets/client-portal.css",200,[".cp-header",".cp-main"],null,"text/css");
+fetchCheck("asset.cockpit.logic","/assets/app.js",200,["window.scrollTo"],null,"javascript");
+fetchCheck("asset.site.styles","/site/site.css",200,[".site-header"],null,"text/css");
+fetchCheck("security.headers","/",200,[],null,"text/html",true);
+// A bounded pool preserves output order and keeps a total outage within the
+// existing five-minute runner budget, without adding scheduled database wakes.
+const checks=Array(specs.length);
+let cursor=0;
+await Promise.all(Array.from({length:3},async()=>{
+  while(cursor<specs.length){
+    const i=cursor++;
+    checks[i]=await checkWithConfirmation(base,specs[i],opts);
+  }
+}));
 const failed=checks.filter(x=>!x.pass);
 const transient=checks.filter(x=>x.classification==="transient");
 return {target:base,checked_at:new Date().toISOString(),status:failed.length?"failed":transient.length?"degraded":"passed",
