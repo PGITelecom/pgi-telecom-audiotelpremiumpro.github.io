@@ -12,13 +12,12 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: production-watch
-  cancel-in-progress: true
-
 jobs:
   smoke:
     if: github.event_name != 'deployment_status' || (github.event.deployment_status.state == 'success' && (github.event.deployment.production_environment == true || github.event.deployment.environment == 'Production'))
+    concurrency:
+      group: production-watch
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
